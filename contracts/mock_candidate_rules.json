@@ -1,0 +1,123 @@
+{
+  "table_name": "orders",
+  "database_name": "ecommerce_db",
+  "generated_at": "2026-09-30T08:30:00Z",
+  "total_rules": 6,
+  "rules": [
+    {
+      "id": "rule_001",
+      "rule_type": "columnValuesToBeNotNull",
+      "target_columns": ["order_id"],
+      "parameters": {},
+      "engine": "BASIC",
+      "confidence": 1.0,
+      "reason": "Cột đóng vai trò định danh chính (ID), không phát hiện giá trị null trong toàn bộ dữ liệu.",
+      "evidence": {
+        "null_count": 0,
+        "null_percentage": 0.0,
+        "total_rows": 15420
+      },
+      "validation_status": "VALID",
+      "validation_message": null,
+      "status": "DRAFT",
+      "edited_parameters": null
+    },
+    {
+      "id": "rule_002",
+      "rule_type": "columnValuesToBeUnique",
+      "target_columns": ["order_id"],
+      "parameters": {},
+      "engine": "BASIC",
+      "confidence": 1.0,
+      "reason": "Tỷ lệ giá trị duy nhất đạt 100%, phù hợp làm khóa chính hoặc mã đơn hàng duy nhất.",
+      "evidence": {
+        "distinct_count": 15420,
+        "total_rows": 15420
+      },
+      "validation_status": "VALID",
+      "validation_message": null,
+      "status": "ACCEPTED",
+      "edited_parameters": null
+    },
+    {
+      "id": "rule_003",
+      "rule_type": "columnValuesToBeBetween",
+      "target_columns": ["total_amount"],
+      "parameters": {
+        "minValue": 0.0,
+        "maxValue": 50000000.0
+      },
+      "engine": "BASIC",
+      "confidence": 0.95,
+      "reason": "Tổng tiền đơn hàng không thể âm và ngưỡng tối đa thực tế quan sát được là 48.500.000 VNĐ.",
+      "evidence": {
+        "min_observed": 10000.0,
+        "max_observed": 48500000.0,
+        "total_rows": 15420
+      },
+      "validation_status": "VALID",
+      "validation_message": null,
+      "status": "EDITED",
+      "edited_parameters": {
+        "minValue": 0.0,
+        "maxValue": 100000000.0
+      }
+    },
+    {
+      "id": "rule_004",
+      "rule_type": "columnValuesToBeInSet",
+      "target_columns": ["order_status"],
+      "parameters": {
+        "allowedValues": ["PENDING", "PROCESSING", "SHIPPED", "COMPLETED", "CANCELLED"]
+      },
+      "engine": "BASIC",
+      "confidence": 0.98,
+      "reason": "Cột trạng thái có độ biến thiên thấp (cardinality = 5), toàn bộ dữ liệu chỉ nằm trong tập 5 giá trị chuẩn.",
+      "evidence": {
+        "distinct_count": 5,
+        "observed_values": ["PENDING", "PROCESSING", "SHIPPED", "COMPLETED", "CANCELLED"]
+      },
+      "validation_status": "VALID",
+      "validation_message": null,
+      "status": "DRAFT",
+      "edited_parameters": null
+    },
+    {
+      "id": "rule_005",
+      "rule_type": "tableCustomSQLQuery",
+      "target_columns": ["created_at", "delivered_at"],
+      "parameters": {
+        "sqlExpression": "delivered_at IS NULL OR delivered_at >= created_at"
+      },
+      "engine": "ADVANCED",
+      "confidence": 0.92,
+      "reason": "Quy luật thời gian (Temporal Logic): Thời điểm giao hàng (delivered_at) phải luôn diễn ra sau hoặc cùng lúc với thời điểm tạo đơn hàng (created_at).",
+      "evidence": {
+        "sample_violations_count": 0,
+        "total_rows": 15420
+      },
+      "validation_status": "VALID",
+      "validation_message": null,
+      "status": "DRAFT",
+      "edited_parameters": null
+    },
+    {
+      "id": "rule_006",
+      "rule_type": "tableCustomSQLQuery",
+      "target_columns": ["order_status", "paid_at"],
+      "parameters": {
+        "sqlExpression": "order_status != 'COMPLETED' OR paid_at IS NOT NULL"
+      },
+      "engine": "ADVANCED",
+      "confidence": 0.88,
+      "reason": "Phụ thuộc điều kiện ngữ nghĩa (Conditional Dependency): Nếu đơn hàng ở trạng thái đã hoàn thành (COMPLETED) thì bắt buộc phải có thời gian thanh toán (paid_at).",
+      "evidence": {
+        "sample_violations_count": 0
+      },
+      "validation_status": "WARNING",
+      "validation_message": "Phát hiện 3 bản ghi cũ có trạng thái COMPLETED nhưng paid_at bị rỗng trong lịch sử di chuyển dữ liệu.",
+      "status": "DRAFT",
+      "edited_parameters": null
+    }
+  ]
+}

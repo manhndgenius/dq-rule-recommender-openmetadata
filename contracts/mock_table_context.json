@@ -1,0 +1,154 @@
+{
+  "database": "ecommerce_db",
+  "available_databases": ["ecommerce_db", "crm_system", "financial_ledger"],
+  "tables": [
+    {
+      "table_name": "orders",
+      "schema_name": "public",
+      "row_count": 15420,
+      "column_count": 7,
+      "last_profiled": "2026-09-30T10:15:00Z",
+      "freshness": "15 phút trước",
+      "description": "Bảng lưu trữ thông tin đơn hàng của khách hàng trên sàn thương mại điện tử",
+      "columns": [
+        {
+          "name": "order_id",
+          "data_type": "VARCHAR(64)",
+          "is_nullable": false,
+          "null_count": 0,
+          "null_percentage": 0.0,
+          "distinct_count": 15420,
+          "distinct_percentage": 100.0,
+          "min_value": null,
+          "max_value": null,
+          "description": "Mã định danh duy nhất của đơn hàng (Primary Key)"
+        },
+        {
+          "name": "customer_id",
+          "data_type": "VARCHAR(64)",
+          "is_nullable": true,
+          "null_count": 15,
+          "null_percentage": 0.1,
+          "distinct_count": 3210,
+          "distinct_percentage": 20.8,
+          "min_value": null,
+          "max_value": null,
+          "description": "Mã khách hàng thực hiện giao dịch"
+        },
+        {
+          "name": "total_amount",
+          "data_type": "NUMERIC(14,2)",
+          "is_nullable": false,
+          "null_count": 0,
+          "null_percentage": 0.0,
+          "distinct_count": 8450,
+          "distinct_percentage": 54.8,
+          "min_value": 10000.0,
+          "max_value": 48500000.0,
+          "description": "Tổng giá trị đơn hàng sau chiết khấu (VNĐ)"
+        },
+        {
+          "name": "order_status",
+          "data_type": "VARCHAR(20)",
+          "is_nullable": false,
+          "null_count": 0,
+          "null_percentage": 0.0,
+          "distinct_count": 5,
+          "distinct_percentage": 0.03,
+          "min_value": null,
+          "max_value": null,
+          "sample_values": ["PENDING", "PROCESSING", "SHIPPED", "COMPLETED", "CANCELLED"],
+          "description": "Trạng thái xử lý của đơn hàng"
+        },
+        {
+          "name": "created_at",
+          "data_type": "TIMESTAMP",
+          "is_nullable": false,
+          "null_count": 0,
+          "null_percentage": 0.0,
+          "distinct_count": 15410,
+          "distinct_percentage": 99.9,
+          "min_value": "2026-01-01 00:00:00",
+          "max_value": "2026-09-30 09:30:00",
+          "description": "Thời gian tạo đơn hàng"
+        },
+        {
+          "name": "delivered_at",
+          "data_type": "TIMESTAMP",
+          "is_nullable": true,
+          "null_count": 1850,
+          "null_percentage": 12.0,
+          "distinct_count": 13200,
+          "distinct_percentage": 85.6,
+          "min_value": "2026-01-01 14:20:00",
+          "max_value": "2026-09-30 10:00:00",
+          "description": "Thời gian đơn hàng được giao thành công"
+        },
+        {
+          "name": "paid_at",
+          "data_type": "TIMESTAMP",
+          "is_nullable": true,
+          "null_count": 920,
+          "null_percentage": 5.96,
+          "distinct_count": 14100,
+          "distinct_percentage": 91.4,
+          "min_value": "2026-01-01 00:05:00",
+          "max_value": "2026-09-30 09:45:00",
+          "description": "Thời gian xác nhận thanh toán đơn hàng"
+        }
+      ]
+    },
+    {
+      "table_name": "customers",
+      "schema_name": "public",
+      "row_count": 8920,
+      "column_count": 5,
+      "last_profiled": "2026-09-30T09:00:00Z",
+      "freshness": "1 giờ trước",
+      "description": "Danh sách khách hàng đăng ký tài khoản",
+      "columns": [
+        {
+          "name": "customer_id",
+          "data_type": "VARCHAR(64)",
+          "is_nullable": false,
+          "null_count": 0,
+          "null_percentage": 0.0,
+          "distinct_count": 8920,
+          "distinct_percentage": 100.0,
+          "description": "Mã khách hàng duy nhất"
+        },
+        {
+          "name": "email",
+          "data_type": "VARCHAR(255)",
+          "is_nullable": false,
+          "null_count": 0,
+          "null_percentage": 0.0,
+          "distinct_count": 8920,
+          "distinct_percentage": 100.0,
+          "description": "Địa chỉ email liên hệ"
+        },
+        {
+          "name": "age",
+          "data_type": "INTEGER",
+          "is_nullable": true,
+          "null_count": 120,
+          "null_percentage": 1.34,
+          "distinct_count": 68,
+          "min_value": 18,
+          "max_value": 85,
+          "description": "Tuổi của khách hàng"
+        },
+        {
+          "name": "membership_tier",
+          "data_type": "VARCHAR(20)",
+          "is_nullable": false,
+          "null_count": 0,
+          "null_percentage": 0.0,
+          "distinct_count": 4,
+          "sample_values": ["STANDARD", "SILVER", "GOLD", "PLATINUM"],
+          "description": "Hạng hội viên"
+        }
+      ]
+    }
+  ]
+}

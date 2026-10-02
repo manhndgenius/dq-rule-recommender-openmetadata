@@ -1,0 +1,147 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CandidateRuleList",
+  "description": "Danh sách các Candidate Rule được đề xuất bởi Recommendation Engine (Basic & Advanced) dành cho Web UI và OpenMetadata",
+  "type": "object",
+  "required": ["table_name", "rules"],
+  "properties": {
+    "table_name": {
+      "type": "string",
+      "description": "Tên bảng dữ liệu được áp dụng rule (ví dụ: orders, users, transactions)"
+    },
+    "database_name": {
+      "type": "string",
+      "description": "Tên database hoặc schema chứa bảng"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Thời điểm sinh rule (ISO-8601 UTC timestamp)"
+    },
+    "total_rules": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Tổng số lượng candidate rules được đề xuất"
+    },
+    "rules": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/CandidateRule"
+      }
+    }
+  },
+  "definitions": {
+    "CandidateRule": {
+      "type": "object",
+      "required": [
+        "id",
+        "rule_type",
+        "target_columns",
+        "engine",
+        "reason",
+        "status"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Mã định danh duy nhất của candidate rule (UUID hoặc rule_xxx)"
+        },
+        "rule_type": {
+          "type": "string",
+          "description": "Tên loại rule chuẩn hóa tương thích OpenMetadata Test Definition",
+          "enum": [
+            "columnValuesToBeNotNull",
+            "columnValuesToBeUnique",
+            "columnValuesToBeBetween",
+            "columnValuesLengthToBeBetween",
+            "columnValuesToBeInSet",
+            "tableRowCountToBeBetween",
+            "columnValuesToMatchRegex",
+            "tableCustomSQLQuery"
+          ]
+        },
+        "target_columns": {
+          "type": "array",
+          "description": "Danh sách cột chịu tác động của rule (1 cột cho Basic, 1 hoặc nhiều cột cho Advanced/Cross-column)",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 0
+        },
+        "parameters": {
+          "type": "object",
+          "description": "Các tham số cấu hình của rule",
+          "properties": {
+            "minValue": { "type": ["number", "null"] },
+            "maxValue": { "type": ["number", "null"] },
+            "minLength": { "type": ["integer", "null"] },
+            "maxLength": { "type": ["integer", "null"] },
+            "allowedValues": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "regex": { "type": ["string", "null"] },
+            "sqlExpression": {
+              "type": ["string", "null"],
+              "description": "Biểu thức SQL điều kiện cho rule nâng cao (ví dụ: end_date >= start_date)"
+            }
+          },
+          "additionalProperties": true
+        },
+        "engine": {
+          "type": "string",
+          "description": "Nguồn gốc sinh ra rule",
+          "enum": ["BASIC", "ADVANCED"]
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Độ tin cậy của recommendation từ 0.0 đến 1.0"
+        },
+        "reason": {
+          "type": "string",
+          "description": "Giải thích ngắn gọn, dễ hiểu vì sao rule này được đề xuất"
+        },
+        "evidence": {
+          "type": "object",
+          "description": "Dữ liệu thống kê hoặc mẫu chứng minh cho recommendation",
+          "properties": {
+            "null_count": { "type": "integer" },
+            "null_percentage": { "type": "number" },
+            "distinct_count": { "type": "integer" },
+            "total_rows": { "type": "integer" },
+            "min_observed": { "type": ["number", "string", "null"] },
+            "max_observed": { "type": ["number", "string", "null"] },
+            "observed_values": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "sample_violations_count": { "type": "integer" }
+          },
+          "additionalProperties": true
+        },
+        "validation_status": {
+          "type": "string",
+          "description": "Kết quả thẩm định của Rule Validator trước khi hiển thị lên UI",
+          "enum": ["VALID", "WARNING", "INVALID"],
+          "default": "VALID"
+        },
+        "validation_message": {
+          "type": ["string", "null"],
+          "description": "Chi tiết cảnh báo nếu rule bị trùng lặp hoặc có xung đột tiềm ẩn"
+        },
+        "status": {
+          "type": "string",
+          "description": "Trạng thái người dùng review trên Web UI",
+          "enum": ["DRAFT", "ACCEPTED", "EDITED", "REJECTED"],
+          "default": "DRAFT"
+        },
+        "edited_parameters": {
+          "type": ["object", "null"],
+          "description": "Các tham số đã được người dùng chỉnh sửa trong Modal Edit (nếu status = EDITED)"
+        }
+      }
+    }
+  }
+}
