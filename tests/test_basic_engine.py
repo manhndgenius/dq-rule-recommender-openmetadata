@@ -134,14 +134,13 @@ def test_generate_length_between_rule(sample_table_context):
     assert order_id_rule.parameters["minLength"] == 10
     assert order_id_rule.parameters["maxLength"] == 10
 
-def test_generate_row_count_rule(sample_table_context):
+def test_row_count_rule_disabled(sample_table_context):
     engine = BasicRuleEngine()
     candidates = engine.generate_candidates(sample_table_context)
     
+    # Xác nhận rule tableRowCountToBeBetween đã được tắt theo yêu cầu
     row_count_rules = [c for c in candidates if c.rule_type == "tableRowCountToBeBetween"]
-    assert len(row_count_rules) == 1
-    assert row_count_rules[0].parameters["minValue"] == 800
-    assert row_count_rules[0].parameters["maxValue"] == 1500
+    assert len(row_count_rules) == 0
 
 def test_empty_table_context():
     engine = BasicRuleEngine()

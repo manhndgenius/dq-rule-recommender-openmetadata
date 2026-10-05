@@ -25,6 +25,12 @@ export default function PublishSuccessModal({ isOpen, onClose, publishedRules, p
             </div>
           )}
 
+          {publishResult?.tier_updated && (
+            <div style={{ marginBottom: 12, padding: '8px 12px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: 8, fontSize: 13, color: '#10B981' }}>
+              <strong>⭐ Phân tầng Tier:</strong> Đã đồng bộ phân tầng <code>{publishResult.tier || 'Chưa phân tầng'}</code> lên OpenMetadata Live!
+            </div>
+          )}
+
           <div className="publish-details">
             <pre>
               {cases.length > 0

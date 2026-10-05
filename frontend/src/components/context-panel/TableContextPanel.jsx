@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function TableContextPanel({ tableData, isCollapsed = false, onToggleCollapse }) {
+export default function TableContextPanel({ tableData, isCollapsed = false, onToggleCollapse, onEditTier }) {
   if (!tableData) return null;
 
   if (isCollapsed) {
@@ -29,12 +29,22 @@ export default function TableContextPanel({ tableData, isCollapsed = false, onTo
             <span className="badge-source">{tableData.table_name}</span>
           </div>
           {tableData.tier ? (
-            <span className={`badge-tier ${tableData.tier.toLowerCase().replace('.', '-')}`}>
-              ⭐ {tableData.tier}
+            <span
+              className={`badge-tier ${tableData.tier.toLowerCase().replace('.', '-')} interactive-tier`}
+              onClick={onEditTier}
+              style={{ cursor: onEditTier ? 'pointer' : 'default' }}
+              title="Bấm để chỉnh sửa phân tầng Tier (Đồng bộ OpenMetadata)"
+            >
+              ⭐ {tableData.tier} ✎
             </span>
           ) : (
-            <span className="badge-tier" style={{ opacity: 0.6, borderStyle: 'dashed' }}>
-              Tier: --
+            <span
+              className="badge-tier interactive-tier"
+              onClick={onEditTier}
+              style={{ opacity: 0.8, borderStyle: 'dashed', cursor: onEditTier ? 'pointer' : 'default' }}
+              title="Bấm để thiết lập phân tầng Tier (Đồng bộ OpenMetadata)"
+            >
+              Tier: -- ✎
             </span>
           )}
         </div>

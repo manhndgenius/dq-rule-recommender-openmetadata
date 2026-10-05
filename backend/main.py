@@ -37,8 +37,12 @@ class GenerateRequest(BaseModel):
     datasource_id: Optional[str] = "openmetadata"
     engines: List[str] = ["BASIC"]
 
+class UpdateTierRequest(BaseModel):
+    tier: Optional[str] = None
+
 class PublishRequest(BaseModel):
     table_name: str
+    tier: Optional[str] = None
     rule_ids: Optional[List[str]] = None
     rules: Optional[List[CandidateRule]] = None
 
@@ -211,10 +215,22 @@ def get_evaluation_summary():
     """Chạy và trả về báo cáo benchmark chất lượng (Coverage, Safety, Latency) trên 18 bảng dataset y tế"""
     return evaluation_service.run_full_evaluation()
 
+@app.put("/api/v1/tables/{table_name}/tier")
+def update_table_tier(table_name: str, req: UpdateTierRequest):
+    """Cập nhật phân tầng Tier (Tier 1-5 hoặc None) trực tiếp lên OpenMetadata Live"""
+    success = openmetadata_publisher.update_table_tier(table_name, req.tier)
+    return {
+        "success": success,
+        "table_name": table_name,
+        "tier": req.tier,
+        "message": f"Đã cập nhật phân tầng dữ liệu thành {req.tier or 'Chưa phân tầng'} trên OpenMetadata" if success else "Lỗi cập nhật phân tầng lên OpenMetadata"
+    }
+
 @app.post("/api/v1/rules/publish")
 def publish_rules_to_openmetadata(req: PublishRequest):
     """
     Xuất bản các rules đã duyệt (ACCEPTED/EDITED) sang OpenMetadata Test Cases thực tế
+    Đồng thời đồng bộ phân tầng Tier của bảng sang OpenMetadata nếu được chỉ định
     """
     target_rules: List[CandidateRule] = []
     if req.rules and len(req.rules) > 0:
@@ -225,7 +241,7 @@ def publish_rules_to_openmetadata(req: PublishRequest):
         # Lấy toàn bộ rules của bảng trong store
         target_rules = [r for r in active_candidates_store.values() if r.status in ["ACCEPTED", "EDITED"]]
 
-    result = openmetadata_publisher.publish_rules(target_rules, req.table_name)
+    result = openmetadata_publisher.publish_rules(target_rules, req.table_name, tier=req.tier)
     return result
 
 if __name__ == "__main__":

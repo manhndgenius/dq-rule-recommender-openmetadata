@@ -2060,18 +2060,29 @@ body {
 /* --- Lineage Canvas & Nodes --- */
 .lineage-canvas-wrapper {
   flex: 1;
-  padding: 30px 20px;
-  overflow: auto;
-  background: radial-gradient(circle at center, rgba(56, 189, 248, 0.03) 0%, transparent 70%);
+  position: relative;
+  padding: 40px 30px;
+  overflow: hidden;
+  background: radial-gradient(circle at center, rgba(56, 189, 248, 0.04) 0%, transparent 75%);
+  cursor: grab;
+  user-select: none;
+  min-height: 520px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.lineage-canvas-wrapper.is-dragging {
+  cursor: grabbing;
 }
 
 .lineage-canvas {
   display: flex;
   justify-content: center;
   align-items: stretch;
-  gap: 20px;
-  min-width: 980px;
-  transition: transform 0.2s ease;
+  gap: 24px;
+  min-width: 1020px;
+  will-change: transform;
 }
 
 .lineage-column {

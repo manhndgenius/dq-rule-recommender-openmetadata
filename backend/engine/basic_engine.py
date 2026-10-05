@@ -7,13 +7,13 @@ from backend.config import settings
 class BasicRuleEngine(BaseRuleEngine):
     """
     Basic Rule Engine (Heuristic & Profiling-based).
-    Hiện thực hóa các luật chất lượng dữ liệu cơ bản theo LLD Mục 11:
+    Hiện thực hóa các luật chất lượng dữ liệu cơ bản cấp cột theo LLD Mục 11:
     1. NOT_NULL (columnValuesToBeNotNull)
     2. UNIQUE (columnValuesToBeUnique)
     3. VALUE_BETWEEN (columnValuesToBeBetween)
     4. VALUES_IN_SET (columnValuesToBeInSet)
     5. LENGTH_BETWEEN (columnValuesLengthToBeBetween)
-    6. TABLE_ROW_COUNT (tableRowCountToBeBetween)
+    (Ghi chú: Rule TABLE_ROW_COUNT tạm thời được tắt, sẽ hoàn thiện sau)
     """
 
     def generate_candidates(self, context: TableContext) -> List[CandidateRule]:
@@ -22,11 +22,7 @@ class BasicRuleEngine(BaseRuleEngine):
         if context.row_count <= 0 and not context.columns:
             return candidates
 
-        # 1. Table-level rule: Table Row Count Between
-        if context.row_count > 0:
-            candidates.append(self._generate_row_count_rule(context))
-
-        # 2. Column-level rules
+        # Duyệt qua các cột để sinh 5 luật kiểm tra chất lượng cấp cột
         for col in context.columns:
             # Rule 1: NOT NULL
             not_null_rule = self._generate_not_null_rule(context, col)

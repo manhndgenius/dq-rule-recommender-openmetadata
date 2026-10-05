@@ -95,7 +95,8 @@ export default function ColumnRuleBrowser({
       return a.name.localeCompare(b.name);
     });
 
-    const allList = [tableGroup, ...colGroups];
+    // Chỉ hiển thị nhóm Toàn bảng (Table-level) nếu có rule cấp bảng thực tế
+    const allList = tableGroup.totalRules > 0 ? [tableGroup, ...colGroups] : colGroups;
 
     return {
       tableLevelGroup: tableGroup,

@@ -1,6 +1,7 @@
 import logging
 import uuid
 import re
+import json
 from typing import List, Dict, Any, Optional
 import requests
 
@@ -103,18 +104,99 @@ class OpenMetadataPublisher:
             "parameterValues": parameter_values
         }
 
-    def publish_rules(self, rules: List[CandidateRule], table_name: str) -> Dict[str, Any]:
+    def update_table_tier(self, table_name: str, tier: Optional[str]) -> bool:
+        """
+        Cập nhật phân tầng Tier (Tier.Tier1 - Tier.Tier5 hoặc None) cho Table trên OpenMetadata.
+        Sử dụng JSON Patch RFC 6902 trên endpoint PATCH /api/v1/tables/{table_id}.
+        """
+        try:
+            from backend.integrations.openmetadata_client import openmetadata_client
+            # 1. Tìm table ID
+            tables = openmetadata_client.list_tables()
+            matched = next((t for t in tables if t.get("name") == table_name), None)
+            table_id = matched.get("id") if matched else None
+            
+            if not table_id:
+                table_fqn = f"healthcare_postgres.HealthCare.public.{table_name}"
+                res = requests.get(f"{self.server_url}/tables/name/{table_fqn}?fields=tags", headers=self._get_headers(), timeout=self.timeout)
+                if res.status_code == 200:
+                    detail = res.json()
+                    table_id = detail.get("id")
+                    current_tags = detail.get("tags", [])
+                else:
+                    logger.error(f"Không tìm thấy bảng {table_name} trên OpenMetadata")
+                    return False
+            else:
+                res = requests.get(f"{self.server_url}/tables/{table_id}?fields=tags", headers=self._get_headers(), timeout=self.timeout)
+                current_tags = res.json().get("tags", []) if res.status_code == 200 else []
+
+            # 2. Lọc bỏ các tag Tier cũ
+            filtered_tags = [
+                t for t in current_tags
+                if not (t.get("tagFQN", "").lower().startswith("tier.") or t.get("name", "").lower().startswith("tier"))
+            ]
+
+            # 3. Thêm tag Tier mới nếu có giá trị
+            clean_tier = None
+            if tier and str(tier).strip() and str(tier).strip().lower() not in ["none", "null", "undefined", "tier: --", "--"]:
+                clean_tier = str(tier).strip()
+                if not clean_tier.startswith("Tier."):
+                    clean_tier = f"Tier.{clean_tier}"
+                filtered_tags.append({
+                    "tagFQN": clean_tier,
+                    "source": "Classification",
+                    "labelType": "Manual",
+                    "state": "Confirmed"
+                })
+
+            # 4. Gửi PATCH request
+            patch_headers = {
+                "Content-Type": "application/json-patch+json",
+                "Accept": "application/json",
+                "Authorization": f"Bearer {self.token}" if self.token else ""
+            }
+            patch_data = [
+                {
+                    "op": "add",
+                    "path": "/tags",
+                    "value": filtered_tags
+                }
+            ]
+
+            patch_url = f"{self.server_url}/tables/{table_id}"
+            resp = requests.patch(patch_url, headers=patch_headers, data=json.dumps(patch_data), timeout=self.timeout)
+            if resp.status_code == 200:
+                logger.info(f"Cập nhật thành công Tier={clean_tier} cho bảng {table_name}")
+                # Invalidate backend cache
+                openmetadata_client._cache.pop(f"catalog_table_{table_name}", None)
+                openmetadata_client._cache.pop(f"catalog_table_{table_id}", None)
+                return True
+            else:
+                logger.error(f"Lỗi PATCH tier {table_name}: {resp.status_code} - {resp.text}")
+                return False
+        except Exception as e:
+            logger.error(f"Ngoại lệ khi update tier cho bảng {table_name}: {e}")
+            return False
+
+    def publish_rules(self, rules: List[CandidateRule], table_name: str, tier: Optional[str] = None) -> Dict[str, Any]:
         """
         Đẩy toàn bộ danh sách Rule đã chọn lên OpenMetadata.
+        Đồng thời đồng bộ phân tầng Tier của bảng lên OpenMetadata nếu được chỉ định.
         Tự động bỏ qua các rule có trạng thái REJECTED hoặc DRAFT (chỉ nhận ACCEPTED, EDITED).
         """
         table_fqn = f"healthcare_postgres.HealthCare.public.{table_name}"
+        tier_updated = False
+        if tier is not None:
+            tier_updated = self.update_table_tier(table_name, tier)
+
         publishable_rules = [r for r in rules if r.status in ["ACCEPTED", "EDITED"]]
 
         if not publishable_rules:
             return {
-                "success": False,
-                "message": "Không có rule nào ở trạng thái ACCEPTED hoặc EDITED để xuất bản.",
+                "success": tier_updated,
+                "message": f"Đã cập nhật phân tầng dữ liệu thành {tier} trên OpenMetadata!" if tier_updated else "Không có rule nào ở trạng thái ACCEPTED hoặc EDITED để xuất bản.",
+                "tier_updated": tier_updated,
+                "tier": tier,
                 "published_count": 0,
                 "failed_count": 0,
                 "published_test_cases": []
@@ -156,9 +238,11 @@ class OpenMetadataPublisher:
                 })
 
         return {
-            "success": len(published_cases) > 0,
+            "success": len(published_cases) > 0 or tier_updated,
             "table_name": table_name,
             "table_fqn": table_fqn,
+            "tier_updated": tier_updated,
+            "tier": tier,
             "published_count": len(published_cases),
             "failed_count": len(failed_cases),
             "published_test_cases": published_cases,

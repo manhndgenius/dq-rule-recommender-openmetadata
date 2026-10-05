@@ -159,11 +159,34 @@ export const openmetadataService = {
   },
 
   /**
-   * Xuất bản (Publish) các Rule đã duyệt lên OpenMetadata Test Cases thực tế
+   * Cập nhật phân tầng Tier (Tier 1-5 hoặc null) của bảng lên OpenMetadata
    */
-  async publishRules(tableName, rulesOrIds = null) {
+  async updateTableTier(tableName, tier) {
+    try {
+      const res = await fetch(`${API_BASE}/tables/${encodeURIComponent(tableName)}/tier`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tier: tier })
+      });
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (err) {
+      console.warn(`Lỗi cập nhật tier cho bảng ${tableName}:`, err);
+    }
+    return { success: false, message: 'Lỗi kết nối khi cập nhật Tier' };
+  },
+
+  /**
+   * Xuất bản (Publish) các Rule đã duyệt lên OpenMetadata Test Cases thực tế
+   * Đồng thời đồng bộ Tier của bảng lên OpenMetadata
+   */
+  async publishRules(tableName, rulesOrIds = null, tier = null) {
     try {
       const payload = { table_name: tableName };
+      if (tier) {
+        payload.tier = tier;
+      }
       if (Array.isArray(rulesOrIds)) {
         if (rulesOrIds.length > 0 && typeof rulesOrIds[0] === 'object') {
           payload.rules = rulesOrIds;

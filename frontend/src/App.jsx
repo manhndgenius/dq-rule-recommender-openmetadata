@@ -429,13 +429,40 @@ export default function App() {
   };
 
   // Save Tier
-  const handleSaveTier = (newTier) => {
-    setTableData((prev) => ({
-      ...prev,
-      tier: newTier,
-      tier_label: `${newTier} - Updated`
-    }));
-    addToast(`Đã cập nhật phân tầng dữ liệu thành ${newTier}!`, 'success');
+  const handleSaveTier = async (newTier) => {
+    try {
+      addToast(`Đang cập nhật phân tầng dữ liệu sang OpenMetadata Live...`, 'info');
+      const res = await openmetadataService.updateTableTier(currentTable, newTier);
+
+      if (res && res.success) {
+        setTableData((prev) => ({
+          ...prev,
+          tier: res.tier || null,
+          tier_label: res.tier ? `${res.tier}` : 'Chưa phân tầng'
+        }));
+        if (res.tier) {
+          addToast(`Đã cập nhật phân tầng dữ liệu thành ${res.tier} trên OpenMetadata Live!`, 'success');
+        } else {
+          addToast(`Đã gỡ phân tầng dữ liệu trên OpenMetadata Live!`, 'success');
+        }
+      } else {
+        // Fallback local update
+        setTableData((prev) => ({
+          ...prev,
+          tier: newTier,
+          tier_label: newTier ? `${newTier}` : 'Chưa phân tầng'
+        }));
+        addToast(res?.message || 'Lỗi cập nhật OpenMetadata, đã lưu tạm trên UI!', 'warning');
+      }
+    } catch (err) {
+      console.error('Lỗi khi cập nhật Tier:', err);
+      setTableData((prev) => ({
+        ...prev,
+        tier: newTier,
+        tier_label: newTier ? `${newTier}` : 'Chưa phân tầng'
+      }));
+      addToast('Lỗi kết nối khi cập nhật Tier lên OpenMetadata!', 'warning');
+    }
   };
 
   // Review Action (Accept / Reject)
@@ -545,7 +572,7 @@ export default function App() {
     addToast(`Đang kết nối OpenMetadata Live xuất bản ${readyRules.length} Test Cases...`, 'info');
 
     try {
-      const result = await openmetadataService.publishRules(currentTable, readyRules);
+      const result = await openmetadataService.publishRules(currentTable, readyRules, tableData?.tier);
       setIsPublishing(false);
       setPublishResult(result);
       if (result && result.success) {
@@ -763,9 +790,14 @@ export default function App() {
                       ⭐ {tableData.tier} ✎
                     </button>
                   ) : (
-                    <span className="table-tier-tag" style={{ borderStyle: 'dashed', color: 'var(--text-muted)' }} title="Chưa phân hạng trên OpenMetadata">
-                      Tier: --
-                    </span>
+                    <button
+                      className="table-tier-tag interactive unassigned"
+                      onClick={() => setIsTierModalOpen(true)}
+                      style={{ borderStyle: 'dashed', cursor: 'pointer', color: 'var(--text-muted)' }}
+                      title="Bấm để thiết lập phân tầng dữ liệu (Set Tier)"
+                    >
+                      Tier: -- ✎
+                    </button>
                   )}
 
                   {/* Follow Button */}
@@ -862,6 +894,7 @@ export default function App() {
                   tableData={tableData}
                   isCollapsed={isContextPanelCollapsed}
                   onToggleCollapse={() => setIsContextPanelCollapsed(!isContextPanelCollapsed)}
+                  onEditTier={() => setIsTierModalOpen(true)}
                 />
               </main>
             )}
