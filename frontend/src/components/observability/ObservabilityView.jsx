@@ -53,15 +53,15 @@ export default function ObservabilityView({ tableData }) {
           <div className="obs-hero-details">
             <div className="obs-title-wrap">
               <h3 className="obs-title">Data Observability & Quality Health</h3>
-              <span className="badge-tier-lg">{tableData.tier || 'Tier.Tier1'}</span>
+              <span className="badge-tier-lg">{tableData.tier || 'Tier: --'}</span>
               <span className="badge-status-healthy">🟢 {health_status}</span>
             </div>
             <p className="obs-description">
               Theo dõi chất lượng, tính tươi mới (Freshness SLA), độ trễ dữ liệu và cảnh báo bất thường (Anomaly Detection) theo thời gian thực từ OpenMetadata.
             </p>
             <div className="obs-meta-pills">
-              <span className="obs-pill">Domain: <strong>{tableData.domain || 'E-Commerce'}</strong></span>
-              <span className="obs-pill">Owner: <strong>{tableData.owner?.name || 'Data Engineering'}</strong></span>
+              <span className="obs-pill">Domain: <strong>{tableData.domain ? (tableData.domain.displayName || tableData.domain.name || tableData.domain) : '--'}</strong></span>
+              <span className="obs-pill">Owner: <strong>{tableData.owner?.displayName || tableData.owner?.name ? (tableData.owner.displayName || tableData.owner.name) : '--'}</strong></span>
               <span className="obs-pill">FQN: <code>{tableData.fully_qualified_name || tableData.table_name}</code></span>
             </div>
           </div>
@@ -70,7 +70,7 @@ export default function ObservabilityView({ tableData }) {
         <div className="obs-hero-actions">
           <button
             className="btn btn-primary"
-            onClick={() => window.open('https://sandbox.open-metadata.org/data-quality', '_blank')}
+            onClick={() => window.open('https://c3-app-009.duckdns.org', '_blank')}
           >
             Mở OpenMetadata Profiler ↗
           </button>

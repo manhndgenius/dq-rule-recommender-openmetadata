@@ -29,8 +29,9 @@ class TableContext(BaseModel):
     table_name: str
     table_description: Optional[str] = None
     row_count: int = 0
-    tier: Optional[str] = "Tier.Tier1"
-    domain: Optional[str] = "E-Commerce"
+    version: Optional[float] = None
+    tier: Optional[str] = None
+    domain: Optional[Any] = None
     owner: Optional[Dict[str, Any]] = None
     tags: List[Dict[str, Any]] = Field(default_factory=list)
     columns: List[ColumnContext] = Field(default_factory=list)

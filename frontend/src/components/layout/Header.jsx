@@ -80,31 +80,35 @@ export default function Header({
               ))
             ) : (
               <>
-                <option value="patients" title="Bảng hồ sơ định danh và thông tin lâm sàng bệnh nhân">public.patients (Tier 1)</option>
-                <option value="encounters" title="Bảng lịch sử các đợt khám bệnh và điều trị">public.encounters (Tier 1)</option>
-                <option value="claims" title="Bảng hồ sơ yêu cầu chi trả bảo hiểm">public.claims (Tier 1)</option>
+                <option value="patients" title="Bảng hồ sơ định danh và thông tin lâm sàng bệnh nhân">public.patients</option>
+                <option value="encounters" title="Bảng lịch sử các đợt khám bệnh và điều trị">public.encounters</option>
+                <option value="claims" title="Bảng hồ sơ yêu cầu chi trả bảo hiểm">public.claims</option>
               </>
             )}
           </select>
         </div>
 
         {/* Current Table Tier Pill */}
-        {tableData?.tier && (
+        {tableData?.tier ? (
           <div className="header-tier-pill" title={tableData.tier_label || tableData.tier}>
             <span className="tier-star">⭐</span>
             <span className="tier-text">{tableData.tier}</span>
           </div>
+        ) : (
+          <div className="header-tier-pill muted" style={{ opacity: 0.6 }} title="Chưa phân hạng trên OpenMetadata">
+            <span className="tier-text">Tier: --</span>
+          </div>
         )}
 
-        {/* Link to OpenMetadata Sandbox */}
+        {/* Link to OpenMetadata Live Server */}
         <a
-          href="https://sandbox.open-metadata.org"
+          href="https://c3-app-009.duckdns.org"
           target="_blank"
           rel="noopener noreferrer"
           className="btn-om-sandbox"
-          title="Mở OpenMetadata Sandbox chính thức"
+          title="Mở OpenMetadata Server thực tế (c3-app-009.duckdns.org)"
         >
-          <span>🌐 Sandbox Live</span>
+          <span>🌐 OpenMetadata Live</span>
         </a>
 
         {/* Theme Toggle Button */}

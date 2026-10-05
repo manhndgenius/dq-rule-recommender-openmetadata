@@ -43,7 +43,12 @@ export default function RuleCard({ rule, onReviewAction, onOpenEdit }) {
           <span className={`badge-engine ${isBasic ? 'basic' : 'advanced'}`}>
             {rule.engine}
           </span>
-          <span className="rule-type-name">{rule.rule_type}</span>
+          <div className="rule-title-group">
+            <span className="rule-type-name">{rule.rule_type}</span>
+            {rule.description && (
+              <span className="rule-desc-text">{rule.description}</span>
+            )}
+          </div>
         </div>
         <div className="card-header-right">
           <span className={`badge-validation ${isValid ? 'valid' : 'warning'}`}>
@@ -89,12 +94,17 @@ export default function RuleCard({ rule, onReviewAction, onOpenEdit }) {
         <div className="evidence-tags">
           {rule.evidence?.null_count !== undefined && (
             <span className="evidence-tag">
-              Null Count: <strong>{rule.evidence.null_count}</strong>
+              Null: <strong>{rule.evidence.null_count}</strong> {rule.evidence.null_ratio !== undefined ? `(${Math.round(rule.evidence.null_ratio * 100)}%)` : ''}
             </span>
           )}
           {rule.evidence?.distinct_count !== undefined && (
             <span className="evidence-tag">
-              Distinct Count: <strong>{rule.evidence.distinct_count}</strong>
+              Distinct: <strong>{rule.evidence.distinct_count}</strong> {rule.evidence.distinct_ratio !== undefined ? `(${Math.round(rule.evidence.distinct_ratio * 100)}%)` : ''}
+            </span>
+          )}
+          {rule.evidence?.duplicate_count !== undefined && (
+            <span className="evidence-tag">
+              Duplicates: <strong>{rule.evidence.duplicate_count}</strong>
             </span>
           )}
           {rule.evidence?.min_observed !== undefined && rule.evidence?.max_observed !== undefined && (
@@ -102,9 +112,29 @@ export default function RuleCard({ rule, onReviewAction, onOpenEdit }) {
               Range: <strong>[{rule.evidence.min_observed} .. {rule.evidence.max_observed}]</strong>
             </span>
           )}
-          {rule.evidence?.total_rows !== undefined && (
+          {rule.evidence?.min_length !== undefined && rule.evidence?.max_length !== undefined && (
             <span className="evidence-tag">
-              Sample: <strong>{rule.evidence.total_rows} rows</strong>
+              Length: <strong>[{rule.evidence.min_length} .. {rule.evidence.max_length}] chars</strong>
+            </span>
+          )}
+          {rule.evidence?.expected_min !== undefined && rule.evidence?.expected_max !== undefined && (
+            <span className="evidence-tag">
+              Expected Rows: <strong>[{rule.evidence.expected_min.toLocaleString()} .. {rule.evidence.expected_max.toLocaleString()}]</strong>
+            </span>
+          )}
+          {(rule.evidence?.total_rows !== undefined || rule.evidence?.current_row_count !== undefined) && (
+            <span className="evidence-tag">
+              Dataset Rows: <strong>{(rule.evidence.total_rows ?? rule.evidence.current_row_count).toLocaleString()}</strong>
+            </span>
+          )}
+          {rule.evidence?.sample_violations_count !== undefined && (
+            <span className="evidence-tag">
+              Violations: <strong>{rule.evidence.sample_violations_count}</strong>
+            </span>
+          )}
+          {rule.evidence?.is_primary_key && (
+            <span className="evidence-tag" style={{ color: '#10B981', borderColor: 'rgba(16, 185, 129, 0.3)' }}>
+              Primary Key 🔑
             </span>
           )}
         </div>

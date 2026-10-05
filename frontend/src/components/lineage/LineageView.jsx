@@ -219,7 +219,7 @@ export default function LineageView({ tableData }) {
               >
                 <div className="node-header-current">
                   <span className="current-star">★</span>
-                  <span className="current-tier-pill">{current.tier || 'Tier.Tier1'}</span>
+                  <span className="current-tier-pill">{current.tier || 'Tier: --'}</span>
                 </div>
                 <div className="node-icon-wrap current-icon">{getNodeIcon(current)}</div>
                 <div className="node-info">

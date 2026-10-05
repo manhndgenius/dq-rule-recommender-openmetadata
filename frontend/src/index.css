@@ -47,8 +47,8 @@
   --color-danger-border: rgba(239, 68, 68, 0.3);
 
   /* Fonts - Enterprise Typography with Native Vietnamese Support */
-  --font-heading: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-heading: 'Be Vietnam Pro', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-body: 'Inter', 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
 
   /* Radii & Shadows */
@@ -111,6 +111,10 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+}
+
+button, input, select, textarea {
+  font-family: inherit;
 }
 
 body {
@@ -618,20 +622,23 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
 .trigger-group {
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
 .btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  padding: 10px 20px;
+  padding: 10px 22px;
   border-radius: var(--radius-md);
   font-family: var(--font-heading);
   font-size: 14px;
@@ -640,6 +647,12 @@ body {
   border: 1px solid transparent;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   outline: none;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+}
+
+.btn .btn-text {
+  white-space: nowrap !important;
 }
 
 .btn-primary {
@@ -999,11 +1012,28 @@ body {
   border: 1px solid var(--color-advanced-border);
 }
 
+.rule-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .rule-type-name {
   font-family: var(--font-mono);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-light);
+}
+
+.rule-desc-text {
+  font-family: var(--font-heading);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #38BDF8;
+}
+
+[data-theme="light"] .rule-desc-text {
+  color: #0284C7;
 }
 
 .card-header-right {
@@ -5692,7 +5722,7 @@ body {
 }
 
 .cbc-name {
-  font-family: var(--font-mono, monospace);
+  font-family: var(--font-heading);
   font-size: 14px;
   font-weight: 700;
   color: var(--text-main);
@@ -6011,6 +6041,7 @@ body {
 }
 
 .cd-btn-back {
+  font-family: var(--font-heading);
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -6024,6 +6055,11 @@ body {
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
+}
+
+.cd-btn-back strong {
+  font-family: inherit;
+  font-weight: 600;
 }
 
 .cd-btn-back:hover {
@@ -6099,16 +6135,36 @@ body {
   flex-wrap: wrap;
 }
 
+.cd-col-name-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px 8px;
+  flex-wrap: wrap;
+}
+
 .cd-col-name {
   margin: 0;
-  font-family: var(--font-mono, monospace);
+  font-family: var(--font-heading);
   font-size: 18px;
   font-weight: 700;
   color: var(--text-main);
+  white-space: nowrap;
 }
 
 [data-theme="light"] .cd-col-name {
   color: #0F172A;
+}
+
+.cd-col-level-tag {
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+[data-theme="light"] .cd-col-level-tag {
+  color: #64748B;
 }
 
 .cd-col-type {
@@ -6119,6 +6175,7 @@ body {
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid var(--border-subtle);
   color: var(--text-muted);
+  white-space: nowrap;
 }
 
 [data-theme="light"] .cd-col-type {
@@ -6306,7 +6363,7 @@ body {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--border-subtle);
   color: var(--text-muted);
-  font-family: var(--font-mono, monospace);
+  font-family: var(--font-heading);
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;

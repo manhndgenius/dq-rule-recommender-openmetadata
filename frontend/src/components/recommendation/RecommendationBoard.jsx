@@ -18,6 +18,7 @@ export default function RecommendationBoard({
   setUseAdvanced,
   isGenerating,
   generationStep,
+  isPublishing = false,
   onGenerate,
   onReviewAction,
   onOpenEdit,
@@ -76,9 +77,8 @@ export default function RecommendationBoard({
           <button
             className={`btn-mode-toggle ${viewMode === 'COLUMNS' ? 'active' : ''}`}
             onClick={() => setViewMode('COLUMNS')}
-            title="Hiển thị danh sách các cột trước, bấm vào cột để duyệt luật"
+            title="Hiển thị danh sách các cột trước, bấm vào cột để duyệt rule"
           >
-            <span className="mode-icon">🗂️</span>
             <span>Xem theo Cột {selectedColumn ? `(${selectedColumn})` : ''}</span>
           </button>
 
@@ -87,7 +87,6 @@ export default function RecommendationBoard({
             onClick={() => setViewMode('FLAT')}
             title="Hiển thị danh sách phẳng tất cả các rule"
           >
-            <span className="mode-icon">📑</span>
             <span>Tất cả Rule ({rules.length})</span>
           </button>
         </div>
@@ -150,7 +149,7 @@ export default function RecommendationBoard({
       )}
 
       {/* Sticky Publish Bar */}
-      <PublishBar readyRulesCount={stats.accepted} onPublish={onPublish} />
+      <PublishBar readyRulesCount={stats.accepted} onPublish={onPublish} isPublishing={isPublishing} />
     </section>
   );
 }

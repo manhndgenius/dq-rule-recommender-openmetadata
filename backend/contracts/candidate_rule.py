@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 class CandidateRule(BaseModel):
     id: str = Field(default_factory=lambda: f"rule_{uuid.uuid4().hex[:8]}")
     rule_type: str
+    description: Optional[str] = None
     target_columns: List[str]
     parameters: Dict[str, Any] = Field(default_factory=dict)
     expression: Optional[str] = None

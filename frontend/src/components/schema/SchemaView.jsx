@@ -28,7 +28,7 @@ export default function SchemaView({ tableData }) {
         <div className="schema-summary-chips">
           <span className="chip-stat"><strong>{filteredColumns.length}</strong> / {tableData.columns.length} Cột</span>
           <span className="chip-stat"><strong>{tableData.row_count.toLocaleString()}</strong> Dòng</span>
-          <span className="chip-tier-pill">{tableData.tier || 'Tier.Tier1'}</span>
+          <span className="chip-tier-pill">{tableData.tier || 'Tier: --'}</span>
         </div>
       </div>
 
@@ -42,7 +42,7 @@ export default function SchemaView({ tableData }) {
           <span className="schema-desc-badge">OpenMetadata Catalog</span>
         </div>
         <p className="schema-desc-body">
-          {tableData.description || `Bảng dữ liệu y tế ${tableData.table_name} thuộc cơ sở dữ liệu HealthCare.`}
+          {tableData.description || 'Chưa có mô tả trên OpenMetadata Catalog.'}
         </p>
       </div>
 
@@ -104,14 +104,22 @@ export default function SchemaView({ tableData }) {
 
                   <td>
                     <div className="tags-flex-wrap">
-                      {(col.tags || []).map((tag, idx) => (
-                        <span
-                          key={idx}
-                          className={`tag-pill ${tag.includes('Sensitive') ? 'pii-sensitive' : 'pii-safe'}`}
-                        >
-                          🏷️ {tag}
-                        </span>
-                      ))}
+                      {(col.tags && col.tags.length > 0) ? (
+                        col.tags.map((tag, idx) => {
+                          const tagName = typeof tag === 'object' ? (tag.name || tag.tagFQN) : String(tag);
+                          const isSens = tagName.toLowerCase().includes('sensitive') || tagName.toLowerCase().includes('pii');
+                          return (
+                            <span
+                              key={idx}
+                              className={`tag-pill ${isSens ? 'pii-sensitive' : 'pii-safe'}`}
+                            >
+                              🏷️ {tagName}
+                            </span>
+                          );
+                        })
+                      ) : (
+                        <span className="text-muted" style={{ fontStyle: 'italic', fontSize: '12px', color: 'var(--text-muted)' }}>—</span>
+                      )}
                     </div>
                   </td>
 

@@ -71,9 +71,9 @@ export const openmetadataService = {
   /**
    * Lấy danh sách 18 Tables từ OpenMetadata
    */
-  async getTables(schemaFqn = 'healthcare_postgres.HealthCare.public') {
+  async getTables(schemaFqn = 'healthcare_postgres.HealthCare.public', refresh = false) {
     try {
-      const res = await fetch(`${API_BASE}/catalog/tables?schemaFqn=${encodeURIComponent(schemaFqn)}`);
+      const res = await fetch(`${API_BASE}/catalog/tables?schemaFqn=${encodeURIComponent(schemaFqn)}${refresh ? '&refresh=true' : ''}`);
       if (res.ok) {
         const data = await res.json();
         return data.tables || [];
@@ -87,9 +87,9 @@ export const openmetadataService = {
   /**
    * Lấy chi tiết Table, Columns và Profiling đầy đủ
    */
-  async getTableDetail(tableIdOrName) {
+  async getTableDetail(tableIdOrName, refresh = false) {
     try {
-      const res = await fetch(`${API_BASE}/catalog/tables/${encodeURIComponent(tableIdOrName)}`);
+      const res = await fetch(`${API_BASE}/catalog/tables/${encodeURIComponent(tableIdOrName)}${refresh ? '?refresh=true' : ''}`);
       if (res.ok) {
         return await res.json();
       }
@@ -102,9 +102,9 @@ export const openmetadataService = {
   /**
    * Lấy TableContext chuẩn hóa cho Rule Recommender & UI Tabs
    */
-  async getTableContext(tableName) {
+  async getTableContext(tableName, refresh = false) {
     try {
-      const res = await fetch(`${API_BASE}/context/${encodeURIComponent(tableName)}`);
+      const res = await fetch(`${API_BASE}/context/${encodeURIComponent(tableName)}${refresh ? '?refresh=true' : ''}`);
       if (res.ok) {
         return await res.json();
       }
@@ -154,6 +154,48 @@ export const openmetadataService = {
       }
     } catch (err) {
       console.warn(`Lỗi gửi review cho rule ${ruleId}:`, err);
+    }
+    return null;
+  },
+
+  /**
+   * Xuất bản (Publish) các Rule đã duyệt lên OpenMetadata Test Cases thực tế
+   */
+  async publishRules(tableName, rulesOrIds = null) {
+    try {
+      const payload = { table_name: tableName };
+      if (Array.isArray(rulesOrIds)) {
+        if (rulesOrIds.length > 0 && typeof rulesOrIds[0] === 'object') {
+          payload.rules = rulesOrIds;
+        } else {
+          payload.rule_ids = rulesOrIds;
+        }
+      }
+      const res = await fetch(`${API_BASE}/rules/publish`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (err) {
+      console.warn(`Lỗi xuất bản rules lên OpenMetadata cho bảng ${tableName}:`, err);
+    }
+    return { success: false, message: 'Lỗi kết nối tới máy chủ OpenMetadata' };
+  },
+
+  /**
+   * Lấy báo cáo Benchmark Evaluation định lượng
+   */
+  async getEvaluationSummary() {
+    try {
+      const res = await fetch(`${API_BASE}/evaluation/summary`);
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (err) {
+      console.warn('Lỗi lấy báo cáo Evaluation:', err);
     }
     return null;
   }

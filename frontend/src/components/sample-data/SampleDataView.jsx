@@ -22,16 +22,31 @@ export default function SampleDataView({ tableData }) {
     const strVal = String(value);
 
     if (isMasked) {
-      if (header.includes('email')) {
+      const h = header.toLowerCase();
+      if (h.includes('ssn')) {
+        return <span className="cell-val masked">***-**-{strVal.slice(-4)}</span>;
+      }
+      if (h.includes('drivers') || h.includes('passport')) {
+        return <span className="cell-val masked">{strVal.slice(0, 2)}*****{strVal.slice(-2)}</span>;
+      }
+      if (h.includes('address')) {
+        return <span className="cell-val masked">*** Đường bảo mật (Masked) ***</span>;
+      }
+      if (h.includes('email')) {
         const parts = strVal.split('@');
         return <span className="cell-val masked">{parts[0].slice(0, 2)}*****@{parts[1] || '***.com'}</span>;
       }
-      if (header.includes('customer_id')) {
-        return <span className="cell-val masked">{strVal.slice(0, 5)}***{strVal.slice(-1)}</span>;
+      if (h.includes('customer_id') || (h === 'id' && strVal.length > 10)) {
+        return <span className="cell-val masked">{strVal.slice(0, 5)}...{strVal.slice(-4)}</span>;
       }
     }
 
     return <span className="cell-val">{strVal}</span>;
+  };
+
+  const isPiiHeader = (h) => {
+    const l = h.toLowerCase();
+    return ['ssn', 'drivers', 'passport', 'email', 'address', 'phone', 'customer_id'].some((k) => l.includes(k));
   };
 
   return (
@@ -42,7 +57,7 @@ export default function SampleDataView({ tableData }) {
           <div>
             <h3 className="sample-heading">Dữ liệu mẫu thực tế (Sample Data Preview)</h3>
             <p className="sample-subheading">
-              Hiển thị {sampleRows.length} bản ghi mẫu thực tế từ bảng <code>{tableData.table_name}</code> để đối chiếu với các luật DQ
+              Hiển thị {sampleRows.length} bản ghi mẫu thực tế từ bảng <code>{tableData.table_name}</code> để đối chiếu với các rule DQ
             </p>
           </div>
         </div>
@@ -60,7 +75,7 @@ export default function SampleDataView({ tableData }) {
           <span className="sample-badge-count">{sampleRows.length} records</span>
           <button
             className="btn btn-secondary btn-sm"
-            onClick={() => alert('Dữ liệu đã được nạp sẵn để đối chiếu với các luật Data Quality trên Web!')}
+            onClick={() => alert('Dữ liệu đã được nạp sẵn để đối chiếu với các rule Data Quality trên Web!')}
           >
             📋 Xuất file CSV
           </button>
@@ -76,7 +91,7 @@ export default function SampleDataView({ tableData }) {
                 {headers.map((h) => (
                   <th key={h}>
                     {h}
-                    {(h.includes('email') || h.includes('customer_id')) && (
+                    {isPiiHeader(h) && (
                       <span className="pii-indicator-tag" title="Cột nhạy cảm PII">PII</span>
                     )}
                   </th>

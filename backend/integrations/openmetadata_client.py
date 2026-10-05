@@ -131,12 +131,13 @@ class OpenMetadataClient:
 
         return [{"name": "public", "fullyQualifiedName": "healthcare_postgres.HealthCare.public"}]
 
-    def list_tables(self, schema_fqn: str = "healthcare_postgres.HealthCare.public") -> List[Dict[str, Any]]:
+    def list_tables(self, schema_fqn: str = "healthcare_postgres.HealthCare.public", force_refresh: bool = False) -> List[Dict[str, Any]]:
         """Lấy danh sách Tables thuộc Schema, hỗ trợ pagination (Section 5.4 & 9)"""
         cache_key = f"tables_{schema_fqn}"
-        cached = self._get_from_cache(cache_key)
-        if cached:
-            return cached
+        if not force_refresh:
+            cached = self._get_from_cache(cache_key)
+            if cached:
+                return cached
 
         tables: List[Dict[str, Any]] = []
         after_cursor = None
@@ -156,14 +157,13 @@ class OpenMetadataClient:
                 for t in data:
                     t_name = t.get("name", "")
                     table_desc = (t.get("description") or "").strip()
-                    if not table_desc:
-                        table_desc = HEALTHCARE_TABLE_DESCRIPTIONS.get(t_name.lower(), f"Bảng dữ liệu y tế {t_name} thuộc cơ sở dữ liệu HealthCare.")
                     tables.append({
                         "id": t.get("id"),
                         "name": t_name,
                         "fullyQualifiedName": t.get("fullyQualifiedName"),
                         "description": table_desc,
-                        "tableType": t.get("tableType", "Regular")
+                        "tableType": t.get("tableType", "Regular"),
+                        "version": t.get("version")
                     })
 
                 paging = body.get("paging", {})
@@ -209,16 +209,17 @@ class OpenMetadataClient:
             logger.debug(f"Lỗi lấy profile cho column {column_fqn}: {e}")
         return None
 
-    def get_catalog_table(self, table_id_or_name: str) -> Dict[str, Any]:
+    def get_catalog_table(self, table_id_or_name: str, force_refresh: bool = False) -> Dict[str, Any]:
         """
         Lấy chi tiết Table, danh sách Columns, và Column Profiles (Section 5.5, 5.7, 6, 8).
         Sử dụng ThreadPoolExecutor để query song song các cột.
         Áp dụng deriveTableProfile nếu tableProfile rỗng.
         """
         cache_key = f"catalog_table_{table_id_or_name}"
-        cached = self._get_from_cache(cache_key)
-        if cached:
-            return cached
+        if not force_refresh:
+            cached = self._get_from_cache(cache_key)
+            if cached:
+                return cached
 
         table_detail: Optional[Dict[str, Any]] = None
 
@@ -226,19 +227,19 @@ class OpenMetadataClient:
         try:
             if "-" in table_id_or_name and len(table_id_or_name) == 36:
                 # UUID format
-                url = f"{self.server_url}/tables/{table_id_or_name}?fields=columns,owners,tags"
+                url = f"{self.server_url}/tables/{table_id_or_name}?fields=columns,owners,tags,domains"
             elif "." in table_id_or_name:
                 # FQN
-                url = f"{self.server_url}/tables/name/{urllib.parse.quote(table_id_or_name, safe='')}?fields=columns,owners,tags"
+                url = f"{self.server_url}/tables/name/{urllib.parse.quote(table_id_or_name, safe='')}?fields=columns,owners,tags,domains"
             else:
                 # Tìm ID trong danh sách tables của HealthCare.public
                 tables = self.list_tables()
                 matched = next((t for t in tables if t.get("name") == table_id_or_name), None)
                 if matched and matched.get("id"):
-                    url = f"{self.server_url}/tables/{matched['id']}?fields=columns,owners,tags"
+                    url = f"{self.server_url}/tables/{matched['id']}?fields=columns,owners,tags,domains"
                 else:
                     fqn = f"healthcare_postgres.HealthCare.public.{table_id_or_name}"
-                    url = f"{self.server_url}/tables/name/{urllib.parse.quote(fqn, safe='')}?fields=columns,owners,tags"
+                    url = f"{self.server_url}/tables/name/{urllib.parse.quote(fqn, safe='')}?fields=columns,owners,tags,domains"
 
             resp = requests.get(url, headers=self._get_headers(), timeout=self.timeout)
             if resp.status_code == 200:
@@ -326,15 +327,51 @@ class OpenMetadataClient:
 
         t_name = table_detail.get("name") or table_id_or_name
         detail_desc = (table_detail.get("description") or "").strip()
-        if not detail_desc:
-            detail_desc = HEALTHCARE_TABLE_DESCRIPTIONS.get(t_name.lower(), f"Bảng dữ liệu y tế {t_name} thuộc cơ sở dữ liệu HealthCare.")
+
+        owners = table_detail.get("owners", [])
+        owner_obj = None
+        if owners and len(owners) > 0:
+            owner_obj = {
+                "name": owners[0].get("displayName") or owners[0].get("name"),
+                "type": owners[0].get("type", "user")
+            }
+        elif table_detail.get("owner"):
+            o = table_detail.get("owner")
+            owner_obj = {
+                "name": o.get("displayName") or o.get("name"),
+                "type": o.get("type", "user")
+            }
+
+        table_tags = [
+            {"name": t.get("name") or t.get("tagFQN"), "tagFQN": t.get("tagFQN")}
+            for t in table_detail.get("tags", [])
+        ]
+
+        # Trích xuất Tier và Domain trực tiếp từ OpenMetadata
+        table_tier = None
+        for t in table_detail.get("tags", []):
+            tag_name = t.get("tagFQN") or t.get("name") or ""
+            if "tier." in tag_name.lower() or tag_name.lower().startswith("tier"):
+                table_tier = tag_name
+                break
+
+        domains = table_detail.get("domains", [])
+        domain_obj = table_detail.get("domain")
+        if not domain_obj and domains and len(domains) > 0:
+            domain_obj = domains[0]
 
         result = {
             "id": table_detail.get("id"),
             "name": t_name,
             "fqn": table_detail.get("fullyQualifiedName"),
             "type": table_detail.get("tableType", "Regular"),
+            "version": table_detail.get("version"),
             "description": detail_desc,
+            "domain": domain_obj,
+            "tier": table_tier,
+            "owner": owner_obj,
+            "owners": owners,
+            "tags": table_tags,
             "profile": {
                 "timestamp": derived_ts,
                 "rowCount": derived_row_count,
@@ -346,12 +383,12 @@ class OpenMetadataClient:
         self._set_cache(cache_key, result)
         return result
 
-    def get_table_context(self, table_name: str) -> TableContext:
+    def get_table_context(self, table_name: str, force_refresh: bool = False) -> TableContext:
         """
         Trích xuất TableContext chuẩn hóa từ OpenMetadata để tích hợp trực tiếp
         vào BasicRuleEngine, Data Profiler, Schema View và Observability View.
         """
-        catalog = self.get_catalog_table(table_name)
+        catalog = self.get_catalog_table(table_name, force_refresh=force_refresh)
         
         # Parse database & schema name từ FQN
         # FQN format: service.database.schema.table
@@ -407,11 +444,15 @@ class OpenMetadataClient:
                 profile=column_profile
             ))
 
-        # Phân loại Domain & Tier cho Healthcare tables
+        # Phân loại Domain & Tier trực tiếp từ OpenMetadata (không áp đặt giả định)
         t_clean_name = (catalog.get("name") or table_name).lower()
         t_desc = (catalog.get("description") or "").strip()
-        if not t_desc:
-            t_desc = HEALTHCARE_TABLE_DESCRIPTIONS.get(t_clean_name, f"Bảng dữ liệu y tế {table_name} thuộc cơ sở dữ liệu HealthCare.")
+
+        owner_obj = catalog.get("owner")
+        table_tags = catalog.get("tags", [])
+        tier_tag = catalog.get("tier")
+        if not tier_tag:
+            tier_tag = next((t.get("tagFQN") or t.get("name") for t in table_tags if "tier." in (t.get("tagFQN") or t.get("name") or "").lower()), None)
 
         return TableContext(
             datasource_id="openmetadata-live",
@@ -420,10 +461,11 @@ class OpenMetadataClient:
             table_name=catalog.get("name") or table_name,
             table_description=t_desc,
             row_count=row_count,
-            tier="Tier.Tier1" if t_clean_name in ["patients", "encounters", "claims", "medications", "conditions"] else "Tier.Tier2",
-            domain="Healthcare & Clinical",
-            owner={"name": "DataOps Healthcare Team", "role": "Data Steward"},
-            tags=[{"name": "Healthcare"}, {"name": "Clinical Data"}],
+            version=catalog.get("version"),
+            tier=tier_tag,
+            domain=catalog.get("domain"),
+            owner=owner_obj,
+            tags=table_tags,
             columns=columns
         )
 

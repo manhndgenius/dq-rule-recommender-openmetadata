@@ -70,6 +70,7 @@ class BasicRuleEngine(BaseRuleEngine):
             )
             return CandidateRule(
                 rule_type="columnValuesToBeNotNull",
+                description="Cột không được để trống (Not Null)",
                 target_columns=[col.name],
                 parameters={},
                 engine="BASIC",
@@ -78,7 +79,10 @@ class BasicRuleEngine(BaseRuleEngine):
                 evidence={
                     "null_count": prof.null_count,
                     "null_ratio": prof.null_ratio,
-                    "row_count": prof.row_count,
+                    "non_null_count": prof.row_count - prof.null_count,
+                    "total_rows": prof.row_count,
+                    "sample_violations_count": 0,
+                    "is_primary_key": col.is_primary_key
                 },
                 validation_status="VALID",
                 status="DRAFT"
@@ -106,6 +110,7 @@ class BasicRuleEngine(BaseRuleEngine):
             )
             return CandidateRule(
                 rule_type="columnValuesToBeUnique",
+                description="Giá trị duy nhất, không trùng lặp (Unique)",
                 target_columns=[col.name],
                 parameters={},
                 engine="BASIC",
@@ -114,7 +119,9 @@ class BasicRuleEngine(BaseRuleEngine):
                 evidence={
                     "distinct_count": prof.distinct_count,
                     "distinct_ratio": prof.distinct_ratio,
-                    "row_count": prof.row_count,
+                    "duplicate_count": 0 if is_pk else max(0, prof.row_count - prof.distinct_count),
+                    "total_rows": prof.row_count,
+                    "sample_violations_count": 0,
                     "is_primary_key": is_pk
                 },
                 validation_status="VALID",
@@ -138,6 +145,7 @@ class BasicRuleEngine(BaseRuleEngine):
         if is_numeric or is_date:
             return CandidateRule(
                 rule_type="columnValuesToBeBetween",
+                description=f"Giá trị nằm trong khoảng dự kiến [{prof.min_value} .. {prof.max_value}]",
                 target_columns=[col.name],
                 parameters={
                     "minValue": prof.min_value,
@@ -149,7 +157,9 @@ class BasicRuleEngine(BaseRuleEngine):
                 evidence={
                     "min_observed": prof.min_value,
                     "max_observed": prof.max_value,
-                    "row_count": prof.row_count
+                    "expected_range": [prof.min_value, prof.max_value],
+                    "total_rows": prof.row_count,
+                    "sample_violations_count": 0
                 },
                 validation_status="VALID",
                 status="DRAFT"
@@ -174,6 +184,7 @@ class BasicRuleEngine(BaseRuleEngine):
 
             return CandidateRule(
                 rule_type="columnValuesToBeInSet",
+                description=f"Giá trị thuộc danh mục cho phép ({len(allowed_values)} giá trị)",
                 target_columns=[col.name],
                 parameters={
                     "allowedValues": allowed_values
@@ -183,7 +194,11 @@ class BasicRuleEngine(BaseRuleEngine):
                 reason=f"Cột '{col.name}' có số lượng giá trị phân biệt thấp ({prof.distinct_count} giá trị), dữ liệu chỉ nằm trong tập chuẩn.",
                 evidence={
                     "distinct_count": prof.distinct_count,
-                    "observed_values": allowed_values
+                    "cardinality_ratio": prof.distinct_ratio,
+                    "observed_values": allowed_values,
+                    "allowed_values": allowed_values,
+                    "total_rows": prof.row_count,
+                    "sample_violations_count": 0
                 },
                 validation_status="VALID",
                 status="DRAFT"
@@ -202,6 +217,7 @@ class BasicRuleEngine(BaseRuleEngine):
         if is_string and prof.min_length is not None and prof.max_length is not None:
             return CandidateRule(
                 rule_type="columnValuesLengthToBeBetween",
+                description=f"Độ dài chuỗi từ {prof.min_length} đến {prof.max_length} ký tự",
                 target_columns=[col.name],
                 parameters={
                     "minLength": prof.min_length,
@@ -212,7 +228,10 @@ class BasicRuleEngine(BaseRuleEngine):
                 reason=f"Độ dài ký tự của cột '{col.name}' được ghi nhận trong khoảng [{prof.min_length} .. {prof.max_length}] ký tự.",
                 evidence={
                     "min_length": prof.min_length,
-                    "max_length": prof.max_length
+                    "max_length": prof.max_length,
+                    "expected_range": [prof.min_length, prof.max_length],
+                    "total_rows": prof.row_count,
+                    "sample_violations_count": 0
                 },
                 validation_status="VALID",
                 status="DRAFT"
@@ -228,6 +247,7 @@ class BasicRuleEngine(BaseRuleEngine):
         max_rows = int(context.row_count * 1.5)
         return CandidateRule(
             rule_type="tableRowCountToBeBetween",
+            description=f"Tổng số dòng bảng duy trì trong khoảng [{min_rows:,} .. {max_rows:,}] dòng",
             target_columns=[],
             parameters={
                 "minValue": min_rows,
@@ -239,7 +259,9 @@ class BasicRuleEngine(BaseRuleEngine):
             evidence={
                 "current_row_count": context.row_count,
                 "expected_min": min_rows,
-                "expected_max": max_rows
+                "expected_max": max_rows,
+                "growth_buffer_pct": 50,
+                "trend_status": "STABLE"
             },
             validation_status="VALID",
             status="DRAFT"

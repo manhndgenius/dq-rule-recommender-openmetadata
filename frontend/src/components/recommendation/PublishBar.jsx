@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function PublishBar({ readyRulesCount, onPublish }) {
+export default function PublishBar({ readyRulesCount, onPublish, isPublishing = false }) {
   if (readyRulesCount === 0) return null;
 
   return (
@@ -11,9 +11,9 @@ export default function PublishBar({ readyRulesCount, onPublish }) {
           Đã được Human Review chấp thuận để chuyển thành Test Suite trên OpenMetadata.
         </span>
       </div>
-      <button className="btn btn-publish" onClick={onPublish}>
-        <span className="btn-icon">🚀</span>
-        <span>Publish to OpenMetadata</span>
+      <button className="btn btn-publish" onClick={onPublish} disabled={isPublishing}>
+        <span className="btn-icon">{isPublishing ? '⏳' : '🚀'}</span>
+        <span>{isPublishing ? 'Đang xuất bản lên OM...' : 'Publish to OpenMetadata'}</span>
       </button>
     </div>
   );

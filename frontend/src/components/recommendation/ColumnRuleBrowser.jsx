@@ -199,12 +199,11 @@ export default function ColumnRuleBrowser({
         {/* Banner Overview */}
         <div className="column-browser-hero">
           <div className="cb-hero-left">
-            <div className="cb-hero-icon">🏛️</div>
             <div>
-              <h3 className="cb-hero-title">Danh sách các Cột & Đề xuất Luật DQ</h3>
+              <h3 className="cb-hero-title">Danh sách các Cột & Đề xuất Rule DQ</h3>
               <p className="cb-hero-sub">
-                Chọn một cột bất kỳ bên dưới để kiểm tra và duyệt các luật Data Quality tương ứng. 
-                Đã phân tích <strong>{rules.length}</strong> luật trên <strong>{withRulesCols}</strong> cột.
+                Chọn một cột bất kỳ bên dưới để kiểm tra và duyệt các rule Data Quality tương ứng. 
+                Đã phân tích <strong>{rules.length}</strong> rule trên <strong>{withRulesCols}</strong> cột.
               </p>
             </div>
           </div>
@@ -214,11 +213,11 @@ export default function ColumnRuleBrowser({
               <strong>{totalCols}</strong>
             </div>
             <div className="cb-stat-pill highlight">
-              <span className="lbl">Cột có luật:</span>
+              <span className="lbl">Cột có rule:</span>
               <strong>{withRulesCols}</strong>
             </div>
             <div className="cb-stat-pill">
-              <span className="lbl">Tổng luật DQ:</span>
+              <span className="lbl">Tổng rule DQ:</span>
               <strong>{rules.length}</strong>
             </div>
           </div>
@@ -237,19 +236,19 @@ export default function ColumnRuleBrowser({
               className={`cb-tab ${colFilter === 'WITH_RULES' ? 'active' : ''}`}
               onClick={() => setColFilter('WITH_RULES')}
             >
-              🎯 Có luật DQ <span className="cb-count">{withRulesCols}</span>
+              Có rule DQ <span className="cb-count">{withRulesCols}</span>
             </button>
             <button
               className={`cb-tab ${colFilter === 'PENDING' ? 'active' : ''}`}
               onClick={() => setColFilter('PENDING')}
             >
-              ⏳ Cần duyệt <span className="cb-count">{pendingCols}</span>
+              Cần duyệt <span className="cb-count">{pendingCols}</span>
             </button>
             <button
               className={`cb-tab ${colFilter === 'COMPLETED' ? 'active' : ''}`}
               onClick={() => setColFilter('COMPLETED')}
             >
-              ✅ Đã duyệt xong <span className="cb-count">{doneCols}</span>
+              Đã duyệt xong <span className="cb-count">{doneCols}</span>
             </button>
           </div>
 
@@ -258,7 +257,7 @@ export default function ColumnRuleBrowser({
             <input
               type="text"
               className="cb-search-input"
-              placeholder="Tìm theo tên cột, kiểu dữ liệu, loại luật..."
+              placeholder="Tìm theo tên cột, kiểu dữ liệu, loại rule..."
               value={colSearch}
               onChange={(e) => setColSearch(e.target.value)}
             />
@@ -295,14 +294,11 @@ export default function ColumnRuleBrowser({
                 key={col.name}
                 className={`cb-column-card ${col.isTableLevel ? 'table-level' : ''} ${isDone ? 'done' : ''}`}
                 onClick={() => setSelectedColumn(col.name)}
-                title={`Bấm để xem và duyệt ${col.totalRules} luật của ${col.displayName}`}
+                title={`Bấm để xem và duyệt ${col.totalRules} rule của ${col.displayName}`}
               >
                 {/* Card Header */}
                 <div className="cbc-head">
                   <div className="cbc-head-left">
-                    <span className="cbc-icon">
-                      {col.isTableLevel ? '🌐' : col.isPrimaryKey ? '🔑' : '📑'}
-                    </span>
                     <strong className="cbc-name">{col.displayName}</strong>
                     {col.isPrimaryKey && (
                       <span className="cbc-pk-badge" title="Primary Key">PK</span>
@@ -332,7 +328,7 @@ export default function ColumnRuleBrowser({
                       );
                     })
                   ) : (
-                    <span className="cbc-no-rules">Chưa có luật DQ đề xuất</span>
+                    <span className="cbc-no-rules">Chưa có rule DQ đề xuất</span>
                   )}
                 </div>
 
@@ -343,11 +339,11 @@ export default function ColumnRuleBrowser({
                       <span className="cbc-status-text muted">0 rules</span>
                     ) : isDone ? (
                       <span className="cbc-status-text success">
-                        ✅ Đã duyệt ({col.acceptedCount}/{col.totalRules})
+                        Đã duyệt ({col.acceptedCount}/{col.totalRules})
                       </span>
                     ) : (
                       <span className="cbc-status-text pending">
-                        ⏳ Cần duyệt ({col.reviewedCount}/{col.totalRules})
+                        Cần duyệt ({col.reviewedCount}/{col.totalRules})
                       </span>
                     )}
 
@@ -368,7 +364,7 @@ export default function ColumnRuleBrowser({
                       setSelectedColumn(col.name);
                     }}
                   >
-                    <span>Xem {col.totalRules} luật</span>
+                    <span>Xem {col.totalRules} rule</span>
                     <span className="arrow">➔</span>
                   </button>
                 </div>
@@ -409,18 +405,25 @@ export default function ColumnRuleBrowser({
           </button>
 
           <div className="cd-col-identity">
-            <span className="cd-col-icon">
-              {activeColObj?.isTableLevel ? '🌐' : activeColObj?.isPrimaryKey ? '🔑' : '📑'}
-            </span>
             <div className="cd-col-texts">
               <div className="cd-col-headline">
-                <h3 className="cd-col-name">{activeColObj?.displayName}</h3>
-                <span className="cd-col-type">{activeColObj?.dataType}</span>
-                {activeColObj?.isPrimaryKey && (
-                  <span className="cbc-pk-badge">Primary Key</span>
-                )}
-                {activeColObj?.hasAdvanced && (
-                  <span className="cd-badge-adv">⭐ Advanced Domain</span>
+                {activeColObj?.isTableLevel ? (
+                  <div className="cd-col-name-wrap">
+                    <h3 className="cd-col-name">Toàn bảng</h3>
+                    <span className="cd-col-level-tag">(Table-level)</span>
+                    <span className="cd-col-type">{activeColObj?.dataType}</span>
+                  </div>
+                ) : (
+                  <>
+                    <h3 className="cd-col-name">{activeColObj?.displayName}</h3>
+                    <span className="cd-col-type">{activeColObj?.dataType}</span>
+                    {activeColObj?.isPrimaryKey && (
+                      <span className="cbc-pk-badge">Primary Key</span>
+                    )}
+                    {activeColObj?.hasAdvanced && (
+                      <span className="cd-badge-adv">Advanced Domain</span>
+                    )}
+                  </>
                 )}
               </div>
               {activeColObj?.description && (
@@ -450,9 +453,9 @@ export default function ColumnRuleBrowser({
             <button
               className="btn-batch-accept"
               onClick={handleBatchAcceptColumn}
-              title="Duyệt chấp thuận tất cả các luật của cột này trong 1 cú nhấp"
+              title="Duyệt chấp thuận tất cả các rule của cột này trong 1 cú nhấp"
             >
-              <span>✔</span> Duyệt tất cả luật cột này
+              <span>✔</span> Duyệt tất cả rule cột này
             </button>
           )}
         </div>
@@ -470,9 +473,9 @@ export default function ColumnRuleBrowser({
                 key={c.name}
                 className={`cd-pill-item ${isActive ? 'active' : ''} ${isColDone ? 'done' : ''}`}
                 onClick={() => setSelectedColumn(c.name)}
-                title={`Chuyển sang cột ${c.displayName} (${c.totalRules} luật)`}
+                title={`Chuyển sang cột ${c.displayName} (${c.totalRules} rule)`}
               >
-                <span>{c.isTableLevel ? '🌐' : c.isPrimaryKey ? '🔑' : ''} {c.displayName}</span>
+                <span>{c.displayName}</span>
                 <span className="pill-count">{c.totalRules}</span>
                 {isColDone && <span className="pill-check">✓</span>}
               </button>
@@ -504,8 +507,8 @@ export default function ColumnRuleBrowser({
       {colRules.length === 0 && (
         <div className="empty-state">
           <div className="empty-icon">📋</div>
-          <h3>Cột '{activeColObj?.displayName}' chưa có luật DQ nào được sinh</h3>
-          <p>Bấm nút <strong>Generate Quality Rules</strong> ở trên để tạo thêm luật.</p>
+          <h3>Cột '{activeColObj?.displayName}' chưa có rule DQ nào được sinh</h3>
+          <p>Bấm nút <strong>Generate Quality Rules</strong> ở trên để tạo thêm rule.</p>
         </div>
       )}
 
@@ -524,7 +527,7 @@ export default function ColumnRuleBrowser({
                   <div className="cross-col-indicator">
                     <span className="cc-icon">🔗</span>
                     <span>
-                      Luật liên cột (Cross-column) cùng với:{' '}
+                      Rule liên cột (Cross-column) cùng với:{' '}
                       {otherCols.map((c) => (
                         <button
                           key={c}
@@ -563,7 +566,7 @@ export default function ColumnRuleBrowser({
             className="btn-bottom-next"
             onClick={() => setSelectedColumn(nextCol.name)}
           >
-            <span>Sang cột tiếp theo: <strong>{nextCol.displayName}</strong> ({nextCol.totalRules} luật)</span>
+            <span>Sang cột tiếp theo: <strong>{nextCol.displayName}</strong> ({nextCol.totalRules} rule)</span>
             <span>➔</span>
           </button>
         ) : (

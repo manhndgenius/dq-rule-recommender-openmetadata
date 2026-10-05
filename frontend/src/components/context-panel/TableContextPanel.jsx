@@ -28,9 +28,13 @@ export default function TableContextPanel({ tableData, isCollapsed = false, onTo
             <h2>📊 Table Context</h2>
             <span className="badge-source">{tableData.table_name}</span>
           </div>
-          {tableData.tier && (
+          {tableData.tier ? (
             <span className={`badge-tier ${tableData.tier.toLowerCase().replace('.', '-')}`}>
               ⭐ {tableData.tier}
+            </span>
+          ) : (
+            <span className="badge-tier" style={{ opacity: 0.6, borderStyle: 'dashed' }}>
+              Tier: --
             </span>
           )}
         </div>
@@ -50,21 +54,32 @@ export default function TableContextPanel({ tableData, isCollapsed = false, onTo
       <div className="governance-meta-box">
         <div className="gov-meta-row">
           <span className="gov-label">Domain:</span>
-          <span className="gov-value">🏥 {tableData.domain || 'Healthcare & Clinical'}</span>
+          <span className="gov-value">
+            {tableData.domain ? (tableData.domain.displayName || tableData.domain.name || tableData.domain) : '--'}
+          </span>
         </div>
         <div className="gov-meta-row">
           <span className="gov-label">Owner:</span>
-          <span className="gov-value">👤 {tableData.owner?.name || 'DataOps Healthcare Team'}</span>
+          <span className="gov-value">
+            {tableData.owner?.displayName || tableData.owner?.name ? (tableData.owner.displayName || tableData.owner.name) : '--'}
+          </span>
         </div>
-        {tableData.tags && tableData.tags.length > 0 && (
-          <div className="gov-tags-wrap">
-            {tableData.tags.map((t, idx) => (
-              <span key={idx} className="gov-tag-pill" style={{ borderColor: t.color }}>
-                {t.name}
-              </span>
-            ))}
-          </div>
-        )}
+        <div className="gov-meta-row">
+          <span className="gov-label">Thẻ (Tags):</span>
+          {tableData.tags && tableData.tags.length > 0 ? (
+            <div className="gov-tags-wrap">
+              {tableData.tags.map((t, idx) => (
+                <span key={idx} className="gov-tag-pill" style={{ borderColor: t.color }}>
+                  {t.name || t.tagFQN}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <span className="gov-value text-muted" style={{ fontStyle: 'italic', fontSize: '12px', color: 'var(--text-muted)' }}>
+              Chưa gắn thẻ trên OpenMetadata
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Observability Quick Health Status */}

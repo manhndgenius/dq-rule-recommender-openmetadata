@@ -18,7 +18,6 @@ export default function ActionToolbar({
           onClick={onGenerate}
           disabled={isGenerating}
         >
-          <span className="btn-icon">⚡</span>
           <span className="btn-text">
             {isGenerating ? 'Đang phân tích...' : 'Generate Quality Rules'}
           </span>

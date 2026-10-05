@@ -8,7 +8,9 @@ from backend.config import settings
 from backend.contracts.table_context import TableContext
 from backend.contracts.candidate_rule import CandidateRule, ReviewActionRequest
 from backend.integrations.openmetadata_client import openmetadata_client
+from backend.integrations.openmetadata_publisher import openmetadata_publisher
 from backend.engine.basic_engine import BasicRuleEngine
+from backend.evaluation.evaluator import evaluation_service
 
 app = FastAPI(
     title="Data Quality Rule Recommender & Observability API",
@@ -34,6 +36,11 @@ class GenerateRequest(BaseModel):
     table_name: str
     datasource_id: Optional[str] = "openmetadata"
     engines: List[str] = ["BASIC"]
+
+class PublishRequest(BaseModel):
+    table_name: str
+    rule_ids: Optional[List[str]] = None
+    rules: Optional[List[CandidateRule]] = None
 
 @app.get("/api/v1/health")
 def health_check():
@@ -65,29 +72,29 @@ def get_catalog_schemas(databaseFqn: str = Query("healthcare_postgres.HealthCare
     return {"schemas": openmetadata_client.list_schemas(databaseFqn)}
 
 @app.get("/api/v1/catalog/tables")
-def get_catalog_tables(schemaFqn: str = Query("healthcare_postgres.HealthCare.public")):
+def get_catalog_tables(schemaFqn: str = Query("healthcare_postgres.HealthCare.public"), refresh: bool = False):
     """Lấy danh sách 18 tables của schema public"""
-    return {"tables": openmetadata_client.list_tables(schemaFqn)}
+    return {"tables": openmetadata_client.list_tables(schemaFqn, force_refresh=refresh)}
 
 @app.get("/api/v1/catalog/tables/{table_id_or_name}")
-def get_catalog_table_detail(table_id_or_name: str):
+def get_catalog_table_detail(table_id_or_name: str, refresh: bool = False):
     """Lấy chi tiết table, columns và profiling đầy đủ theo chuẩn OpenMetadata"""
-    return openmetadata_client.get_catalog_table(table_id_or_name)
+    return openmetadata_client.get_catalog_table(table_id_or_name, force_refresh=refresh)
 
 # ============================================================================
 # DATA OBSERVABILITY & CORE APP ENDPOINTS
 # ============================================================================
 
 @app.get("/api/v1/tables")
-def get_tables():
+def get_tables(refresh: bool = False):
     """Lấy danh sách các bảng khả dụng từ OpenMetadata để hiển thị trên Selector"""
-    tables = openmetadata_client.list_tables()
+    tables = openmetadata_client.list_tables(force_refresh=refresh)
     return {"tables": tables}
 
 @app.get("/api/v1/context/{table_name}", response_model=TableContext)
-def get_table_context(table_name: str):
+def get_table_context(table_name: str, refresh: bool = False):
     """Lấy Schema, Constraints và Profiling metrics từ OpenMetadata cho bảng cụ thể"""
-    context = openmetadata_client.get_table_context(table_name)
+    context = openmetadata_client.get_table_context(table_name, force_refresh=refresh)
     return context
 
 @app.post("/api/v1/recommendations/generate")
@@ -113,6 +120,7 @@ def generate_recommendations(req: GenerateRequest):
                 CandidateRule(
                     id="rule_adv_pat_001",
                     rule_type="tableCustomSQLQuery",
+                    description="Ràng buộc tử vong: Ngày mất (deathdate) phải sau ngày sinh (birthdate)",
                     target_columns=["birthdate", "deathdate"],
                     parameters={"sqlExpression": "deathdate IS NULL OR deathdate >= birthdate"},
                     engine="ADVANCED",
@@ -127,6 +135,7 @@ def generate_recommendations(req: GenerateRequest):
                 CandidateRule(
                     id="rule_adv_pat_002",
                     rule_type="columnValuesToBeInSet",
+                    description="Chuẩn hóa giới tính: Chỉ nhận giá trị M (Nam) hoặc F (Nữ)",
                     target_columns=["gender"],
                     parameters={"allowedValues": ["M", "F"]},
                     engine="ADVANCED",
@@ -142,6 +151,7 @@ def generate_recommendations(req: GenerateRequest):
                 CandidateRule(
                     id="rule_adv_ord_001",
                     rule_type="tableCustomSQLQuery",
+                    description="Ràng buộc đơn hàng: Thời điểm giao (delivered_at) phải sau thời điểm đặt (created_at)",
                     target_columns=["created_at", "delivered_at"],
                     parameters={"sqlExpression": "delivered_at IS NULL OR delivered_at >= created_at"},
                     engine="ADVANCED",
@@ -156,6 +166,7 @@ def generate_recommendations(req: GenerateRequest):
                 CandidateRule(
                     id="rule_adv_ord_002",
                     rule_type="tableCustomSQLQuery",
+                    description="Ràng buộc thanh toán: Đơn hoàn tất (COMPLETED) bắt buộc có paid_at",
                     target_columns=["order_status", "paid_at"],
                     parameters={"sqlExpression": "order_status != 'COMPLETED' OR paid_at IS NOT NULL"},
                     engine="ADVANCED",
@@ -194,6 +205,28 @@ def review_rule(rule_id: str, action_req: ReviewActionRequest):
         "message": f"Đã cập nhật rule {rule_id} thành {action_req.action}",
         "rule": rule
     }
+
+@app.get("/api/v1/evaluation/summary")
+def get_evaluation_summary():
+    """Chạy và trả về báo cáo benchmark chất lượng (Coverage, Safety, Latency) trên 18 bảng dataset y tế"""
+    return evaluation_service.run_full_evaluation()
+
+@app.post("/api/v1/rules/publish")
+def publish_rules_to_openmetadata(req: PublishRequest):
+    """
+    Xuất bản các rules đã duyệt (ACCEPTED/EDITED) sang OpenMetadata Test Cases thực tế
+    """
+    target_rules: List[CandidateRule] = []
+    if req.rules and len(req.rules) > 0:
+        target_rules = [r for r in req.rules if r.status in ["ACCEPTED", "EDITED"]]
+    elif req.rule_ids and len(req.rule_ids) > 0:
+        target_rules = [active_candidates_store[rid] for rid in req.rule_ids if rid in active_candidates_store and active_candidates_store[rid].status in ["ACCEPTED", "EDITED"]]
+    else:
+        # Lấy toàn bộ rules của bảng trong store
+        target_rules = [r for r in active_candidates_store.values() if r.status in ["ACCEPTED", "EDITED"]]
+
+    result = openmetadata_publisher.publish_rules(target_rules, req.table_name)
+    return result
 
 if __name__ == "__main__":
     uvicorn.run("backend.main:app", host="0.0.0.0", port=8000, reload=True)

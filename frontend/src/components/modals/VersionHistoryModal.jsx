@@ -9,7 +9,7 @@ export default function VersionHistoryModal({ isOpen, onClose, tableData }) {
     <div className="modal-backdrop">
       <div className="modal-dialog">
         <div className="modal-header">
-          <h3 className="modal-title">📜 Lịch sử phiên bản (Version History) - {tableData.version || 'v1.2'}</h3>
+          <h3 className="modal-title">📜 Lịch sử phiên bản (Version History) - {tableData.version || 'v0.2'}</h3>
           <button className="btn-close" onClick={onClose}>✕</button>
         </div>
         <div className="modal-body">

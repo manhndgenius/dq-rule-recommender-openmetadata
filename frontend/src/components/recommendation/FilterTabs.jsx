@@ -21,30 +21,30 @@ export default function FilterTabs({
         <button
           className={`filter-tab ${activeFilter === 'BASIC' ? 'active' : ''}`}
           onClick={() => setActiveFilter('BASIC')}
-          title="Luật DQ theo Heuristics cơ bản"
+          title="Rule DQ theo Heuristics cơ bản"
         >
-          🟢 Basic <span className="tab-count">{stats.basic}</span>
+          Basic <span className="tab-count">{stats.basic}</span>
         </button>
         <button
           className={`filter-tab ${activeFilter === 'ADVANCED' ? 'active' : ''}`}
           onClick={() => setActiveFilter('ADVANCED')}
-          title="Luật DQ nâng cao theo Domain & LLM"
+          title="Rule DQ nâng cao theo Domain & LLM"
         >
-          🟣 Advanced <span className="tab-count">{stats.advanced}</span>
+          Advanced <span className="tab-count">{stats.advanced}</span>
         </button>
         <button
           className={`filter-tab ${activeFilter === 'WARNING' ? 'active' : ''}`}
           onClick={() => setActiveFilter('WARNING')}
-          title="Luật có cảnh báo từ Validator"
+          title="Rule có cảnh báo từ Validator"
         >
-          ⚠️ Cảnh báo <span className="tab-count">{stats.warning}</span>
+          Cảnh báo <span className="tab-count">{stats.warning}</span>
         </button>
         <button
           className={`filter-tab ${activeFilter === 'ACCEPTED' ? 'active' : ''}`}
           onClick={() => setActiveFilter('ACCEPTED')}
-          title="Luật đã được duyệt chấp thuận"
+          title="Rule đã được duyệt chấp thuận"
         >
-          ✅ Đã duyệt <span className="tab-count">{stats.accepted}</span>
+          Đã duyệt <span className="tab-count">{stats.accepted}</span>
         </button>
       </div>
 
