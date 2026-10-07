@@ -1,0 +1,102 @@
+[
+  {
+    "rule_type": "TEMPORAL",
+    "target_table": "patients",
+    "columns": [
+      "birthdate",
+      "deathdate"
+    ],
+    "condition": "deathdate >= birthdate",
+    "reason": "Ngày mất của bệnh nhân phải xảy ra sau ngày sinh của họ.",
+    "confidence": 0.92,
+    "evidence": [
+      "Tên cột 'birthdate' có nghĩa là ngày sinh",
+      "Tên cột 'deathdate' có nghĩa là ngày mất",
+      "Mô tả cột 'deathdate' ghi rõ: Ngày mất của bệnh nhân (nếu đã tử vong)",
+      "Mô tả cột 'birthdate' ghi rõ: Ngày sinh của bệnh nhân"
+    ]
+  },
+  {
+    "rule_type": "CROSS_COLUMN",
+    "target_table": "patients",
+    "columns": [
+      "healthcare_coverage",
+      "healthcare_expenses"
+    ],
+    "condition": "healthcare_coverage <= healthcare_expenses",
+    "reason": "healthcare_coverage là tổng chi phí y tế được bảo hiểm chi trả, không thể vượt quá tổng chi phí y tế healthcare_expenses.",
+    "confidence": 0.9,
+    "evidence": [
+      "Tên cột: healthcare_expenses mô tả 'Tổng chi phí y tế'",
+      "Tên cột: healthcare_coverage mô tả 'Tổng số tiền chi phí y tế được bảo hiểm chi trả'",
+      "Cả hai cột đều là numeric(18,2) và đo lường cùng đơn vị USD"
+    ]
+  },
+  {
+    "rule_type": "CROSS_COLUMN",
+    "target_table": "patients",
+    "columns": [
+      "county",
+      "fips"
+    ],
+    "condition": "county = county_1 AND county = county_2 => fips_1 = fips_2 (quan hệ phụ thuộc hàm: mỗi giá trị county chỉ tương ứng với duy nhất một giá trị fips; tức là county -> fips)",
+    "reason": "Cột fips được mô tả là 'Mã FIPS của hạt/quận' (mã định danh chuẩn của county). Do đó giá trị fips phải được xác định duy nhất bởi giá trị county, không thể tồn tại hai dòng cùng county nhưng khác fips. Đây là quan hệ logic giữa hai cột, không phải suy đoán nghiệp vụ ngoài metadata.",
+    "confidence": 0.9,
+    "evidence": [
+      "county.description = 'Hạt/quận cư trú'",
+      "fips.description = 'Mã FIPS của hạt/quận' (FIPS là mã định danh chuẩn tương ứng 1-1 với county)",
+      "county có min='Barnstable County', max='Worcester County'; fips có min='25001', max='25027' — đều là mã/quận của cùng một bang (mã bang 25 = Massachusetts)",
+      "Cả hai cột đều là kiểu text phân loại (categorical), phù hợp với quan hệ ánh xạ county -> fips"
+    ]
+  },
+  {
+    "rule_type": "CONDITIONAL_DEPENDENCY",
+    "target_table": "patients",
+    "columns": [
+      "gender",
+      "prefix"
+    ],
+    "condition": "IF prefix = 'Mr.' THEN gender = 'M'",
+    "reason": "Mr. is a title used for males, so gender should be 'M'.",
+    "confidence": 0.8,
+    "evidence": [
+      "Description of prefix: 'Tiền tố xưng hô trong tên (Mr., Ms., Mrs., v.v.)'",
+      "Description of gender: 'Giới tính của bệnh nhân (M=Nam, F=Nữ)'",
+      "Profiling top_values for prefix includes 'Mr.'",
+      "Profiling top_values for gender includes 'M' and 'F'"
+    ]
+  },
+  {
+    "rule_type": "CONDITIONAL_DEPENDENCY",
+    "target_table": "patients",
+    "columns": [
+      "gender",
+      "prefix"
+    ],
+    "condition": "IF prefix = 'Ms.' THEN gender = 'F'",
+    "reason": "Ms. is a title used for females, so gender should be 'F'.",
+    "confidence": 0.8,
+    "evidence": [
+      "Description of prefix: 'Tiền tố xưng hô trong tên (Mr., Ms., Mrs., v.v.)'",
+      "Description of gender: 'Giới tính của bệnh nhân (M=Nam, F=Nữ)'",
+      "Profiling top_values for prefix includes 'Ms.'",
+      "Profiling top_values for gender includes 'M' and 'F'"
+    ]
+  },
+  {
+    "rule_type": "CONDITIONAL_DEPENDENCY",
+    "target_table": "patients",
+    "columns": [
+      "gender",
+      "prefix"
+    ],
+    "condition": "IF prefix = 'Mrs.' THEN gender = 'F'",
+    "reason": "Mrs. is a title used for married females, so gender should be 'F'.",
+    "confidence": 0.8,
+    "evidence": [
+      "Description of prefix: 'Tiền tố xưng hô trong tên (Mr., Ms., Mrs., v.v.)'",
+      "Description of gender: 'Giới tính của bệnh nhân (M=Nam, F=Nữ)'",
+      "Profiling top_values for gender includes 'M' and 'F'"
+    ]
+  }
+]

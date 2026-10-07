@@ -1,5 +1,12 @@
 import React from 'react';
 
+// Advanced rule type labels
+const ADVANCED_TYPE_LABELS = {
+  'TEMPORAL': 'Temporal',
+  'CROSS_COLUMN': 'Cross-Column',
+  'CONDITIONAL_DEPENDENCY': 'Conditional',
+};
+
 export default function FilterTabs({
   activeFilter,
   setActiveFilter,
@@ -7,6 +14,13 @@ export default function FilterTabs({
   reviewedCount,
   totalCount
 }) {
+  // Count advanced rule types
+  const advancedTypes = {
+    TEMPORAL: stats.advanced > 0 ? 0 : 0,
+    CROSS_COLUMN: 0,
+    CONDITIONAL_DEPENDENCY: 0,
+  };
+
   const progressPct = totalCount > 0 ? Math.round((reviewedCount / totalCount) * 100) : 0;
 
   return (
@@ -32,6 +46,34 @@ export default function FilterTabs({
         >
           Advanced <span className="tab-count">{stats.advanced}</span>
         </button>
+
+        {/* Advanced Rule Type Filters */}
+        {stats.advanced > 0 && (
+          <>
+            <button
+              className={`filter-tab filter-tab-sub ${activeFilter === 'TEMPORAL' ? 'active' : ''}`}
+              onClick={() => setActiveFilter('TEMPORAL')}
+              title="Rule Temporal Logic (thời gian)"
+            >
+              ⏰ Temporal <span className="tab-count">{advancedTypes.TEMPORAL}</span>
+            </button>
+            <button
+              className={`filter-tab filter-tab-sub ${activeFilter === 'CROSS_COLUMN' ? 'active' : ''}`}
+              onClick={() => setActiveFilter('CROSS_COLUMN')}
+              title="Rule Cross-Column (so sánh giữa các cột)"
+            >
+              🔀 Cross-Column <span className="tab-count">{advancedTypes.CROSS_COLUMN}</span>
+            </button>
+            <button
+              className={`filter-tab filter-tab-sub ${activeFilter === 'CONDITIONAL_DEPENDENCY' ? 'active' : ''}`}
+              onClick={() => setActiveFilter('CONDITIONAL_DEPENDENCY')}
+              title="Rule Conditional Dependency"
+            >
+              🔗 Conditional <span className="tab-count">{advancedTypes.CONDITIONAL_DEPENDENCY}</span>
+            </button>
+          </>
+        )}
+
         <button
           className={`filter-tab ${activeFilter === 'WARNING' ? 'active' : ''}`}
           onClick={() => setActiveFilter('WARNING')}

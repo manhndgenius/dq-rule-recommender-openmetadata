@@ -1,0 +1,1531 @@
+{
+  "description": "Lược đồ bộ dữ liệu y tế với mô tả cho từng bảng và cột. Bộ dữ liệu chứa dữ liệu y tế tổng hợp, bao gồm bệnh nhân, các lần khám/điều trị, tình trạng bệnh, thuốc, yêu cầu thanh toán bảo hiểm và các thông tin liên quan khác. Cấu trúc dựa trên định dạng dữ liệu do Synthea tạo ra.",
+  "database": "HealthCare",
+  "schema": "public",
+  "tables": [
+    {
+      "name": "patients",
+      "description": "Thông tin nhân khẩu học và thông tin cá nhân của bệnh nhân, bao gồm ngày sinh, ngày mất, SSN, họ tên, địa chỉ, chủng tộc, dân tộc, giới tính và dữ liệu tài chính y tế.",
+      "rowCount": "varies",
+      "columns": [
+        {
+          "name": "Id",
+          "description": "Mã định danh duy nhất của bệnh nhân (UUID)",
+          "dataType": "uuid",
+          "primaryKey": true
+        },
+        {
+          "name": "BIRTHDATE",
+          "description": "Ngày sinh của bệnh nhân",
+          "dataType": "date"
+        },
+        {
+          "name": "DEATHDATE",
+          "description": "Ngày mất của bệnh nhân (nếu đã tử vong)",
+          "dataType": "date",
+          "nullable": true
+        },
+        {
+          "name": "SSN",
+          "description": "Số An sinh Xã hội (SSN)",
+          "dataType": "text"
+        },
+        {
+          "name": "DRIVERS",
+          "description": "Số giấy phép lái xe",
+          "dataType": "text",
+          "nullable": true
+        },
+        {
+          "name": "PASSPORT",
+          "description": "Số hộ chiếu",
+          "dataType": "text",
+          "nullable": true
+        },
+        {
+          "name": "PREFIX",
+          "description": "Tiền tố xưng hô trong tên (Mr., Ms., Mrs., v.v.)",
+          "dataType": "text",
+          "nullable": true
+        },
+        {
+          "name": "FIRST",
+          "description": "Tên của bệnh nhân",
+          "dataType": "text"
+        },
+        {
+          "name": "MIDDLE",
+          "description": "Tên đệm của bệnh nhân",
+          "dataType": "text",
+          "nullable": true
+        },
+        {
+          "name": "LAST",
+          "description": "Họ của bệnh nhân",
+          "dataType": "text"
+        },
+        {
+          "name": "SUFFIX",
+          "description": "Hậu tố trong tên (Jr., Sr., v.v.)",
+          "dataType": "text",
+          "nullable": true
+        },
+        {
+          "name": "MAIDEN",
+          "description": "Họ thời con gái của mẹ (đối với nữ)",
+          "dataType": "text",
+          "nullable": true
+        },
+        {
+          "name": "MARITAL",
+          "description": "Tình trạng hôn nhân (M=Đã kết hôn, S=Độc thân, D=Đã ly hôn, W=Góa)",
+          "dataType": "text",
+          "nullable": true
+        },
+        {
+          "name": "RACE",
+          "description": "Chủng tộc của bệnh nhân (white, black, asian, v.v.)",
+          "dataType": "text"
+        },
+        {
+          "name": "ETHNICITY",
+          "description": "Dân tộc/nguồn gốc sắc tộc của bệnh nhân (hispanic, nonhispanic)",
+          "dataType": "text"
+        },
+        {
+          "name": "GENDER",
+          "description": "Giới tính của bệnh nhân (M=Nam, F=Nữ)",
+          "dataType": "text"
+        },
+        {
+          "name": "BIRTHPLACE",
+          "description": "Nơi sinh (Thành phố, Bang, Quốc gia)",
+          "dataType": "text"
+        },
+        {
+          "name": "ADDRESS",
+          "description": "Địa chỉ đường/phố của bệnh nhân",
+          "dataType": "text"
+        },
+        {
+          "name": "CITY",
+          "description": "Thành phố cư trú",
+          "dataType": "text"
+        },
+        {
+          "name": "STATE",
+          "description": "Bang cư trú",
+          "dataType": "text"
+        },
+        {
+          "name": "COUNTY",
+          "description": "Hạt/quận cư trú",
+          "dataType": "text"
+        },
+        {
+          "name": "FIPS",
+          "description": "Mã FIPS của hạt/quận",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "ZIP",
+          "description": "Mã ZIP/mã bưu chính",
+          "dataType": "text"
+        },
+        {
+          "name": "LAT",
+          "description": "Tọa độ vĩ độ của địa chỉ",
+          "dataType": "numeric"
+        },
+        {
+          "name": "LON",
+          "description": "Tọa độ kinh độ của địa chỉ",
+          "dataType": "numeric"
+        },
+        {
+          "name": "HEALTHCARE_EXPENSES",
+          "description": "Tổng chi phí y tế, tính bằng USD",
+          "dataType": "numeric"
+        },
+        {
+          "name": "HEALTHCARE_COVERAGE",
+          "description": "Tổng số tiền chi phí y tế được bảo hiểm chi trả, tính bằng USD",
+          "dataType": "numeric"
+        },
+        {
+          "name": "INCOME",
+          "description": "Thu nhập hằng năm của bệnh nhân, tính bằng USD",
+          "dataType": "numeric"
+        }
+      ]
+    },
+    {
+      "name": "encounters",
+      "description": "Các lần bệnh nhân tiếp xúc hoặc đến khám tại cơ sở y tế, bao gồm cấp cứu, nội trú, ngoại trú và khám sức khỏe, cùng các chi phí liên quan.",
+      "rowCount": "varies",
+      "columns": [
+        {
+          "name": "Id",
+          "description": "Mã định danh duy nhất của lần khám/điều trị (UUID)",
+          "dataType": "uuid",
+          "primaryKey": true
+        },
+        {
+          "name": "START",
+          "description": "Thời điểm bắt đầu lần khám/điều trị",
+          "dataType": "timestamp"
+        },
+        {
+          "name": "STOP",
+          "description": "Thời điểm kết thúc lần khám/điều trị",
+          "dataType": "timestamp",
+          "nullable": true
+        },
+        {
+          "name": "PATIENT",
+          "description": "Tham chiếu đến ID bệnh nhân",
+          "dataType": "uuid",
+          "foreignKey": "patients.Id"
+        },
+        {
+          "name": "ORGANIZATION",
+          "description": "Tham chiếu đến ID cơ sở/tổ chức y tế",
+          "dataType": "uuid",
+          "foreignKey": "organizations.Id"
+        },
+        {
+          "name": "PROVIDER",
+          "description": "Tham chiếu đến ID nhân viên y tế/bác sĩ",
+          "dataType": "uuid",
+          "foreignKey": "providers.Id"
+        },
+        {
+          "name": "PAYER",
+          "description": "Tham chiếu đến ID đơn vị bảo hiểm/chi trả",
+          "dataType": "uuid",
+          "foreignKey": "payers.Id"
+        },
+        {
+          "name": "ENCOUNTERCLASS",
+          "description": "Loại lần khám/điều trị: 'wellness', 'ambulatory', 'emergency', 'inpatient', 'urgentcare'",
+          "dataType": "text"
+        },
+        {
+          "name": "CODE",
+          "description": "Mã SNOMED-CT của loại lần khám/điều trị",
+          "dataType": "text"
+        },
+        {
+          "name": "DESCRIPTION",
+          "description": "Mô tả loại lần khám/điều trị",
+          "dataType": "text"
+        },
+        {
+          "name": "BASE_ENCOUNTER_COST",
+          "description": "Chi phí cơ bản của lần khám/điều trị",
+          "dataType": "numeric"
+        },
+        {
+          "name": "TOTAL_CLAIM_COST",
+          "description": "Tổng chi phí yêu cầu thanh toán của lần khám/điều trị",
+          "dataType": "numeric"
+        },
+        {
+          "name": "PAYER_COVERAGE",
+          "description": "Số tiền được đơn vị chi trả/bảo hiểm thanh toán",
+          "dataType": "numeric"
+        },
+        {
+          "name": "REASONCODE",
+          "description": "Mã SNOMED-CT của lý do khám/điều trị",
+          "dataType": "text",
+          "nullable": true
+        },
+        {
+          "name": "REASONDESCRIPTION",
+          "description": "Mô tả lý do khám/điều trị",
+          "dataType": "text",
+          "nullable": true
+        }
+      ]
+    },
+    {
+      "name": "conditions",
+      "description": "Các chẩn đoán và tình trạng sức khỏe của bệnh nhân theo mã SNOMED-CT, kèm thời điểm khởi phát và kết thúc tình trạng.",
+      "rowCount": "varies",
+      "columns": [
+        {
+          "name": "START",
+          "description": "Ngày khởi phát tình trạng/bệnh",
+          "dataType": "date"
+        },
+        {
+          "name": "STOP",
+          "description": "Ngày kết thúc tình trạng/bệnh (NULL nếu vẫn đang diễn ra)",
+          "dataType": "date",
+          "nullable": true
+        },
+        {
+          "name": "PATIENT",
+          "description": "Tham chiếu đến ID bệnh nhân",
+          "dataType": "uuid",
+          "foreignKey": "patients.Id"
+        },
+        {
+          "name": "ENCOUNTER",
+          "description": "Tham chiếu đến ID lần khám/điều trị khi tình trạng được ghi nhận",
+          "dataType": "uuid",
+          "foreignKey": "encounters.Id"
+        },
+        {
+          "name": "SYSTEM",
+          "description": "Hệ thống mã hóa (http://snomed.info/sct)",
+          "dataType": "text"
+        },
+        {
+          "name": "CODE",
+          "description": "Mã SNOMED-CT của tình trạng/bệnh",
+          "dataType": "text"
+        },
+        {
+          "name": "DESCRIPTION",
+          "description": "Mô tả dễ đọc của tình trạng/bệnh",
+          "dataType": "text"
+        }
+      ]
+    },
+    {
+      "name": "allergies",
+      "description": "Hồ sơ dị ứng của bệnh nhân, bao gồm tác nhân, loại phản ứng, mức độ nghiêm trọng và phân loại (dị ứng hoặc không dung nạp).",
+      "rowCount": "varies",
+      "columns": [
+        {
+          "name": "START",
+          "description": "Ngày bắt đầu dị ứng",
+          "dataType": "date"
+        },
+        {
+          "name": "STOP",
+          "description": "Ngày kết thúc dị ứng (NULL nếu vẫn còn)",
+          "dataType": "date",
+          "nullable": true
+        },
+        {
+          "name": "PATIENT",
+          "description": "Tham chiếu đến ID bệnh nhân",
+          "dataType": "uuid",
+          "foreignKey": "patients.Id"
+        },
+        {
+          "name": "ENCOUNTER",
+          "description": "Tham chiếu đến ID lần khám/điều trị",
+          "dataType": "uuid",
+          "foreignKey": "encounters.Id"
+        },
+        {
+          "name": "CODE",
+          "description": "Mã SNOMED-CT của chất/tác nhân gây dị ứng",
+          "dataType": "text"
+        },
+        {
+          "name": "SYSTEM",
+          "description": "Hệ thống mã hóa (SNOMED-CT, RxNorm)",
+          "dataType": "text"
+        },
+        {
+          "name": "DESCRIPTION",
+          "description": "Mô tả tác nhân gây dị ứng",
+          "dataType": "text"
+        },
+        {
+          "name": "TYPE",
+          "description": "Loại: 'allergy' hoặc 'intolerance'",
+          "dataType": "text"
+        },
+        {
+          "name": "CATEGORY",
+          "description": "Nhóm tác nhân: 'food', 'medication', 'environment'",
+          "dataType": "text"
+        },
+        {
+          "name": "REACTION1",
+          "description": "Mã phản ứng thứ nhất (SNOMED-CT)",
+          "dataType": "text",
+          "nullable": true
+        },
+        {
+          "name": "DESCRIPTION1",
+          "description": "Mô tả phản ứng thứ nhất",
+          "dataType": "text",
+          "nullable": true
+        },
+        {
+          "name": "SEVERITY1",
+          "description": "Mức độ phản ứng thứ nhất: 'MILD', 'MODERATE', 'SEVERE'",
+          "dataType": "text",
+          "nullable": true
+        },
+        {
+          "name": "REACTION2",
+          "description": "Mã phản ứng thứ hai (SNOMED-CT)",
+          "dataType": "text",
+          "nullable": true
+        },
+        {
+          "name": "DESCRIPTION2",
+          "description": "Mô tả phản ứng thứ hai",
+          "dataType": "text",
+          "nullable": true
+        },
+        {
+          "name": "SEVERITY2",
+          "description": "Mức độ phản ứng thứ hai: 'MILD', 'MODERATE', 'SEVERE'",
+          "dataType": "text",
+          "nullable": true
+        }
+      ]
+    },
+    {
+      "name": "medications",
+      "description": "Thông tin kê đơn và cấp phát thuốc cho bệnh nhân, bao gồm mã thuốc, chi phí và số lần cấp thuốc.",
+      "rowCount": "varies",
+      "columns": [
+        {
+          "name": "START",
+          "description": "Thời điểm bắt đầu sử dụng thuốc",
+          "dataType": "timestamp"
+        },
+        {
+          "name": "STOP",
+          "description": "Thời điểm kết thúc sử dụng thuốc",
+          "dataType": "timestamp",
+          "nullable": true
+        },
+        {
+          "name": "PATIENT",
+          "description": "Tham chiếu đến ID bệnh nhân",
+          "dataType": "uuid",
+          "foreignKey": "patients.Id"
+        },
+        {
+          "name": "PAYER",
+          "description": "Tham chiếu đến ID đơn vị chi trả/bảo hiểm",
+          "dataType": "uuid",
+          "foreignKey": "payers.Id"
+        },
+        {
+          "name": "ENCOUNTER",
+          "description": "Tham chiếu đến ID lần khám/điều trị",
+          "dataType": "uuid",
+          "foreignKey": "encounters.Id"
+        },
+        {
+          "name": "CODE",
+          "description": "Mã RxNorm của thuốc",
+          "dataType": "text"
+        },
+        {
+          "name": "DESCRIPTION",
+          "description": "Tên thuốc và liều dùng",
+          "dataType": "text"
+        },
+        {
+          "name": "BASE_COST",
+          "description": "Chi phí cơ bản của thuốc",
+          "dataType": "numeric"
+        },
+        {
+          "name": "PAYER_COVERAGE",
+          "description": "Số tiền được đơn vị chi trả/bảo hiểm thanh toán",
+          "dataType": "numeric"
+        },
+        {
+          "name": "DISPENSES",
+          "description": "Số lần thuốc được cấp phát",
+          "dataType": "integer"
+        },
+        {
+          "name": "TOTALCOST",
+          "description": "Tổng chi phí (base_cost * dispenses)",
+          "dataType": "numeric"
+        },
+        {
+          "name": "REASONCODE",
+          "description": "Mã SNOMED-CT của chỉ định sử dụng thuốc",
+          "dataType": "text",
+          "nullable": true
+        },
+        {
+          "name": "REASONDESCRIPTION",
+          "description": "Mô tả lý do thuốc được kê đơn",
+          "dataType": "text",
+          "nullable": true
+        }
+      ]
+    },
+    {
+      "name": "careplans",
+      "description": "Các hoạt động chăm sóc và phác đồ điều trị được lập kế hoạch cho bệnh nhân, bao gồm mục tiêu và biện pháp can thiệp.",
+      "rowCount": "varies",
+      "columns": [
+        {
+          "name": "Id",
+          "description": "Mã định danh duy nhất của kế hoạch chăm sóc (UUID)",
+          "dataType": "uuid",
+          "primaryKey": true
+        },
+        {
+          "name": "START",
+          "description": "Ngày bắt đầu kế hoạch chăm sóc",
+          "dataType": "date"
+        },
+        {
+          "name": "STOP",
+          "description": "Ngày kết thúc kế hoạch chăm sóc (NULL nếu vẫn đang thực hiện)",
+          "dataType": "date",
+          "nullable": true
+        },
+        {
+          "name": "PATIENT",
+          "description": "Tham chiếu đến ID bệnh nhân",
+          "dataType": "uuid",
+          "foreignKey": "patients.Id"
+        },
+        {
+          "name": "ENCOUNTER",
+          "description": "Tham chiếu đến ID lần khám/điều trị",
+          "dataType": "uuid",
+          "foreignKey": "encounters.Id"
+        },
+        {
+          "name": "CODE",
+          "description": "Mã SNOMED-CT của loại kế hoạch chăm sóc",
+          "dataType": "text"
+        },
+        {
+          "name": "DESCRIPTION",
+          "description": "Mô tả kế hoạch chăm sóc (ví dụ: 'Diabetes self management plan')",
+          "dataType": "text"
+        },
+        {
+          "name": "REASONCODE",
+          "description": "Mã SNOMED-CT của tình trạng/bệnh đang được xử lý",
+          "dataType": "text",
+          "nullable": true
+        },
+        {
+          "name": "REASONDESCRIPTION",
+          "description": "Mô tả tình trạng/bệnh đang được xử lý",
+          "dataType": "text",
+          "nullable": true
+        }
+      ]
+    },
+    {
+      "name": "observations",
+      "description": "Các quan sát lâm sàng, bao gồm kết quả xét nghiệm, dấu hiệu sinh tồn và các phép đo khác.",
+      "rowCount": "varies",
+      "columns": [
+        {
+          "name": "DATE",
+          "description": "Thời điểm thực hiện quan sát/đo",
+          "dataType": "timestamp"
+        },
+        {
+          "name": "PATIENT",
+          "description": "Tham chiếu đến ID bệnh nhân",
+          "dataType": "uuid",
+          "foreignKey": "patients.Id"
+        },
+        {
+          "name": "ENCOUNTER",
+          "description": "Tham chiếu đến ID lần khám/điều trị",
+          "dataType": "uuid",
+          "foreignKey": "encounters.Id"
+        },
+        {
+          "name": "CATEGORY",
+          "description": "Phân loại: 'laboratory', 'vital-signs', 'social-history', 'procedure'",
+          "dataType": "text"
+        },
+        {
+          "name": "CODE",
+          "description": "Mã LOINC của chỉ số quan sát",
+          "dataType": "text"
+        },
+        {
+          "name": "DESCRIPTION",
+          "description": "Mô tả chỉ số quan sát (ví dụ: 'Hemoglobin A1c', 'Body Weight')",
+          "dataType": "text"
+        },
+        {
+          "name": "VALUE",
+          "description": "Giá trị quan sát/đo",
+          "dataType": "text"
+        },
+        {
+          "name": "UNITS",
+          "description": "Đơn vị đo (ví dụ: 'kg', 'mm[Hg]', '%')",
+          "dataType": "text",
+          "nullable": true
+        },
+        {
+          "name": "TYPE",
+          "description": "Kiểu giá trị: 'numeric', 'text', 'qualifier'",
+          "dataType": "text"
+        }
+      ]
+    },
+    {
+      "name": "procedures",
+      "description": "Các thủ thuật và can thiệp y khoa được thực hiện trong quá trình khám/điều trị của bệnh nhân.",
+      "rowCount": "varies",
+      "columns": [
+        {
+          "name": "START",
+          "description": "Thời điểm bắt đầu thủ thuật",
+          "dataType": "timestamp"
+        },
+        {
+          "name": "STOP",
+          "description": "Thời điểm kết thúc thủ thuật",
+          "dataType": "timestamp"
+        },
+        {
+          "name": "PATIENT",
+          "description": "Tham chiếu đến ID bệnh nhân",
+          "dataType": "uuid",
+          "foreignKey": "patients.Id"
+        },
+        {
+          "name": "ENCOUNTER",
+          "description": "Tham chiếu đến ID lần khám/điều trị",
+          "dataType": "uuid",
+          "foreignKey": "encounters.Id"
+        },
+        {
+          "name": "SYSTEM",
+          "description": "Hệ thống mã hóa (http://snomed.info/sct)",
+          "dataType": "text"
+        },
+        {
+          "name": "CODE",
+          "description": "Mã SNOMED-CT của thủ thuật",
+          "dataType": "text"
+        },
+        {
+          "name": "DESCRIPTION",
+          "description": "Mô tả thủ thuật",
+          "dataType": "text"
+        },
+        {
+          "name": "BASE_COST",
+          "description": "Chi phí cơ bản của thủ thuật",
+          "dataType": "numeric"
+        },
+        {
+          "name": "REASONCODE",
+          "description": "Mã SNOMED-CT của chỉ định thực hiện thủ thuật",
+          "dataType": "text",
+          "nullable": true
+        },
+        {
+          "name": "REASONDESCRIPTION",
+          "description": "Mô tả chỉ định thực hiện thủ thuật",
+          "dataType": "text",
+          "nullable": true
+        }
+      ]
+    },
+    {
+      "name": "immunizations",
+      "description": "Hồ sơ tiêm chủng của bệnh nhân, bao gồm loại vaccine, thời điểm tiêm và chi phí.",
+      "rowCount": "varies",
+      "columns": [
+        {
+          "name": "DATE",
+          "description": "Thời điểm tiêm chủng",
+          "dataType": "timestamp"
+        },
+        {
+          "name": "PATIENT",
+          "description": "Tham chiếu đến ID bệnh nhân",
+          "dataType": "uuid",
+          "foreignKey": "patients.Id"
+        },
+        {
+          "name": "ENCOUNTER",
+          "description": "Tham chiếu đến ID lần khám/điều trị",
+          "dataType": "uuid",
+          "foreignKey": "encounters.Id"
+        },
+        {
+          "name": "CODE",
+          "description": "Mã CVX (Vaccine Administered) của vaccine đã tiêm",
+          "dataType": "text"
+        },
+        {
+          "name": "DESCRIPTION",
+          "description": "Mô tả vaccine (ví dụ: 'Influenza split virus trivalent PF')",
+          "dataType": "text"
+        },
+        {
+          "name": "BASE_COST",
+          "description": "Chi phí cơ bản của lần tiêm chủng",
+          "dataType": "numeric"
+        }
+      ]
+    },
+    {
+      "name": "providers",
+      "description": "Thông tin nhân viên/cơ sở cung cấp dịch vụ y tế, bao gồm bác sĩ, điều dưỡng và bác sĩ chuyên khoa.",
+      "rowCount": "varies",
+      "columns": [
+        {
+          "name": "Id",
+          "description": "Mã định danh duy nhất của nhân viên/cơ sở cung cấp dịch vụ y tế (UUID)",
+          "dataType": "uuid",
+          "primaryKey": true
+        },
+        {
+          "name": "ORGANIZATION",
+          "description": "Tham chiếu đến ID cơ sở/tổ chức y tế",
+          "dataType": "uuid",
+          "foreignKey": "organizations.Id"
+        },
+        {
+          "name": "NAME",
+          "description": "Họ tên đầy đủ của nhân viên y tế",
+          "dataType": "text"
+        },
+        {
+          "name": "GENDER",
+          "description": "Giới tính của nhân viên y tế (M/F)",
+          "dataType": "text"
+        },
+        {
+          "name": "SPECIALITY",
+          "description": "Chuyên khoa y tế (ví dụ: 'GENERAL PRACTICE', 'CARDIOVASCULAR DISEASE')",
+          "dataType": "text"
+        },
+        {
+          "name": "ADDRESS",
+          "description": "Địa chỉ nơi làm việc của nhân viên y tế",
+          "dataType": "text"
+        },
+        {
+          "name": "CITY",
+          "description": "Thành phố hành nghề",
+          "dataType": "text"
+        },
+        {
+          "name": "STATE",
+          "description": "Bang hành nghề",
+          "dataType": "text"
+        },
+        {
+          "name": "ZIP",
+          "description": "Mã ZIP của địa điểm hành nghề",
+          "dataType": "text"
+        },
+        {
+          "name": "LAT",
+          "description": "Tọa độ vĩ độ",
+          "dataType": "numeric"
+        },
+        {
+          "name": "LON",
+          "description": "Tọa độ kinh độ",
+          "dataType": "numeric"
+        },
+        {
+          "name": "ENCOUNTERS",
+          "description": "Số lần khám/điều trị đã thực hiện",
+          "dataType": "integer"
+        },
+        {
+          "name": "PROCEDURES",
+          "description": "Số thủ thuật đã thực hiện",
+          "dataType": "integer"
+        },
+        {
+          "name": "NPI",
+          "description": "Mã định danh nhà cung cấp dịch vụ y tế quốc gia NPI (10 chữ số)",
+          "dataType": "text"
+        }
+      ]
+    },
+    {
+      "name": "organizations",
+      "description": "Các cơ sở và tổ chức y tế, bao gồm bệnh viện, phòng khám và phòng xét nghiệm.",
+      "rowCount": "varies",
+      "columns": [
+        {
+          "name": "Id",
+          "description": "Mã định danh duy nhất của cơ sở/tổ chức y tế (UUID)",
+          "dataType": "uuid",
+          "primaryKey": true
+        },
+        {
+          "name": "NAME",
+          "description": "Tên cơ sở/tổ chức y tế",
+          "dataType": "text"
+        },
+        {
+          "name": "ADDRESS",
+          "description": "Địa chỉ cơ sở/tổ chức y tế",
+          "dataType": "text"
+        },
+        {
+          "name": "CITY",
+          "description": "Thành phố nơi cơ sở đặt trụ sở",
+          "dataType": "text"
+        },
+        {
+          "name": "STATE",
+          "description": "Bang nơi cơ sở đặt trụ sở",
+          "dataType": "text"
+        },
+        {
+          "name": "ZIP",
+          "description": "Mã ZIP",
+          "dataType": "text"
+        },
+        {
+          "name": "LAT",
+          "description": "Tọa độ vĩ độ",
+          "dataType": "numeric"
+        },
+        {
+          "name": "LON",
+          "description": "Tọa độ kinh độ",
+          "dataType": "numeric"
+        },
+        {
+          "name": "PHONE",
+          "description": "Số điện thoại liên hệ",
+          "dataType": "text"
+        },
+        {
+          "name": "REVENUE",
+          "description": "Tổng doanh thu, tính bằng USD",
+          "dataType": "numeric"
+        },
+        {
+          "name": "UTILIZATION",
+          "description": "Số lượt khám/điều trị của bệnh nhân",
+          "dataType": "numeric"
+        },
+        {
+          "name": "NPI",
+          "description": "Mã định danh nhà cung cấp dịch vụ y tế quốc gia (NPI)",
+          "dataType": "text"
+        }
+      ]
+    },
+    {
+      "name": "payers",
+      "description": "Các công ty bảo hiểm và đơn vị chi trả, bao gồm chương trình của chính phủ và doanh nghiệp bảo hiểm tư nhân.",
+      "rowCount": "varies",
+      "columns": [
+        {
+          "name": "Id",
+          "description": "Mã định danh duy nhất của đơn vị chi trả/bảo hiểm (UUID)",
+          "dataType": "uuid",
+          "primaryKey": true
+        },
+        {
+          "name": "NAME",
+          "description": "Tên đơn vị chi trả/bảo hiểm (ví dụ: 'Medicare', 'Blue Cross Blue Shield')",
+          "dataType": "text"
+        },
+        {
+          "name": "OWNERSHIP",
+          "description": "Loại hình sở hữu: 'GOVERNMENT' hoặc 'PRIVATE'",
+          "dataType": "text"
+        },
+        {
+          "name": "ADDRESS",
+          "description": "Địa chỉ trụ sở của đơn vị chi trả/bảo hiểm",
+          "dataType": "text",
+          "nullable": true
+        },
+        {
+          "name": "CITY",
+          "description": "Thành phố đặt trụ sở",
+          "dataType": "text",
+          "nullable": true
+        },
+        {
+          "name": "STATE_HEADQUARTERED",
+          "description": "Bang đặt trụ sở",
+          "dataType": "text",
+          "nullable": true
+        },
+        {
+          "name": "ZIP",
+          "description": "Mã ZIP của trụ sở",
+          "dataType": "text",
+          "nullable": true
+        },
+        {
+          "name": "PHONE",
+          "description": "Điện thoại liên hệ",
+          "dataType": "text",
+          "nullable": true
+        },
+        {
+          "name": "AMOUNT_COVERED",
+          "description": "Tổng số tiền được đơn vị chi trả/bảo hiểm thanh toán",
+          "dataType": "numeric"
+        },
+        {
+          "name": "AMOUNT_UNCOVERED",
+          "description": "Tổng số tiền không được bảo hiểm chi trả",
+          "dataType": "numeric"
+        },
+        {
+          "name": "REVENUE",
+          "description": "Tổng doanh thu của đơn vị chi trả/bảo hiểm",
+          "dataType": "numeric"
+        },
+        {
+          "name": "COVERED_ENCOUNTERS",
+          "description": "Số lượt khám/điều trị được bảo hiểm chi trả",
+          "dataType": "integer"
+        },
+        {
+          "name": "UNCOVERED_ENCOUNTERS",
+          "description": "Số lượt khám/điều trị không được bảo hiểm chi trả",
+          "dataType": "integer"
+        },
+        {
+          "name": "COVERED_MEDICATIONS",
+          "description": "Số lượt cấp thuốc được bảo hiểm chi trả",
+          "dataType": "integer"
+        },
+        {
+          "name": "UNCOVERED_MEDICATIONS",
+          "description": "Số lượt cấp thuốc không được bảo hiểm chi trả",
+          "dataType": "integer"
+        },
+        {
+          "name": "COVERED_PROCEDURES",
+          "description": "Số thủ thuật được bảo hiểm chi trả",
+          "dataType": "integer"
+        },
+        {
+          "name": "UNCOVERED_PROCEDURES",
+          "description": "Số thủ thuật không được bảo hiểm chi trả",
+          "dataType": "integer"
+        },
+        {
+          "name": "COVERED_IMMUNIZATIONS",
+          "description": "Số lần tiêm chủng được bảo hiểm chi trả",
+          "dataType": "integer"
+        },
+        {
+          "name": "UNCOVERED_IMMUNIZATIONS",
+          "description": "Số lần tiêm chủng không được bảo hiểm chi trả",
+          "dataType": "integer"
+        },
+        {
+          "name": "UNIQUE_CUSTOMERS",
+          "description": "Số khách hàng/bệnh nhân duy nhất",
+          "dataType": "integer"
+        },
+        {
+          "name": "QOLS_AVG",
+          "description": "Điểm chất lượng cuộc sống trung bình",
+          "dataType": "numeric"
+        },
+        {
+          "name": "MEMBER_MONTHS",
+          "description": "Tổng số tháng-thành viên được bảo hiểm",
+          "dataType": "numeric"
+        }
+      ]
+    },
+    {
+      "name": "claims",
+      "description": "Các hồ sơ yêu cầu thanh toán bảo hiểm y tế, bao gồm chẩn đoán, chi phí và trạng thái thanh toán.",
+      "rowCount": "varies",
+      "columns": [
+        {
+          "name": "Id",
+          "description": "Mã định danh duy nhất của hồ sơ yêu cầu thanh toán (UUID)",
+          "dataType": "uuid",
+          "primaryKey": true
+        },
+        {
+          "name": "PATIENTID",
+          "description": "Tham chiếu đến ID bệnh nhân",
+          "dataType": "uuid",
+          "foreignKey": "patients.Id"
+        },
+        {
+          "name": "PROVIDERID",
+          "description": "Tham chiếu đến ID nhân viên/cơ sở cung cấp dịch vụ y tế",
+          "dataType": "uuid",
+          "foreignKey": "providers.Id"
+        },
+        {
+          "name": "PRIMARYPATIENTINSURANCEID",
+          "description": "Tham chiếu đến ID đơn vị bảo hiểm chính",
+          "dataType": "uuid",
+          "foreignKey": "payers.Id",
+          "nullable": true
+        },
+        {
+          "name": "SECONDARYPATIENTINSURANCEID",
+          "description": "Tham chiếu đến ID đơn vị bảo hiểm phụ",
+          "dataType": "uuid",
+          "foreignKey": "payers.Id",
+          "nullable": true
+        },
+        {
+          "name": "DEPARTMENTID",
+          "description": "Mã định danh khoa/phòng",
+          "dataType": "integer"
+        },
+        {
+          "name": "PATIENTDEPARTMENTID",
+          "description": "ID khoa/phòng được gán cho bệnh nhân",
+          "dataType": "integer"
+        },
+        {
+          "name": "DIAGNOSIS1",
+          "description": "Mã chẩn đoán ICD-10 chính",
+          "dataType": "text"
+        },
+        {
+          "name": "DIAGNOSIS2",
+          "description": "Mã chẩn đoán phụ thứ 2",
+          "dataType": "text",
+          "nullable": true
+        },
+        {
+          "name": "DIAGNOSIS3",
+          "description": "Mã chẩn đoán phụ thứ 3",
+          "dataType": "text",
+          "nullable": true
+        },
+        {
+          "name": "DIAGNOSIS4",
+          "description": "Mã chẩn đoán phụ thứ 4",
+          "dataType": "text",
+          "nullable": true
+        },
+        {
+          "name": "DIAGNOSIS5",
+          "description": "Mã chẩn đoán phụ thứ 5",
+          "dataType": "text",
+          "nullable": true
+        },
+        {
+          "name": "DIAGNOSIS6",
+          "description": "Mã chẩn đoán phụ thứ 6",
+          "dataType": "text",
+          "nullable": true
+        },
+        {
+          "name": "DIAGNOSIS7",
+          "description": "Mã chẩn đoán phụ thứ 7",
+          "dataType": "text",
+          "nullable": true
+        },
+        {
+          "name": "DIAGNOSIS8",
+          "description": "Mã chẩn đoán phụ thứ 8",
+          "dataType": "text",
+          "nullable": true
+        },
+        {
+          "name": "REFERRINGPROVIDERID",
+          "description": "Tham chiếu đến ID nhân viên y tế giới thiệu/chuyển tuyến",
+          "dataType": "uuid",
+          "nullable": true
+        },
+        {
+          "name": "APPOINTMENTID",
+          "description": "Tham chiếu đến ID lịch hẹn",
+          "dataType": "uuid"
+        },
+        {
+          "name": "CURRENTILLNESSDATE",
+          "description": "Thời điểm khởi phát bệnh hiện tại",
+          "dataType": "timestamp"
+        },
+        {
+          "name": "SERVICEDATE",
+          "description": "Ngày cung cấp dịch vụ",
+          "dataType": "timestamp"
+        },
+        {
+          "name": "SUPERVISINGPROVIDERID",
+          "description": "Tham chiếu đến ID nhân viên y tế giám sát",
+          "dataType": "uuid"
+        },
+        {
+          "name": "STATUS1",
+          "description": "Trạng thái yêu cầu thanh toán chính: 'BILLED' hoặc 'CLOSED'",
+          "dataType": "text"
+        },
+        {
+          "name": "STATUS2",
+          "description": "Trạng thái yêu cầu thanh toán phụ",
+          "dataType": "text",
+          "nullable": true
+        },
+        {
+          "name": "STATUSP",
+          "description": "Trạng thái phần chi phí bệnh nhân chịu trách nhiệm thanh toán",
+          "dataType": "text"
+        },
+        {
+          "name": "OUTSTANDING1",
+          "description": "Số tiền còn phải thu của yêu cầu thanh toán chính",
+          "dataType": "numeric"
+        },
+        {
+          "name": "OUTSTANDING2",
+          "description": "Số tiền còn phải thu của yêu cầu thanh toán phụ",
+          "dataType": "numeric",
+          "nullable": true
+        },
+        {
+          "name": "OUTSTANDINGP",
+          "description": "Số tiền bệnh nhân còn phải thanh toán",
+          "dataType": "numeric"
+        },
+        {
+          "name": "LASTBILLEDDATE1",
+          "description": "Ngày lập hóa đơn gần nhất cho yêu cầu thanh toán chính",
+          "dataType": "timestamp"
+        },
+        {
+          "name": "LASTBILLEDDATE2",
+          "description": "Ngày lập hóa đơn gần nhất cho yêu cầu thanh toán phụ",
+          "dataType": "timestamp",
+          "nullable": true
+        },
+        {
+          "name": "LASTBILLEDDATEP",
+          "description": "Ngày lập hóa đơn gần nhất cho bệnh nhân",
+          "dataType": "timestamp"
+        },
+        {
+          "name": "HEALTHCARECLAIMTYPEID1",
+          "description": "ID loại yêu cầu thanh toán y tế (1=Professional, 2=Institutional)",
+          "dataType": "integer"
+        },
+        {
+          "name": "HEALTHCARECLAIMTYPEID2",
+          "description": "ID loại yêu cầu thanh toán phụ",
+          "dataType": "integer"
+        }
+      ]
+    },
+    {
+      "name": "claims_transactions",
+      "description": "Các giao dịch tài chính chi tiết của hồ sơ yêu cầu thanh toán, bao gồm khoản tính phí, thanh toán, điều chỉnh và chuyển khoản.",
+      "rowCount": "varies",
+      "columns": [
+        {
+          "name": "ID",
+          "description": "Mã định danh duy nhất của giao dịch (UUID)",
+          "dataType": "uuid",
+          "primaryKey": true
+        },
+        {
+          "name": "CLAIMID",
+          "description": "Tham chiếu đến ID hồ sơ yêu cầu thanh toán cha",
+          "dataType": "uuid",
+          "foreignKey": "claims.Id"
+        },
+        {
+          "name": "CHARGEID",
+          "description": "ID dòng chi phí",
+          "dataType": "integer"
+        },
+        {
+          "name": "PATIENTID",
+          "description": "Tham chiếu đến ID bệnh nhân",
+          "dataType": "uuid",
+          "foreignKey": "patients.Id"
+        },
+        {
+          "name": "TYPE",
+          "description": "Loại giao dịch: 'CHARGE', 'PAYMENT', 'ADJUSTMENT', 'TRANSFEROUT', 'TRANSFERIN'",
+          "dataType": "text"
+        },
+        {
+          "name": "AMOUNT",
+          "description": "Số tiền giao dịch",
+          "dataType": "numeric"
+        },
+        {
+          "name": "METHOD",
+          "description": "Phương thức thanh toán: 'CHECK', 'CASH', 'WIRE', v.v.",
+          "dataType": "text",
+          "nullable": true
+        },
+        {
+          "name": "FROMDATE",
+          "description": "Ngày bắt đầu kỳ cung cấp dịch vụ",
+          "dataType": "timestamp"
+        },
+        {
+          "name": "TODATE",
+          "description": "Ngày kết thúc kỳ cung cấp dịch vụ",
+          "dataType": "timestamp"
+        },
+        {
+          "name": "PLACEOFSERVICE",
+          "description": "ID cơ sở/tổ chức nơi dịch vụ được cung cấp",
+          "dataType": "uuid",
+          "foreignKey": "organizations.Id"
+        },
+        {
+          "name": "PROCEDURECODE",
+          "description": "Mã thủ thuật CPT/HCPCS",
+          "dataType": "text"
+        },
+        {
+          "name": "MODIFIER1",
+          "description": "Mã bổ nghĩa thủ thuật 1",
+          "dataType": "text",
+          "nullable": true
+        },
+        {
+          "name": "MODIFIER2",
+          "description": "Mã bổ nghĩa thủ thuật 2",
+          "dataType": "text",
+          "nullable": true
+        },
+        {
+          "name": "DIAGNOSISREF1",
+          "description": "Tham chiếu chẩn đoán chính (1-8)",
+          "dataType": "integer"
+        },
+        {
+          "name": "DIAGNOSISREF2",
+          "description": "Tham chiếu chẩn đoán phụ",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "DIAGNOSISREF3",
+          "description": "Tham chiếu chẩn đoán thứ ba",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "DIAGNOSISREF4",
+          "description": "Tham chiếu chẩn đoán thứ tư",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "UNITS",
+          "description": "Số đơn vị",
+          "dataType": "integer"
+        },
+        {
+          "name": "DEPARTMENTID",
+          "description": "Mã định danh khoa/phòng",
+          "dataType": "integer"
+        },
+        {
+          "name": "NOTES",
+          "description": "Ghi chú về thủ thuật/lần khám điều trị",
+          "dataType": "text"
+        },
+        {
+          "name": "UNITAMOUNT",
+          "description": "Số tiền trên mỗi đơn vị",
+          "dataType": "numeric"
+        },
+        {
+          "name": "TRANSFEROUTID",
+          "description": "ID đích chuyển ra",
+          "dataType": "text",
+          "nullable": true
+        },
+        {
+          "name": "TRANSFERTYPE",
+          "description": "Loại chuyển khoản (ví dụ: 'p' cho primary)",
+          "dataType": "text",
+          "nullable": true
+        },
+        {
+          "name": "PAYMENTS",
+          "description": "Số tiền thanh toán",
+          "dataType": "numeric"
+        },
+        {
+          "name": "ADJUSTMENTS",
+          "description": "Số tiền điều chỉnh",
+          "dataType": "numeric"
+        },
+        {
+          "name": "TRANSFERS",
+          "description": "Số tiền chuyển khoản",
+          "dataType": "numeric"
+        },
+        {
+          "name": "OUTSTANDING",
+          "description": "Số dư còn phải thanh toán",
+          "dataType": "numeric"
+        },
+        {
+          "name": "APPOINTMENTID",
+          "description": "Tham chiếu đến ID lịch hẹn/lần khám điều trị",
+          "dataType": "uuid",
+          "foreignKey": "encounters.Id"
+        },
+        {
+          "name": "LINENOTE",
+          "description": "Ghi chú cho dòng giao dịch",
+          "dataType": "text",
+          "nullable": true
+        },
+        {
+          "name": "PATIENTINSURANCEID",
+          "description": "ID đơn vị bảo hiểm/chi trả của bệnh nhân",
+          "dataType": "uuid",
+          "foreignKey": "payers.Id"
+        },
+        {
+          "name": "FEESCHEDULEID",
+          "description": "ID biểu phí",
+          "dataType": "integer"
+        },
+        {
+          "name": "PROVIDERID",
+          "description": "Tham chiếu đến ID nhân viên/cơ sở cung cấp dịch vụ y tế",
+          "dataType": "uuid",
+          "foreignKey": "providers.Id"
+        },
+        {
+          "name": "SUPERVISINGPROVIDERID",
+          "description": "Tham chiếu đến ID nhân viên y tế giám sát",
+          "dataType": "uuid",
+          "foreignKey": "providers.Id"
+        }
+      ]
+    },
+    {
+      "name": "imaging_studies",
+      "description": "Các nghiên cứu/chẩn đoán hình ảnh y khoa, bao gồm X-quang, CT, MRI và các phương thức chẩn đoán hình ảnh khác.",
+      "rowCount": "varies",
+      "columns": [
+        {
+          "name": "Id",
+          "description": "Mã định danh duy nhất của nghiên cứu hình ảnh (UUID)",
+          "dataType": "uuid",
+          "primaryKey": true
+        },
+        {
+          "name": "DATE",
+          "description": "Thời điểm thực hiện chẩn đoán hình ảnh",
+          "dataType": "timestamp"
+        },
+        {
+          "name": "PATIENT",
+          "description": "Tham chiếu đến ID bệnh nhân",
+          "dataType": "uuid",
+          "foreignKey": "patients.Id"
+        },
+        {
+          "name": "ENCOUNTER",
+          "description": "Tham chiếu đến ID lần khám/điều trị",
+          "dataType": "uuid",
+          "foreignKey": "encounters.Id"
+        },
+        {
+          "name": "SERIES_UID",
+          "description": "UID DICOM Series Instance",
+          "dataType": "text"
+        },
+        {
+          "name": "BODYSITE_CODE",
+          "description": "Mã SNOMED-CT của vị trí cơ thể",
+          "dataType": "text"
+        },
+        {
+          "name": "BODYSITE_DESCRIPTION",
+          "description": "Mô tả vị trí cơ thể được chụp",
+          "dataType": "text"
+        },
+        {
+          "name": "MODALITY_CODE",
+          "description": "Mã phương thức chẩn đoán hình ảnh DICOM (DX, CT, MR, v.v.)",
+          "dataType": "text"
+        },
+        {
+          "name": "MODALITY_DESCRIPTION",
+          "description": "Mô tả phương thức chẩn đoán hình ảnh",
+          "dataType": "text"
+        },
+        {
+          "name": "INSTANCE_UID",
+          "description": "UID DICOM Instance/SOP Instance",
+          "dataType": "text"
+        },
+        {
+          "name": "SOP_CODE",
+          "description": "UID DICOM SOP Class",
+          "dataType": "text"
+        },
+        {
+          "name": "SOP_DESCRIPTION",
+          "description": "Mô tả lớp SOP",
+          "dataType": "text"
+        },
+        {
+          "name": "PROCEDURE_CODE",
+          "description": "Mã SNOMED-CT của thủ thuật",
+          "dataType": "text"
+        }
+      ]
+    },
+    {
+      "name": "devices",
+      "description": "Các thiết bị y tế được sử dụng trong quá trình chăm sóc bệnh nhân, bao gồm thiết bị cấy ghép và thiết bị hỗ trợ có theo dõi bằng UDI.",
+      "rowCount": "varies",
+      "columns": [
+        {
+          "name": "START",
+          "description": "Thời điểm bắt đầu sử dụng thiết bị",
+          "dataType": "timestamp"
+        },
+        {
+          "name": "STOP",
+          "description": "Thời điểm ngừng sử dụng thiết bị (NULL nếu vẫn đang sử dụng)",
+          "dataType": "timestamp",
+          "nullable": true
+        },
+        {
+          "name": "PATIENT",
+          "description": "Tham chiếu đến ID bệnh nhân",
+          "dataType": "uuid",
+          "foreignKey": "patients.Id"
+        },
+        {
+          "name": "ENCOUNTER",
+          "description": "Tham chiếu đến ID lần khám/điều trị",
+          "dataType": "uuid",
+          "foreignKey": "encounters.Id"
+        },
+        {
+          "name": "CODE",
+          "description": "Mã SNOMED-CT của thiết bị",
+          "dataType": "text"
+        },
+        {
+          "name": "DESCRIPTION",
+          "description": "Mô tả thiết bị",
+          "dataType": "text"
+        },
+        {
+          "name": "UDI",
+          "description": "Mã định danh thiết bị duy nhất (UDI)",
+          "dataType": "text"
+        }
+      ]
+    },
+    {
+      "name": "supplies",
+      "description": "Các vật tư y tế được cấp phát hoặc sử dụng trong quá trình chăm sóc bệnh nhân.",
+      "rowCount": "varies",
+      "columns": [
+        {
+          "name": "DATE",
+          "description": "Ngày vật tư được cấp phát/sử dụng",
+          "dataType": "date"
+        },
+        {
+          "name": "PATIENT",
+          "description": "Tham chiếu đến ID bệnh nhân",
+          "dataType": "uuid",
+          "foreignKey": "patients.Id"
+        },
+        {
+          "name": "ENCOUNTER",
+          "description": "Tham chiếu đến ID lần khám/điều trị",
+          "dataType": "uuid",
+          "foreignKey": "encounters.Id"
+        },
+        {
+          "name": "CODE",
+          "description": "Mã SNOMED-CT của vật tư",
+          "dataType": "text"
+        },
+        {
+          "name": "DESCRIPTION",
+          "description": "Mô tả vật tư",
+          "dataType": "text"
+        },
+        {
+          "name": "QUANTITY",
+          "description": "Số lượng được cấp phát",
+          "dataType": "integer"
+        }
+      ]
+    },
+    {
+      "name": "payer_transitions",
+      "description": "Lịch sử thay đổi phạm vi bảo hiểm/đơn vị chi trả của bệnh nhân theo thời gian.",
+      "rowCount": "varies",
+      "columns": [
+        {
+          "name": "PATIENT",
+          "description": "Tham chiếu đến ID bệnh nhân",
+          "dataType": "uuid",
+          "foreignKey": "patients.Id"
+        },
+        {
+          "name": "MEMBERID",
+          "description": "Mã thành viên của bệnh nhân tại đơn vị bảo hiểm/chi trả",
+          "dataType": "text"
+        },
+        {
+          "name": "START_DATE",
+          "description": "Ngày bắt đầu được đơn vị bảo hiểm/chi trả này bảo hiểm",
+          "dataType": "timestamp"
+        },
+        {
+          "name": "END_DATE",
+          "description": "Ngày kết thúc được đơn vị bảo hiểm/chi trả này bảo hiểm",
+          "dataType": "timestamp"
+        },
+        {
+          "name": "PAYER",
+          "description": "Tham chiếu đến ID đơn vị chi trả/bảo hiểm",
+          "dataType": "uuid",
+          "foreignKey": "payers.Id"
+        },
+        {
+          "name": "SECONDARY_PAYER",
+          "description": "Tham chiếu đến ID đơn vị chi trả/bảo hiểm phụ",
+          "dataType": "uuid",
+          "foreignKey": "payers.Id",
+          "nullable": true
+        },
+        {
+          "name": "PLAN_OWNERSHIP",
+          "description": "Loại chủ sở hữu gói bảo hiểm",
+          "dataType": "text"
+        },
+        {
+          "name": "OWNER_NAME",
+          "description": "Tên chủ sở hữu gói bảo hiểm",
+          "dataType": "text",
+          "nullable": true
+        }
+      ]
+    }
+  ]
+}

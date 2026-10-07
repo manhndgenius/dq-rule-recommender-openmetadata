@@ -137,6 +137,39 @@ export const openmetadataService = {
   },
 
   /**
+   * Sinh Advanced Rules (LLM) với SQL violation queries
+   * Pipeline: Router → Generator (LLM) → SQL Mapper → SQL
+   * Trả về rules kèm sql, violation_predicate
+   *
+   * @param {string} tableName - Tên bảng cần sinh rules
+   * @param {Array} columns - Danh sách columns với metadata (name, data_type, nullable, description, profiling)
+   * @param {number} minConfidence - Ngưỡng confidence tối thiểu (default: 0.6)
+   * @returns {Object} { table_name, candidates, rules, total_rules_generated, total_sql_mapped, total_sql_failed }
+   */
+  async generateAdvancedRules(tableName, columns, minConfidence = 0.6) {
+    try {
+      const res = await fetch(`${API_BASE}/advanced-rules/recommend`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          table_name: tableName,
+          columns: columns,
+          min_confidence: minConfidence
+        })
+      });
+      if (res.ok) {
+        return await res.json();
+      }
+      // Log error response
+      const errorText = await res.text();
+      console.warn(`Lỗi sinh Advanced Rules (${res.status}):`, errorText);
+    } catch (err) {
+      console.warn(`Lỗi kết nối sinh Advanced Rules cho bảng ${tableName}:`, err);
+    }
+    return null;
+  },
+
+  /**
    * Review hành động (Accept, Reject, Edit)
    */
   async reviewRule(ruleId, action, editedParameters = null) {

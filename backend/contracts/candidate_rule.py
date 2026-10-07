@@ -19,8 +19,3 @@ class CandidateRule(BaseModel):
     status: Literal["DRAFT", "ACCEPTED", "EDITED", "REJECTED"] = "DRAFT"
     edited_parameters: Optional[Dict[str, Any]] = None
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
-
-class ReviewActionRequest(BaseModel):
-    action: Literal["ACCEPTED", "REJECTED", "EDITED"]
-    edited_parameters: Optional[Dict[str, Any]] = None
-    comment: Optional[str] = None

@@ -22,6 +22,13 @@ class ColumnContext(BaseModel):
     is_foreign_key: bool = False
     profile: ColumnProfile = Field(default_factory=ColumnProfile)
 
+class ForeignKeyInfo(BaseModel):
+    """Thông tin về Foreign Key relationship."""
+    column_name: str
+    referenced_table: str
+    referenced_column: str
+    constraint_name: Optional[str] = None
+
 class TableContext(BaseModel):
     datasource_id: str = "openmetadata"
     database_name: str
@@ -36,4 +43,16 @@ class TableContext(BaseModel):
     tags: List[Dict[str, Any]] = Field(default_factory=list)
     columns: List[ColumnContext] = Field(default_factory=list)
     existing_rules: List[Dict[str, Any]] = Field(default_factory=list)
+
+    # Constraint metadata - bổ sung cho LLM
+    primary_keys: List[str] = Field(default_factory=list)  # List of PK column names
+    foreign_keys: List[ForeignKeyInfo] = Field(default_factory=list)  # List of FK info
+
+    def get_pk_columns(self) -> List[str]:
+        """Lấy danh sách primary key columns."""
+        return [col.name for col in self.columns if col.is_primary_key]
+
+    def get_fk_columns(self) -> List[str]:
+        """Lấy danh sách foreign key columns."""
+        return [col.name for col in self.columns if col.is_foreign_key]
 

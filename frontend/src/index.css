@@ -824,6 +824,18 @@ body {
   border-color: #BAE6FD;
 }
 
+/* Sub filter tabs cho advanced rule types */
+.filter-tab-sub {
+  font-size: 11px;
+  padding: 3px 8px;
+  margin-left: 4px;
+}
+
+.filter-tab-sub .tab-count {
+  font-size: 10px;
+  padding: 0px 4px;
+}
+
 .tab-count {
   font-size: 11px;
   padding: 1px 6px;
@@ -1064,6 +1076,18 @@ body {
   border: 1px solid var(--color-warning-border);
 }
 
+/* Badge cho Advanced Rule Types */
+.badge-rule-type {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  border: 1px solid;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .confidence-tag {
   font-size: 12px;
   font-weight: 500;
@@ -1122,6 +1146,82 @@ body {
 .params-box.sql-code {
   color: #0284C7;
   font-size: 12.5px;
+}
+
+/* SQL Violation Query Box cho Advanced Rules */
+.sql-violation-box {
+  background: rgba(139, 92, 246, 0.08);
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+
+[data-theme="light"] .sql-violation-box {
+  background: #F5F3FF;
+  border-color: #DDD6FE;
+}
+
+.sql-violation-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #A78BFA;
+}
+
+.sql-tag {
+  background: rgba(139, 92, 246, 0.2);
+  color: #8B5CF6;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.sql-violation-code {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: #C4B5FD;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+[data-theme="light"] .sql-violation-code {
+  background: #EDE9FE;
+  color: #6D28D9;
+}
+
+.sql-params {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 11px;
+}
+
+.sql-params .params-label {
+  color: #A78BFA;
+  font-weight: 600;
+}
+
+.sql-params .param-item {
+  background: rgba(139, 92, 246, 0.15);
+  color: #C4B5FD;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+}
+
+[data-theme="light"] .sql-params .param-item {
+  background: #DDD6FE;
+  color: #6D28D9;
 }
 
 /* Explanation & Evidence */

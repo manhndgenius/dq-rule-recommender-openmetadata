@@ -231,8 +231,10 @@ export default function App() {
           return {
             name: c.name,
             type: c.data_type,
+            data_type: c.data_type,
             nullable: c.nullable,
             is_pk: c.is_primary_key,
+            profile: c.profile || null,
             null_pct: nullPct,
             distinct: c.profile?.distinct_count || 0,
             distinct_pct: distinctPct,
@@ -362,16 +364,6 @@ export default function App() {
           observability: observability
         });
 
-        // Also fetch candidate rules for this table
-        try {
-          const rulesData = await openmetadataService.generateRules(tableName, ['BASIC', 'ADVANCED']);
-          if (rulesData && rulesData.rules && rulesData.rules.length > 0) {
-            setRules(rulesData.rules);
-          }
-        } catch (e) {
-          console.warn('Lỗi sinh rules tự động:', e);
-        }
-
         addToast(`Đã đồng bộ thành công bảng '${tableName}' (${data.row_count} dòng, ${columns.length} cột) từ OpenMetadata!`, 'success');
         return;
       }
@@ -389,6 +381,7 @@ export default function App() {
 
   // Switch Table Handler
   const handleSelectTable = (tableName) => {
+    setRules([]);
     setCurrentTable(tableName);
   };
 
@@ -527,10 +520,6 @@ export default function App() {
       subtitle: `Lấy schema cột và metrics profiling của bảng ${currentTable}...`
     });
 
-    const engines = [];
-    if (useBasic) engines.push('BASIC');
-    if (useAdvanced) engines.push('ADVANCED');
-
     setTimeout(async () => {
       setGenerationStep({
         title: 'Bước 2/3: Đang thực thi Rule Engine...',
@@ -538,17 +527,84 @@ export default function App() {
       });
 
       try {
-        const data = await openmetadataService.generateRules(currentTable, engines);
-        if (data && data.rules && data.rules.length > 0) {
+        let allRules = [];
+        let advancedRulesWithSQL = [];
+
+        // 1. Generate BASIC rules (old endpoint)
+        if (useBasic) {
+          console.log('DEBUG: Calling BASIC endpoint...');
+          const data = await openmetadataService.generateRules(currentTable, ['BASIC']);
+          console.log('DEBUG: BASIC response:', data);
+          if (data && data.rules && data.rules.length > 0) {
+            allRules = [...data.rules];
+          }
+        }
+
+        // 2. Generate ADVANCED rules with SQL (new endpoint)
+        console.log('DEBUG: useAdvanced=', useAdvanced, 'tableData.columns=', tableData?.columns?.length);
+        if (useAdvanced && tableData && tableData.columns) {
+          const columnsForAPI = tableData.columns.map(col => ({
+            name: col.name,
+            data_type: col.data_type || col.type,
+            nullable: col.nullable,
+            description: col.description || null,
+            profiling: col.profile ? {
+              row_count: col.profile.row_count,
+              null_count: col.profile.null_count,
+              null_ratio: col.profile.null_ratio,
+              distinct_count: col.profile.distinct_count,
+              distinct_ratio: col.profile.distinct_ratio,
+              min_value: col.profile.min_value,
+              max_value: col.profile.max_value,
+              min_length: col.profile.min_length,
+              max_length: col.profile.max_length,
+              top_values: col.profile.top_values || [],
+            } : null
+          }));
+
+          console.log('DEBUG: columnsForAPI sample:', columnsForAPI[0]);
+          const advancedData = await openmetadataService.generateAdvancedRules(currentTable, columnsForAPI, 0.6);
+          console.log('DEBUG: ADVANCED response:', advancedData);
+
+          if (advancedData && advancedData.rules && advancedData.rules.length > 0) {
+            advancedRulesWithSQL = advancedData.rules.map((rule, idx) => ({
+              id: rule.rule_type + '_adv_' + (idx + 1),
+              rule_type: rule.rule_type,
+              description: rule.reason || rule.rule_type,
+              target_columns: rule.columns,
+              columns: rule.columns,
+              parameters: {},
+              expression: null,
+              engine: 'ADVANCED',
+              confidence: rule.confidence,
+              reason: rule.reason || 'Advanced rule',
+              evidence: {},
+              validation_status: 'VALID',
+              validation_message: null,
+              status: 'DRAFT',
+              edited_parameters: null,
+              created_at: new Date().toISOString(),
+              sql: rule.sql,
+              violation_predicate: rule.violation_predicate,
+              params: rule.params,
+              conditions: rule.conditions,
+            }));
+            allRules = [...allRules, ...advancedRulesWithSQL];
+          }
+        }
+
+        if (allRules.length > 0) {
           setTimeout(() => {
-            setRules(data.rules);
+            setRules(allRules);
             setIsGenerating(false);
-            addToast(`Đã sinh thành công ${data.rules.length} DQ rules thực tế từ OpenMetadata!`, 'success');
+            const basicCount = allRules.filter(r => r.engine === 'BASIC').length;
+            const advancedCount = allRules.filter(r => r.engine === 'ADVANCED').length;
+            addToast('Da sinh ' + allRules.length + ' DQ rules (' + basicCount + ' Basic, ' + advancedCount + ' Advanced)', 'success');
           }, 800);
           return;
         }
       } catch (err) {
-        console.warn('Lỗi gọi generate API:', err);
+        console.warn('Loi goi generate API:', err);
       }
 
       setTimeout(() => {

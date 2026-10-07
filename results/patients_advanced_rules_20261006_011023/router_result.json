@@ -1,0 +1,59 @@
+{
+  "candidates": [
+    {
+      "rule_type": "TEMPORAL",
+      "relevant_columns": [
+        "birthdate",
+        "deathdate"
+      ],
+      "confidence": 0.95,
+      "reason": "deathdate is the date of death and must be chronologically after birthdate."
+    },
+    {
+      "rule_type": "CROSS_COLUMN",
+      "relevant_columns": [
+        "healthcare_coverage",
+        "healthcare_expenses"
+      ],
+      "confidence": 0.9,
+      "reason": "healthcare_coverage represents the amount covered by insurance, which logically cannot exceed the total healthcare_expenses."
+    },
+    {
+      "rule_type": "CROSS_COLUMN",
+      "relevant_columns": [
+        "county",
+        "fips"
+      ],
+      "confidence": 0.9,
+      "reason": "fips is the FIPS code of the county, so it should correspond to the county column."
+    },
+    {
+      "rule_type": "CONDITIONAL_DEPENDENCY",
+      "relevant_columns": [
+        "gender",
+        "prefix"
+      ],
+      "confidence": 0.8,
+      "reason": "prefix titles like Mr., Ms., Mrs. imply gender; if prefix is 'Mr.' then gender should be 'M', and if prefix is 'Ms.' or 'Mrs.' then gender should be 'F'."
+    },
+    {
+      "rule_type": "CONDITIONAL_DEPENDENCY",
+      "relevant_columns": [
+        "gender",
+        "maiden"
+      ],
+      "confidence": 0.7,
+      "reason": "maiden name (mother's maiden name) is specified for females, so if maiden is not null, gender should be 'F'."
+    },
+    {
+      "rule_type": "CROSS_COLUMN",
+      "relevant_columns": [
+        "zip",
+        "city",
+        "state"
+      ],
+      "confidence": 0.7,
+      "reason": "zip code, city, and state should be consistent with each other as they form a valid postal address."
+    }
+  ]
+}

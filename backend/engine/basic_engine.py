@@ -2,7 +2,7 @@ from typing import List, Any
 from backend.engine.base import BaseRuleEngine
 from backend.contracts.table_context import TableContext, ColumnContext
 from backend.contracts.candidate_rule import CandidateRule
-from backend.config import settings
+from backend.config.settings import settings
 
 class BasicRuleEngine(BaseRuleEngine):
     """

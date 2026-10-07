@@ -1,0 +1,391 @@
+{
+  "description": "Healthcare dataset schema with table and column descriptions. This dataset contains synthetic healthcare data including patients, encounters, conditions, medications, claims, and more. Based on Synthea patient generator format.",
+  "database": "HealthCare",
+  "schema": "public",
+  "tables": [
+    {
+      "name": "patients",
+      "description": "Demographic and personal information of patients including birth date, death date, SSN, names, address, race, ethnicity, gender, and healthcare financial data.",
+      "rowCount": "varies",
+      "columns": [
+        {"name": "Id", "description": "Unique identifier for the patient (UUID)", "dataType": "uuid", "primaryKey": true},
+        {"name": "BIRTHDATE", "description": "Patient's date of birth", "dataType": "date"},
+        {"name": "DEATHDATE", "description": "Patient's date of death (if deceased)", "dataType": "date", "nullable": true},
+        {"name": "SSN", "description": "Social Security Number", "dataType": "text"},
+        {"name": "DRIVERS", "description": "Driver's license number", "dataType": "text", "nullable": true},
+        {"name": "PASSPORT", "description": "Passport number", "dataType": "text", "nullable": true},
+        {"name": "PREFIX", "description": "Name prefix (Mr., Ms., Mrs., etc.)", "dataType": "text", "nullable": true},
+        {"name": "FIRST", "description": "Patient's first name", "dataType": "text"},
+        {"name": "MIDDLE", "description": "Patient's middle name", "dataType": "text", "nullable": true},
+        {"name": "LAST", "description": "Patient's last name", "dataType": "text"},
+        {"name": "SUFFIX", "description": "Name suffix (Jr., Sr., etc.)", "dataType": "text", "nullable": true},
+        {"name": "MAIDEN", "description": "Mother's maiden name (for females)", "dataType": "text", "nullable": true},
+        {"name": "MARITAL", "description": "Marital status (M=Married, S=Single, D=Divorced, W=Widowed)", "dataType": "text", "nullable": true},
+        {"name": "RACE", "description": "Patient's race (white, black, asian, etc.)", "dataType": "text"},
+        {"name": "ETHNICITY", "description": "Patient's ethnicity (hispanic, nonhispanic)", "dataType": "text"},
+        {"name": "GENDER", "description": "Patient's gender (M=Male, F=Female)", "dataType": "text"},
+        {"name": "BIRTHPLACE", "description": "Place of birth (City, State, Country)", "dataType": "text"},
+        {"name": "ADDRESS", "description": "Patient's street address", "dataType": "text"},
+        {"name": "CITY", "description": "City of residence", "dataType": "text"},
+        {"name": "STATE", "description": "State of residence", "dataType": "text"},
+        {"name": "COUNTY", "description": "County of residence", "dataType": "text"},
+        {"name": "FIPS", "description": "FIPS county code", "dataType": "integer", "nullable": true},
+        {"name": "ZIP", "description": "ZIP/Postal code", "dataType": "text"},
+        {"name": "LAT", "description": "Latitude coordinate of address", "dataType": "numeric"},
+        {"name": "LON", "description": "Longitude coordinate of address", "dataType": "numeric"},
+        {"name": "HEALTHCARE_EXPENSES", "description": "Total healthcare expenses in USD", "dataType": "numeric"},
+        {"name": "HEALTHCARE_COVERAGE", "description": "Total healthcare coverage amount in USD", "dataType": "numeric"},
+        {"name": "INCOME", "description": "Patient's annual income in USD", "dataType": "numeric"}
+      ]
+    },
+    {
+      "name": "encounters",
+      "description": "Healthcare encounters or visits including emergency, inpatient, outpatient, and wellness visits with associated costs.",
+      "rowCount": "varies",
+      "columns": [
+        {"name": "Id", "description": "Unique identifier for the encounter (UUID)", "dataType": "uuid", "primaryKey": true},
+        {"name": "START", "description": "Encounter start date and time", "dataType": "timestamp"},
+        {"name": "STOP", "description": "Encounter end date and time", "dataType": "timestamp", "nullable": true},
+        {"name": "PATIENT", "description": "Reference to patient ID", "dataType": "uuid", "foreignKey": "patients.Id"},
+        {"name": "ORGANIZATION", "description": "Reference to organization ID", "dataType": "uuid", "foreignKey": "organizations.Id"},
+        {"name": "PROVIDER", "description": "Reference to provider/physician ID", "dataType": "uuid", "foreignKey": "providers.Id"},
+        {"name": "PAYER", "description": "Reference to insurance payer ID", "dataType": "uuid", "foreignKey": "payers.Id"},
+        {"name": "ENCOUNTERCLASS", "description": "Type of encounter: 'wellness', 'ambulatory', 'emergency', 'inpatient', 'urgentcare'", "dataType": "text"},
+        {"name": "CODE", "description": "SNOMED-CT code for the encounter type", "dataType": "text"},
+        {"name": "DESCRIPTION", "description": "Description of the encounter type", "dataType": "text"},
+        {"name": "BASE_ENCOUNTER_COST", "description": "Base cost of the encounter", "dataType": "numeric"},
+        {"name": "TOTAL_CLAIM_COST", "description": "Total claimed cost for the encounter", "dataType": "numeric"},
+        {"name": "PAYER_COVERAGE", "description": "Amount covered by payer", "dataType": "numeric"},
+        {"name": "REASONCODE", "description": "SNOMED-CT code for encounter reason", "dataType": "text", "nullable": true},
+        {"name": "REASONDESCRIPTION", "description": "Description of encounter reason", "dataType": "text", "nullable": true}
+      ]
+    },
+    {
+      "name": "conditions",
+      "description": "Patient diagnoses and health conditions with SNOMED-CT codes, tracking onset and resolution dates.",
+      "rowCount": "varies",
+      "columns": [
+        {"name": "START", "description": "Condition onset date", "dataType": "date"},
+        {"name": "STOP", "description": "Condition resolution date (null if ongoing)", "dataType": "date", "nullable": true},
+        {"name": "PATIENT", "description": "Reference to patient ID", "dataType": "uuid", "foreignKey": "patients.Id"},
+        {"name": "ENCOUNTER", "description": "Reference to encounter ID when condition was recorded", "dataType": "uuid", "foreignKey": "encounters.Id"},
+        {"name": "SYSTEM", "description": "Coding system (http://snomed.info/sct)", "dataType": "text"},
+        {"name": "CODE", "description": "SNOMED-CT code for the condition", "dataType": "text"},
+        {"name": "DESCRIPTION", "description": "Human-readable description of the condition", "dataType": "text"}
+      ]
+    },
+    {
+      "name": "allergies",
+      "description": "Patient allergy records including substance, reaction type, severity, and category (allergy vs intolerance).",
+      "rowCount": "varies",
+      "columns": [
+        {"name": "START", "description": "Allergy onset date", "dataType": "date"},
+        {"name": "STOP", "description": "Allergy end date (null if ongoing)", "dataType": "date", "nullable": true},
+        {"name": "PATIENT", "description": "Reference to patient ID", "dataType": "uuid", "foreignKey": "patients.Id"},
+        {"name": "ENCOUNTER", "description": "Reference to encounter ID", "dataType": "uuid", "foreignKey": "encounters.Id"},
+        {"name": "CODE", "description": "SNOMED-CT code for the allergen/substance", "dataType": "text"},
+        {"name": "SYSTEM", "description": "Coding system (SNOMED-CT, RxNorm)", "dataType": "text"},
+        {"name": "DESCRIPTION", "description": "Description of the allergen", "dataType": "text"},
+        {"name": "TYPE", "description": "Type: 'allergy' or 'intolerance'", "dataType": "text"},
+        {"name": "CATEGORY", "description": "Category: 'food', 'medication', 'environment'", "dataType": "text"},
+        {"name": "REACTION1", "description": "First reaction code (SNOMED-CT)", "dataType": "text", "nullable": true},
+        {"name": "DESCRIPTION1", "description": "First reaction description", "dataType": "text", "nullable": true},
+        {"name": "SEVERITY1", "description": "First reaction severity: 'MILD', 'MODERATE', 'SEVERE'", "dataType": "text", "nullable": true},
+        {"name": "REACTION2", "description": "Second reaction code (SNOMED-CT)", "dataType": "text", "nullable": true},
+        {"name": "DESCRIPTION2", "description": "Second reaction description", "dataType": "text", "nullable": true},
+        {"name": "SEVERITY2", "description": "Second reaction severity: 'MILD', 'MODERATE', 'SEVERE'", "dataType": "text", "nullable": true}
+      ]
+    },
+    {
+      "name": "medications",
+      "description": "Patient medication prescriptions and dispensations including drug codes, costs, and refills.",
+      "rowCount": "varies",
+      "columns": [
+        {"name": "START", "description": "Medication start date and time", "dataType": "timestamp"},
+        {"name": "STOP", "description": "Medication stop date and time", "dataType": "timestamp", "nullable": true},
+        {"name": "PATIENT", "description": "Reference to patient ID", "dataType": "uuid", "foreignKey": "patients.Id"},
+        {"name": "PAYER", "description": "Reference to payer ID", "dataType": "uuid", "foreignKey": "payers.Id"},
+        {"name": "ENCOUNTER", "description": "Reference to encounter ID", "dataType": "uuid", "foreignKey": "encounters.Id"},
+        {"name": "CODE", "description": "RxNorm code for the medication", "dataType": "text"},
+        {"name": "DESCRIPTION", "description": "Medication name and dosage", "dataType": "text"},
+        {"name": "BASE_COST", "description": "Base cost of the medication", "dataType": "numeric"},
+        {"name": "PAYER_COVERAGE", "description": "Amount covered by payer", "dataType": "numeric"},
+        {"name": "DISPENSES", "description": "Number of times dispensed", "dataType": "integer"},
+        {"name": "TOTALCOST", "description": "Total cost (base_cost * dispenses)", "dataType": "numeric"},
+        {"name": "REASONCODE", "description": "SNOMED-CT code for indication", "dataType": "text", "nullable": true},
+        {"name": "REASONDESCRIPTION", "description": "Description of why medication was prescribed", "dataType": "text", "nullable": true}
+      ]
+    },
+    {
+      "name": "careplans",
+      "description": "Planned healthcare activities and treatment regimens for patients including goals and interventions.",
+      "rowCount": "varies",
+      "columns": [
+        {"name": "Id", "description": "Unique identifier for the care plan (UUID)", "dataType": "uuid", "primaryKey": true},
+        {"name": "START", "description": "Care plan start date", "dataType": "date"},
+        {"name": "STOP", "description": "Care plan end date (null if ongoing)", "dataType": "date", "nullable": true},
+        {"name": "PATIENT", "description": "Reference to patient ID", "dataType": "uuid", "foreignKey": "patients.Id"},
+        {"name": "ENCOUNTER", "description": "Reference to encounter ID", "dataType": "uuid", "foreignKey": "encounters.Id"},
+        {"name": "CODE", "description": "SNOMED-CT code for the care plan type", "dataType": "text"},
+        {"name": "DESCRIPTION", "description": "Description of the care plan (e.g., 'Diabetes self management plan')", "dataType": "text"},
+        {"name": "REASONCODE", "description": "SNOMED-CT code for the condition being addressed", "dataType": "text", "nullable": true},
+        {"name": "REASONDESCRIPTION", "description": "Description of the condition being addressed", "dataType": "text", "nullable": true}
+      ]
+    },
+    {
+      "name": "observations",
+      "description": "Clinical observations including laboratory results, vital signs, and other measurements.",
+      "rowCount": "varies",
+      "columns": [
+        {"name": "DATE", "description": "Date and time of observation", "dataType": "timestamp"},
+        {"name": "PATIENT", "description": "Reference to patient ID", "dataType": "uuid", "foreignKey": "patients.Id"},
+        {"name": "ENCOUNTER", "description": "Reference to encounter ID", "dataType": "uuid", "foreignKey": "encounters.Id"},
+        {"name": "CATEGORY", "description": "Category: 'laboratory', 'vital-signs', 'social-history', 'procedure'", "dataType": "text"},
+        {"name": "CODE", "description": "LOINC code for the observation", "dataType": "text"},
+        {"name": "DESCRIPTION", "description": "Description of the observation (e.g., 'Hemoglobin A1c', 'Body Weight')", "dataType": "text"},
+        {"name": "VALUE", "description": "Observation value", "dataType": "text"},
+        {"name": "UNITS", "description": "Units of measurement (e.g., 'kg', 'mm[Hg]', '%')", "dataType": "text", "nullable": true},
+        {"name": "TYPE", "description": "Value type: 'numeric', 'text', 'qualifier'", "dataType": "text"}
+      ]
+    },
+    {
+      "name": "procedures",
+      "description": "Medical and clinical procedures performed during patient encounters.",
+      "rowCount": "varies",
+      "columns": [
+        {"name": "START", "description": "Procedure start date and time", "dataType": "timestamp"},
+        {"name": "STOP", "description": "Procedure end date and time", "dataType": "timestamp"},
+        {"name": "PATIENT", "description": "Reference to patient ID", "dataType": "uuid", "foreignKey": "patients.Id"},
+        {"name": "ENCOUNTER", "description": "Reference to encounter ID", "dataType": "uuid", "foreignKey": "encounters.Id"},
+        {"name": "SYSTEM", "description": "Coding system (http://snomed.info/sct)", "dataType": "text"},
+        {"name": "CODE", "description": "SNOMED-CT code for the procedure", "dataType": "text"},
+        {"name": "DESCRIPTION", "description": "Description of the procedure", "dataType": "text"},
+        {"name": "BASE_COST", "description": "Base cost of the procedure", "dataType": "numeric"},
+        {"name": "REASONCODE", "description": "SNOMED-CT code for procedure indication", "dataType": "text", "nullable": true},
+        {"name": "REASONDESCRIPTION", "description": "Description of procedure indication", "dataType": "text", "nullable": true}
+      ]
+    },
+    {
+      "name": "immunizations",
+      "description": "Patient immunization records including vaccine type, date, and cost.",
+      "rowCount": "varies",
+      "columns": [
+        {"name": "DATE", "description": "Immunization date and time", "dataType": "timestamp"},
+        {"name": "PATIENT", "description": "Reference to patient ID", "dataType": "uuid", "foreignKey": "patients.Id"},
+        {"name": "ENCOUNTER", "description": "Reference to encounter ID", "dataType": "uuid", "foreignKey": "encounters.Id"},
+        {"name": "CODE", "description": "CVX (Vaccine Administered) code", "dataType": "text"},
+        {"name": "DESCRIPTION", "description": "Vaccine description (e.g., 'Influenza split virus trivalent PF')", "dataType": "text"},
+        {"name": "BASE_COST", "description": "Base cost of the immunization", "dataType": "numeric"}
+      ]
+    },
+    {
+      "name": "providers",
+      "description": "Healthcare provider information including physicians, nurses, and specialists.",
+      "rowCount": "varies",
+      "columns": [
+        {"name": "Id", "description": "Unique identifier for the provider (UUID)", "dataType": "uuid", "primaryKey": true},
+        {"name": "ORGANIZATION", "description": "Reference to organization ID", "dataType": "uuid", "foreignKey": "organizations.Id"},
+        {"name": "NAME", "description": "Provider's full name", "dataType": "text"},
+        {"name": "GENDER", "description": "Provider's gender (M/F)", "dataType": "text"},
+        {"name": "SPECIALITY", "description": "Medical specialty (e.g., 'GENERAL PRACTICE', 'CARDIOVASCULAR DISEASE')", "dataType": "text"},
+        {"name": "ADDRESS", "description": "Provider's office address", "dataType": "text"},
+        {"name": "CITY", "description": "City of practice", "dataType": "text"},
+        {"name": "STATE", "description": "State of practice", "dataType": "text"},
+        {"name": "ZIP", "description": "ZIP code of practice location", "dataType": "text"},
+        {"name": "LAT", "description": "Latitude coordinate", "dataType": "numeric"},
+        {"name": "LON", "description": "Longitude coordinate", "dataType": "numeric"},
+        {"name": "ENCOUNTERS", "description": "Number of encounters conducted", "dataType": "integer"},
+        {"name": "PROCEDURES", "description": "Number of procedures performed", "dataType": "integer"},
+        {"name": "NPI", "description": "National Provider Identifier (10-digit ID)", "dataType": "text"}
+      ]
+    },
+    {
+      "name": "organizations",
+      "description": "Healthcare facilities and organizations including hospitals, clinics, and labs.",
+      "rowCount": "varies",
+      "columns": [
+        {"name": "Id", "description": "Unique identifier for the organization (UUID)", "dataType": "uuid", "primaryKey": true},
+        {"name": "NAME", "description": "Organization name", "dataType": "text"},
+        {"name": "ADDRESS", "description": "Organization address", "dataType": "text"},
+        {"name": "CITY", "description": "City location", "dataType": "text"},
+        {"name": "STATE", "description": "State location", "dataType": "text"},
+        {"name": "ZIP", "description": "ZIP code", "dataType": "text"},
+        {"name": "LAT", "description": "Latitude coordinate", "dataType": "numeric"},
+        {"name": "LON", "description": "Longitude coordinate", "dataType": "numeric"},
+        {"name": "PHONE", "description": "Contact phone number", "dataType": "text"},
+        {"name": "REVENUE", "description": "Total revenue in USD", "dataType": "numeric"},
+        {"name": "UTILIZATION", "description": "Number of patient encounters", "dataType": "numeric"},
+        {"name": "NPI", "description": "National Provider Identifier", "dataType": "text"}
+      ]
+    },
+    {
+      "name": "payers",
+      "description": "Insurance companies and payers including government programs and private insurers.",
+      "rowCount": "varies",
+      "columns": [
+        {"name": "Id", "description": "Unique identifier for the payer (UUID)", "dataType": "uuid", "primaryKey": true},
+        {"name": "NAME", "description": "Payer name (e.g., 'Medicare', 'Blue Cross Blue Shield')", "dataType": "text"},
+        {"name": "OWNERSHIP", "description": "Ownership type: 'GOVERNMENT' or 'PRIVATE'", "dataType": "text"},
+        {"name": "ADDRESS", "description": "Payer headquarters address", "dataType": "text", "nullable": true},
+        {"name": "CITY", "description": "City of headquarters", "dataType": "text", "nullable": true},
+        {"name": "STATE_HEADQUARTERED", "description": "State of headquarters", "dataType": "text", "nullable": true},
+        {"name": "ZIP", "description": "ZIP code of headquarters", "dataType": "text", "nullable": true},
+        {"name": "PHONE", "description": "Contact phone", "dataType": "text", "nullable": true},
+        {"name": "AMOUNT_COVERED", "description": "Total amount covered by payer", "dataType": "numeric"},
+        {"name": "AMOUNT_UNCOVERED", "description": "Total amount not covered", "dataType": "numeric"},
+        {"name": "REVENUE", "description": "Total revenue for payer", "dataType": "numeric"},
+        {"name": "COVERED_ENCOUNTERS", "description": "Number of covered encounters", "dataType": "integer"},
+        {"name": "UNCOVERED_ENCOUNTERS", "description": "Number of uncovered encounters", "dataType": "integer"},
+        {"name": "COVERED_MEDICATIONS", "description": "Number of covered medication dispenses", "dataType": "integer"},
+        {"name": "UNCOVERED_MEDICATIONS", "description": "Number of uncovered medication dispenses", "dataType": "integer"},
+        {"name": "COVERED_PROCEDURES", "description": "Number of covered procedures", "dataType": "integer"},
+        {"name": "UNCOVERED_PROCEDURES", "description": "Number of uncovered procedures", "dataType": "integer"},
+        {"name": "COVERED_IMMUNIZATIONS", "description": "Number of covered immunizations", "dataType": "integer"},
+        {"name": "UNCOVERED_IMMUNIZATIONS", "description": "Number of uncovered immunizations", "dataType": "integer"},
+        {"name": "UNIQUE_CUSTOMERS", "description": "Number of unique customers/patients", "dataType": "integer"},
+        {"name": "QOLS_AVG", "description": "Average Quality of Life Score", "dataType": "numeric"},
+        {"name": "MEMBER_MONTHS", "description": "Total member months of coverage", "dataType": "numeric"}
+      ]
+    },
+    {
+      "name": "claims",
+      "description": "Healthcare insurance claims including diagnoses, costs, and billing status.",
+      "rowCount": "varies",
+      "columns": [
+        {"name": "Id", "description": "Unique identifier for the claim (UUID)", "dataType": "uuid", "primaryKey": true},
+        {"name": "PATIENTID", "description": "Reference to patient ID", "dataType": "uuid", "foreignKey": "patients.Id"},
+        {"name": "PROVIDERID", "description": "Reference to provider ID", "dataType": "uuid", "foreignKey": "providers.Id"},
+        {"name": "PRIMARYPATIENTINSURANCEID", "description": "Reference to primary insurance payer ID", "dataType": "uuid", "foreignKey": "payers.Id", "nullable": true},
+        {"name": "SECONDARYPATIENTINSURANCEID", "description": "Reference to secondary insurance payer ID", "dataType": "uuid", "foreignKey": "payers.Id", "nullable": true},
+        {"name": "DEPARTMENTID", "description": "Department identifier", "dataType": "integer"},
+        {"name": "PATIENTDEPARTMENTID", "description": "Patient's assigned department ID", "dataType": "integer"},
+        {"name": "DIAGNOSIS1", "description": "Primary ICD-10 diagnosis code", "dataType": "text"},
+        {"name": "DIAGNOSIS2", "description": "Secondary diagnosis code 2", "dataType": "text", "nullable": true},
+        {"name": "DIAGNOSIS3", "description": "Secondary diagnosis code 3", "dataType": "text", "nullable": true},
+        {"name": "DIAGNOSIS4", "description": "Secondary diagnosis code 4", "dataType": "text", "nullable": true},
+        {"name": "DIAGNOSIS5", "description": "Secondary diagnosis code 5", "dataType": "text", "nullable": true},
+        {"name": "DIAGNOSIS6", "description": "Secondary diagnosis code 6", "dataType": "text", "nullable": true},
+        {"name": "DIAGNOSIS7", "description": "Secondary diagnosis code 7", "dataType": "text", "nullable": true},
+        {"name": "DIAGNOSIS8", "description": "Secondary diagnosis code 8", "dataType": "text", "nullable": true},
+        {"name": "REFERRINGPROVIDERID", "description": "Reference to referring provider ID", "dataType": "uuid", "nullable": true},
+        {"name": "APPOINTMENTID", "description": "Reference to appointment ID", "dataType": "uuid"},
+        {"name": "CURRENTILLNESSDATE", "description": "Date of current illness onset", "dataType": "timestamp"},
+        {"name": "SERVICEDATE", "description": "Date of service", "dataType": "timestamp"},
+        {"name": "SUPERVISINGPROVIDERID", "description": "Reference to supervising provider ID", "dataType": "uuid"},
+        {"name": "STATUS1", "description": "Status of primary claim: 'BILLED' or 'CLOSED'", "dataType": "text"},
+        {"name": "STATUS2", "description": "Status of secondary claim", "dataType": "text", "nullable": true},
+        {"name": "STATUSP", "description": "Status of patient responsibility", "dataType": "text"},
+        {"name": "OUTSTANDING1", "description": "Outstanding amount for primary", "dataType": "numeric"},
+        {"name": "OUTSTANDING2", "description": "Outstanding amount for secondary", "dataType": "numeric", "nullable": true},
+        {"name": "OUTSTANDINGP", "description": "Outstanding amount for patient", "dataType": "numeric"},
+        {"name": "LASTBILLEDDATE1", "description": "Last billed date for primary", "dataType": "timestamp"},
+        {"name": "LASTBILLEDDATE2", "description": "Last billed date for secondary", "dataType": "timestamp", "nullable": true},
+        {"name": "LASTBILLEDDATEP", "description": "Last billed date for patient", "dataType": "timestamp"},
+        {"name": "HEALTHCARECLAIMTYPEID1", "description": "Healthcare claim type ID (1=Professional, 2=Institutional)", "dataType": "integer"},
+        {"name": "HEALTHCARECLAIMTYPEID2", "description": "Secondary claim type ID", "dataType": "integer"}
+      ]
+    },
+    {
+      "name": "claims_transactions",
+      "description": "Detailed financial transactions for claims including charges, payments, adjustments, and transfers.",
+      "rowCount": "varies",
+      "columns": [
+        {"name": "ID", "description": "Unique identifier for the transaction (UUID)", "dataType": "uuid", "primaryKey": true},
+        {"name": "CLAIMID", "description": "Reference to parent claim ID", "dataType": "uuid", "foreignKey": "claims.Id"},
+        {"name": "CHARGEID", "description": "Charge line item ID", "dataType": "integer"},
+        {"name": "PATIENTID", "description": "Reference to patient ID", "dataType": "uuid", "foreignKey": "patients.Id"},
+        {"name": "TYPE", "description": "Transaction type: 'CHARGE', 'PAYMENT', 'ADJUSTMENT', 'TRANSFEROUT', 'TRANSFERIN'", "dataType": "text"},
+        {"name": "AMOUNT", "description": "Transaction amount", "dataType": "numeric"},
+        {"name": "METHOD", "description": "Payment method: 'CHECK', 'CASH', 'WIRE', etc.", "dataType": "text", "nullable": true},
+        {"name": "FROMDATE", "description": "Service period start date", "dataType": "timestamp"},
+        {"name": "TODATE", "description": "Service period end date", "dataType": "timestamp"},
+        {"name": "PLACEOFSERVICE", "description": "Organization ID where service was rendered", "dataType": "uuid", "foreignKey": "organizations.Id"},
+        {"name": "PROCEDURECODE", "description": "CPT/HCPCS procedure code", "dataType": "text"},
+        {"name": "MODIFIER1", "description": "Procedure modifier 1", "dataType": "text", "nullable": true},
+        {"name": "MODIFIER2", "description": "Procedure modifier 2", "dataType": "text", "nullable": true},
+        {"name": "DIAGNOSISREF1", "description": "Primary diagnosis reference (1-8)", "dataType": "integer"},
+        {"name": "DIAGNOSISREF2", "description": "Secondary diagnosis reference", "dataType": "integer", "nullable": true},
+        {"name": "DIAGNOSISREF3", "description": "Tertiary diagnosis reference", "dataType": "integer", "nullable": true},
+        {"name": "DIAGNOSISREF4", "description": "Quaternary diagnosis reference", "dataType": "integer", "nullable": true},
+        {"name": "UNITS", "description": "Number of units", "dataType": "integer"},
+        {"name": "DEPARTMENTID", "description": "Department identifier", "dataType": "integer"},
+        {"name": "NOTES", "description": "Procedure/encounter notes", "dataType": "text"},
+        {"name": "UNITAMOUNT", "description": "Amount per unit", "dataType": "numeric"},
+        {"name": "TRANSFEROUTID", "description": "Transfer out destination ID", "dataType": "text", "nullable": true},
+        {"name": "TRANSFERTYPE", "description": "Transfer type (e.g., 'p' for primary)", "dataType": "text", "nullable": true},
+        {"name": "PAYMENTS", "description": "Payment amount", "dataType": "numeric"},
+        {"name": "ADJUSTMENTS", "description": "Adjustment amount", "dataType": "numeric"},
+        {"name": "TRANSFERS", "description": "Transfer amount", "dataType": "numeric"},
+        {"name": "OUTSTANDING", "description": "Outstanding balance", "dataType": "numeric"},
+        {"name": "APPOINTMENTID", "description": "Reference to appointment/encounter ID", "dataType": "uuid", "foreignKey": "encounters.Id"},
+        {"name": "LINENOTE", "description": "Line item notes", "dataType": "text", "nullable": true},
+        {"name": "PATIENTINSURANCEID", "description": "Patient's insurance payer ID", "dataType": "uuid", "foreignKey": "payers.Id"},
+        {"name": "FEESCHEDULEID", "description": "Fee schedule ID", "dataType": "integer"},
+        {"name": "PROVIDERID", "description": "Reference to provider ID", "dataType": "uuid", "foreignKey": "providers.Id"},
+        {"name": "SUPERVISINGPROVIDERID", "description": "Reference to supervising provider ID", "dataType": "uuid", "foreignKey": "providers.Id"}
+      ]
+    },
+    {
+      "name": "imaging_studies",
+      "description": "Medical imaging studies including X-rays, CT, MRI, and other imaging modalities.",
+      "rowCount": "varies",
+      "columns": [
+        {"name": "Id", "description": "Unique identifier for the imaging study (UUID)", "dataType": "uuid", "primaryKey": true},
+        {"name": "DATE", "description": "Date and time of imaging study", "dataType": "timestamp"},
+        {"name": "PATIENT", "description": "Reference to patient ID", "dataType": "uuid", "foreignKey": "patients.Id"},
+        {"name": "ENCOUNTER", "description": "Reference to encounter ID", "dataType": "uuid", "foreignKey": "encounters.Id"},
+        {"name": "SERIES_UID", "description": "DICOM Series Instance UID", "dataType": "text"},
+        {"name": "BODYSITE_CODE", "description": "SNOMED-CT code for body site", "dataType": "text"},
+        {"name": "BODYSITE_DESCRIPTION", "description": "Description of body site imaged", "dataType": "text"},
+        {"name": "MODALITY_CODE", "description": "DICOM modality code (DX, CT, MR, etc.)", "dataType": "text"},
+        {"name": "MODALITY_DESCRIPTION", "description": "Description of imaging modality", "dataType": "text"},
+        {"name": "INSTANCE_UID", "description": "DICOM Instance/SOP Instance UID", "dataType": "text"},
+        {"name": "SOP_CODE", "description": "DICOM SOP Class UID", "dataType": "text"},
+        {"name": "SOP_DESCRIPTION", "description": "Description of SOP Class", "dataType": "text"},
+        {"name": "PROCEDURE_CODE", "description": "SNOMED-CT code for procedure", "dataType": "text"}
+      ]
+    },
+    {
+      "name": "devices",
+      "description": "Medical devices used during patient care including implants, equipment, and supplies with UDI tracking.",
+      "rowCount": "varies",
+      "columns": [
+        {"name": "START", "description": "Device start date and time", "dataType": "timestamp"},
+        {"name": "STOP", "description": "Device stop date and time (null if still in use)", "dataType": "timestamp", "nullable": true},
+        {"name": "PATIENT", "description": "Reference to patient ID", "dataType": "uuid", "foreignKey": "patients.Id"},
+        {"name": "ENCOUNTER", "description": "Reference to encounter ID", "dataType": "uuid", "foreignKey": "encounters.Id"},
+        {"name": "CODE", "description": "SNOMED-CT code for the device", "dataType": "text"},
+        {"name": "DESCRIPTION", "description": "Description of the device", "dataType": "text"},
+        {"name": "UDI", "description": "Unique Device Identifier", "dataType": "text"}
+      ]
+    },
+    {
+      "name": "supplies",
+      "description": "Medical supplies dispensed or used during patient care.",
+      "rowCount": "varies",
+      "columns": [
+        {"name": "DATE", "description": "Date supply was provided", "dataType": "date"},
+        {"name": "PATIENT", "description": "Reference to patient ID", "dataType": "uuid", "foreignKey": "patients.Id"},
+        {"name": "ENCOUNTER", "description": "Reference to encounter ID", "dataType": "uuid", "foreignKey": "encounters.Id"},
+        {"name": "CODE", "description": "SNOMED-CT code for the supply", "dataType": "text"},
+        {"name": "DESCRIPTION", "description": "Description of the supply item", "dataType": "text"},
+        {"name": "QUANTITY", "description": "Quantity dispensed", "dataType": "integer"}
+      ]
+    },
+    {
+      "name": "payer_transitions",
+      "description": "History of patient insurance/payer coverage changes over time.",
+      "rowCount": "varies",
+      "columns": [
+        {"name": "PATIENT", "description": "Reference to patient ID", "dataType": "uuid", "foreignKey": "patients.Id"},
+        {"name": "MEMBERID", "description": "Member ID with the payer", "dataType": "text"},
+        {"name": "START_DATE", "description": "Coverage start date with this payer", "dataType": "timestamp"},
+        {"name": "END_DATE", "description": "Coverage end date with this payer", "dataType": "timestamp"},
+        {"name": "PAYER", "description": "Reference to payer ID", "dataType": "uuid", "foreignKey": "payers.Id"},
+        {"name": "SECONDARY_PAYER", "description": "Reference to secondary payer ID", "dataType": "uuid", "foreignKey": "payers.Id", "nullable": true},
+        {"name": "PLAN_OWNERSHIP", "description": "Plan ownership type", "dataType": "text"},
+        {"name": "OWNER_NAME", "description": "Plan owner name", "dataType": "text", "nullable": true}
+      ]
+    }
+  ]
+}

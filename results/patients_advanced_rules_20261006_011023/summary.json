@@ -1,0 +1,23 @@
+{
+  "table_name": "patients",
+  "timestamp": "20261006_011023",
+  "min_confidence": 0.75,
+  "router": {
+    "total_candidates": 6,
+    "selected_candidates": 4,
+    "candidates_by_type": {
+      "TEMPORAL": 1,
+      "CROSS_COLUMN": 3,
+      "CONDITIONAL_DEPENDENCY": 2
+    }
+  },
+  "rules": {
+    "total_generated": 6,
+    "rules_by_type": {
+      "TEMPORAL": 1,
+      "CROSS_COLUMN": 2,
+      "CONDITIONAL_DEPENDENCY": 3
+    }
+  },
+  "output_dir": "results\\patients_advanced_rules_20261006_011023"
+}

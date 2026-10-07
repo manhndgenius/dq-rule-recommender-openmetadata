@@ -40,16 +40,24 @@ export default function RecommendationBoard({
   const reviewedCount = rules.filter((r) => r.status !== 'DRAFT').length;
 
   // Filter Rules (for flat view)
+  // ADVANCED rules dùng 'columns', BASIC rules dùng 'target_columns'
   const filteredRules = rules.filter((rule) => {
     if (activeFilter === 'BASIC' && rule.engine !== 'BASIC') return false;
     if (activeFilter === 'ADVANCED' && rule.engine !== 'ADVANCED') return false;
     if (activeFilter === 'WARNING' && rule.validation_status !== 'WARNING') return false;
     if (activeFilter === 'ACCEPTED' && rule.status !== 'ACCEPTED' && rule.status !== 'EDITED') return false;
 
+    // Filter by advanced rule types
+    if (activeFilter === 'TEMPORAL' && rule.rule_type !== 'TEMPORAL') return false;
+    if (activeFilter === 'CROSS_COLUMN' && rule.rule_type !== 'CROSS_COLUMN') return false;
+    if (activeFilter === 'CONDITIONAL_DEPENDENCY' && rule.rule_type !== 'CONDITIONAL_DEPENDENCY') return false;
+
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
+      // Check both columns fields
+      const cols = rule.columns || rule.target_columns || [];
       const matchType = rule.rule_type.toLowerCase().includes(q);
-      const matchCol = rule.target_columns.some((c) => c.toLowerCase().includes(q));
+      const matchCol = cols.some((c) => c.toLowerCase().includes(q));
       const matchReason = rule.reason.toLowerCase().includes(q);
       if (!matchType && !matchCol && !matchReason) return false;
     }
