@@ -44,4 +44,7 @@ yarn-error.log*
 
 # Documentation
 docs/
+
+# Database & Local Data
+database/
 scripts/results/*

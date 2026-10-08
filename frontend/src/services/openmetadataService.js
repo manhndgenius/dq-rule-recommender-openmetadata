@@ -254,5 +254,21 @@ export const openmetadataService = {
       console.warn('Lỗi lấy báo cáo Evaluation:', err);
     }
     return null;
+  },
+
+  /**
+   * Lấy báo cáo Golden Benchmark Synthea đối chiếu Ground Truth (Precision, Recall, F1, Bug Catch Rate)
+   */
+  async getGoldenEvaluationSummary(forceRefresh = false) {
+    try {
+      const url = `${API_BASE}/evaluation/golden-benchmark${forceRefresh ? '?force_refresh=true' : ''}`;
+      const res = await fetch(url);
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (err) {
+      console.warn('Lỗi lấy báo cáo Golden Benchmark:', err);
+    }
+    return null;
   }
 };

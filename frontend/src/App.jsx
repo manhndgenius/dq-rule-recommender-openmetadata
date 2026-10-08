@@ -12,6 +12,7 @@ import EditRuleModal from './components/modals/EditRuleModal';
 import EditTierModal from './components/modals/EditTierModal';
 import VersionHistoryModal from './components/modals/VersionHistoryModal';
 import PublishSuccessModal from './components/modals/PublishSuccessModal';
+import GoldenBenchmarkModal from './components/modals/GoldenBenchmarkModal';
 import ToastContainer from './components/layout/Toast';
 import { HEALTHCARE_TABLE_DESCRIPTIONS } from './services/mockData';
 import { openmetadataService } from './services/openmetadataService';
@@ -146,6 +147,7 @@ export default function App() {
   const [isTierModalOpen, setIsTierModalOpen] = useState(false);
   const [isVersionModalOpen, setIsVersionModalOpen] = useState(false);
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
+  const [isGoldenBenchmarkOpen, setIsGoldenBenchmarkOpen] = useState(false);
   const [publishResult, setPublishResult] = useState(null);
   const [isPublishing, setIsPublishing] = useState(false);
 
@@ -655,6 +657,7 @@ export default function App() {
         tableData={tableData}
         theme={theme}
         onToggleTheme={toggleTheme}
+        onOpenGoldenBenchmark={() => setIsGoldenBenchmarkOpen(true)}
         availableTables={availableTables}
         databasesList={databasesList}
         isConnected={isConnected}
@@ -1022,6 +1025,11 @@ export default function App() {
           (r) => r.status === 'ACCEPTED' || r.status === 'EDITED'
         )}
         publishResult={publishResult}
+      />
+
+      <GoldenBenchmarkModal
+        isOpen={isGoldenBenchmarkOpen}
+        onClose={() => setIsGoldenBenchmarkOpen(false)}
       />
 
       {/* Toast Notifications */}

@@ -1,4 +1,5 @@
 import React from 'react';
+import RuleHistogramChart from './RuleHistogramChart';
 
 // Mapping cho rule type labels
 const RULE_TYPE_LABELS = {
@@ -166,19 +167,19 @@ export default function RuleCard({ rule, onReviewAction, onOpenEdit }) {
         )}
 
         <div className="evidence-tags">
-          {rule.evidence?.null_count !== undefined && (
+          {rule.evidence?.null_count !== undefined && rule.evidence?.null_count > 0 && (
             <span className="evidence-tag">
               Null: <strong>{rule.evidence.null_count}</strong> {rule.evidence.null_ratio !== undefined ? `(${Math.round(rule.evidence.null_ratio * 100)}%)` : ''}
             </span>
           )}
           {rule.evidence?.distinct_count !== undefined && (
             <span className="evidence-tag">
-              Distinct: <strong>{rule.evidence.distinct_count}</strong> {rule.evidence.distinct_ratio !== undefined ? `(${Math.round(rule.evidence.distinct_ratio * 100)}%)` : ''}
+              Distinct: <strong>{rule.evidence.distinct_count}</strong> {rule.evidence.distinct_ratio !== undefined ? (rule.evidence.null_count > 0 ? `(${Math.round(rule.evidence.distinct_ratio * 100)}% non-null)` : `(${Math.round(rule.evidence.distinct_ratio * 100)}%)`) : ''}
             </span>
           )}
           {rule.evidence?.duplicate_count !== undefined && (
             <span className="evidence-tag">
-              Duplicates: <strong>{rule.evidence.duplicate_count}</strong>
+              Duplicates: <strong style={{ color: rule.evidence.duplicate_count > 0 ? '#ef4444' : 'inherit' }}>{rule.evidence.duplicate_count}</strong>
             </span>
           )}
           {rule.evidence?.min_observed !== undefined && rule.evidence?.max_observed !== undefined && (
@@ -212,6 +213,9 @@ export default function RuleCard({ rule, onReviewAction, onOpenEdit }) {
             </span>
           )}
         </div>
+
+        {/* Histogram / Category & Binned Frequency Distribution */}
+        <RuleHistogramChart rule={rule} />
       </div>
 
       {/* Footer & Actions */}
