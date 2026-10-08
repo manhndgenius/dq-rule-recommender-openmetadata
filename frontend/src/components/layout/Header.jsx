@@ -8,6 +8,7 @@ export default function Header({
   tableData,
   theme,
   onToggleTheme,
+  onOpenGoldenBenchmark,
   availableTables = [],
   databasesList = [],
   isConnected = true
@@ -99,6 +100,16 @@ export default function Header({
             <span className="tier-text">Tier: --</span>
           </div>
         )}
+
+        {/* Golden Benchmark Modal Trigger */}
+        <button
+          className="btn-om-sandbox"
+          style={{ background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(234, 88, 12, 0.25))', borderColor: 'rgba(245, 158, 11, 0.4)', color: '#F59E0B' }}
+          onClick={onOpenGoldenBenchmark}
+          title="Mở Báo cáo Benchmark đánh giá định lượng Synthea Golden Dataset"
+        >
+          <span>🏆 Golden Benchmark</span>
+        </button>
 
         {/* Link to OpenMetadata Live Server */}
         <a

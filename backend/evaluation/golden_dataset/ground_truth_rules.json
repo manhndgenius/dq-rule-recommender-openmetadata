@@ -1,0 +1,295 @@
+{
+  "description": "Synthea Ground Truth Data Quality Rules Specification for Healthcare Core Tables",
+  "version": "1.0",
+  "reference": "https://github.com/synthetichealth/synthea/wiki/CSV-File-Data-Dictionary",
+  "tables": {
+    "patients": {
+      "table_name": "patients",
+      "expected_rules": [
+        {
+          "rule_type": "columnValuesToBeNotNull",
+          "target_columns": ["id"],
+          "parameters": {},
+          "category": "IDENTIFIER",
+          "reason": "Mã định danh bệnh nhân (UUID) bắt buộc không được rỗng."
+        },
+        {
+          "rule_type": "columnValuesToBeUnique",
+          "target_columns": ["id"],
+          "parameters": {},
+          "category": "PRIMARY_KEY",
+          "reason": "Mỗi bệnh nhân phải có một ID duy nhất, không được trùng lặp."
+        },
+        {
+          "rule_type": "columnValuesLengthToBeBetween",
+          "target_columns": ["id"],
+          "parameters": { "minLength": 36, "maxLength": 36 },
+          "category": "FORMAT",
+          "reason": "Mã UUID bệnh nhân phải có đúng độ dài chuẩn 36 ký tự."
+        },
+        {
+          "rule_type": "columnValuesToBeNotNull",
+          "target_columns": ["birthdate"],
+          "parameters": {},
+          "category": "DEMOGRAPHIC",
+          "reason": "Ngày sinh bệnh nhân là thông tin nhân khẩu cốt lõi, không được để trống."
+        },
+        {
+          "rule_type": "columnValuesToBeNotNull",
+          "target_columns": ["gender"],
+          "parameters": {},
+          "category": "DEMOGRAPHIC",
+          "reason": "Giới tính sinh học bắt buộc phải được khai báo."
+        },
+        {
+          "rule_type": "columnValuesToBeInSet",
+          "target_columns": ["gender"],
+          "parameters": { "allowedValues": ["M", "F"] },
+          "category": "ENUMERATION",
+          "reason": "Giới tính chỉ nhận các giá trị chuẩn M (Male) hoặc F (Female)."
+        },
+        {
+          "rule_type": "columnValuesToBeInSet",
+          "target_columns": ["marital"],
+          "parameters": { "allowedValues": ["M", "S"] },
+          "category": "ENUMERATION",
+          "reason": "Trạng thái hôn nhân theo chuẩn Synthea: M (Married) hoặc S (Single)."
+        },
+        {
+          "rule_type": "columnValuesToBeInSet",
+          "target_columns": ["race"],
+          "parameters": { "allowedValues": ["white", "black", "asian", "native", "other"] },
+          "category": "ENUMERATION",
+          "reason": "Chủng tộc theo phân loại nhân khẩu học CDC/Synthea."
+        },
+        {
+          "rule_type": "columnValuesToBeInSet",
+          "target_columns": ["ethnicity"],
+          "parameters": { "allowedValues": ["hispanic", "nonhispanic"] },
+          "category": "ENUMERATION",
+          "reason": "Dân tộc học theo chuẩn Synthea chỉ phân nhóm hispanic hoặc nonhispanic."
+        },
+        {
+          "rule_type": "columnValuesToBeBetween",
+          "target_columns": ["healthcare_expenses"],
+          "parameters": { "minValue": 0.0 },
+          "category": "FINANCIAL",
+          "reason": "Chi phí y tế chi trả của bệnh nhân không được nhận giá trị âm."
+        },
+        {
+          "rule_type": "columnValuesToBeBetween",
+          "target_columns": ["healthcare_coverage"],
+          "parameters": { "minValue": 0.0 },
+          "category": "FINANCIAL",
+          "reason": "Mức chi trả bảo hiểm không được nhận giá trị âm."
+        },
+        {
+          "rule_type": "columnValuesToBeBetween",
+          "target_columns": ["income"],
+          "parameters": { "minValue": 0.0 },
+          "category": "FINANCIAL",
+          "reason": "Thu nhập của bệnh nhân không được nhận giá trị âm."
+        },
+        {
+          "rule_type": "columnValuesToBeBetween",
+          "target_columns": ["lat"],
+          "parameters": { "minValue": -90.0, "maxValue": 90.0 },
+          "category": "GEOGRAPHIC",
+          "reason": "Vĩ độ địa lý phải nằm trong phạm vi [-90 .. 90]."
+        },
+        {
+          "rule_type": "columnValuesToBeBetween",
+          "target_columns": ["lon"],
+          "parameters": { "minValue": -180.0, "maxValue": 180.0 },
+          "category": "GEOGRAPHIC",
+          "reason": "Kinh độ địa lý phải nằm trong phạm vi [-180 .. 180]."
+        }
+      ]
+    },
+    "medications": {
+      "table_name": "medications",
+      "expected_rules": [
+        {
+          "rule_type": "columnValuesToBeNotNull",
+          "target_columns": ["start_at"],
+          "parameters": {},
+          "category": "TEMPORAL",
+          "reason": "Thời điểm bắt đầu kê đơn thuốc bắt buộc không được để trống."
+        },
+        {
+          "rule_type": "columnValuesToBeNotNull",
+          "target_columns": ["patient"],
+          "parameters": {},
+          "category": "FOREIGN_KEY",
+          "reason": "Đơn thuốc bắt buộc phải gắn với một bệnh nhân (Foreign Key)."
+        },
+        {
+          "rule_type": "columnValuesLengthToBeBetween",
+          "target_columns": ["patient"],
+          "parameters": { "minLength": 36, "maxLength": 36 },
+          "category": "FORMAT",
+          "reason": "Mã UUID bệnh nhân liên kết phải có đúng 36 ký tự."
+        },
+        {
+          "rule_type": "columnValuesToBeNotNull",
+          "target_columns": ["payer"],
+          "parameters": {},
+          "category": "FOREIGN_KEY",
+          "reason": "Đơn thuốc bắt buộc phải có đối tượng thanh toán / bảo hiểm."
+        },
+        {
+          "rule_type": "columnValuesToBeNotNull",
+          "target_columns": ["encounter"],
+          "parameters": {},
+          "category": "FOREIGN_KEY",
+          "reason": "Đơn thuốc bắt buộc phải phát sinh từ một đợt khám bệnh (Encounter)."
+        },
+        {
+          "rule_type": "columnValuesToBeNotNull",
+          "target_columns": ["code"],
+          "parameters": {},
+          "category": "CLINICAL_CODE",
+          "reason": "Mã định danh thuốc chuẩn RxNorm không được rỗng."
+        },
+        {
+          "rule_type": "columnValuesToBeNotNull",
+          "target_columns": ["description"],
+          "parameters": {},
+          "category": "CLINICAL_TEXT",
+          "reason": "Tên và hàm lượng thuốc điều trị bắt buộc phải có."
+        },
+        {
+          "rule_type": "columnValuesToBeNotNull",
+          "target_columns": ["base_cost"],
+          "parameters": {},
+          "category": "FINANCIAL",
+          "reason": "Đơn giá gốc của thuốc không được null."
+        },
+        {
+          "rule_type": "columnValuesToBeBetween",
+          "target_columns": ["base_cost"],
+          "parameters": { "minValue": 0.0 },
+          "category": "FINANCIAL",
+          "reason": "Đơn vị giá thuốc gốc không được âm."
+        },
+        {
+          "rule_type": "columnValuesToBeBetween",
+          "target_columns": ["payer_coverage"],
+          "parameters": { "minValue": 0.0 },
+          "category": "FINANCIAL",
+          "reason": "Số tiền bảo hiểm chi trả cho thuốc không được âm."
+        },
+        {
+          "rule_type": "columnValuesToBeNotNull",
+          "target_columns": ["total_cost"],
+          "parameters": {},
+          "category": "FINANCIAL",
+          "reason": "Tổng chi phí tiền thuốc không được để trống."
+        },
+        {
+          "rule_type": "columnValuesToBeBetween",
+          "target_columns": ["total_cost"],
+          "parameters": { "minValue": 0.0 },
+          "category": "FINANCIAL",
+          "reason": "Tổng chi phí tiền thuốc không được âm."
+        },
+        {
+          "rule_type": "columnValuesToBeNotNull",
+          "target_columns": ["dispenses"],
+          "parameters": {},
+          "category": "QUANTITY",
+          "reason": "Số lần phát thuốc bắt buộc phải có giá trị."
+        },
+        {
+          "rule_type": "columnValuesToBeBetween",
+          "target_columns": ["dispenses"],
+          "parameters": { "minValue": 1 },
+          "category": "QUANTITY",
+          "reason": "Số lần phát thuốc trong một đợt kê đơn tối thiểu phải là 1."
+        }
+      ]
+    },
+    "observations": {
+      "table_name": "observations",
+      "expected_rules": [
+        {
+          "rule_type": "columnValuesToBeNotNull",
+          "target_columns": ["observation_date"],
+          "parameters": {},
+          "category": "TEMPORAL",
+          "reason": "Thời điểm đo đạc chỉ số xét nghiệm/khám bệnh bắt buộc phải có."
+        },
+        {
+          "rule_type": "columnValuesToBeNotNull",
+          "target_columns": ["patient"],
+          "parameters": {},
+          "category": "FOREIGN_KEY",
+          "reason": "Chỉ số xét nghiệm bắt buộc phải liên kết với bệnh nhân."
+        },
+        {
+          "rule_type": "columnValuesLengthToBeBetween",
+          "target_columns": ["patient"],
+          "parameters": { "minLength": 36, "maxLength": 36 },
+          "category": "FORMAT",
+          "reason": "Mã UUID bệnh nhân phải có đúng 36 ký tự."
+        },
+        {
+          "rule_type": "columnValuesToBeNotNull",
+          "target_columns": ["encounter"],
+          "parameters": {},
+          "category": "FOREIGN_KEY",
+          "reason": "Chỉ số xét nghiệm bắt buộc phải liên kết với một đợt khám bệnh."
+        },
+        {
+          "rule_type": "columnValuesToBeNotNull",
+          "target_columns": ["category"],
+          "parameters": {},
+          "category": "ENUMERATION",
+          "reason": "Phân loại xét nghiệm lâm sàng bắt buộc phải có giá trị."
+        },
+        {
+          "rule_type": "columnValuesToBeInSet",
+          "target_columns": ["category"],
+          "parameters": { "allowedValues": ["vital-signs", "laboratory", "survey", "exam", "procedure", "social-history"] },
+          "category": "ENUMERATION",
+          "reason": "Danh mục phân loại xét nghiệm chuẩn Synthea/FHIR."
+        },
+        {
+          "rule_type": "columnValuesToBeNotNull",
+          "target_columns": ["code"],
+          "parameters": {},
+          "category": "CLINICAL_CODE",
+          "reason": "Mã chỉ số y tế chuẩn LOINC không được để trống."
+        },
+        {
+          "rule_type": "columnValuesToBeNotNull",
+          "target_columns": ["description"],
+          "parameters": {},
+          "category": "CLINICAL_TEXT",
+          "reason": "Mô tả tên xét nghiệm (ví dụ: Blood Pressure, Glucose) không được rỗng."
+        },
+        {
+          "rule_type": "columnValuesToBeNotNull",
+          "target_columns": ["value"],
+          "parameters": {},
+          "category": "CLINICAL_VALUE",
+          "reason": "Kết quả đo lường lâm sàng không được để trống."
+        },
+        {
+          "rule_type": "columnValuesToBeNotNull",
+          "target_columns": ["type"],
+          "parameters": {},
+          "category": "ENUMERATION",
+          "reason": "Kiểu kết quả đo lường bắt buộc phải được khai báo."
+        },
+        {
+          "rule_type": "columnValuesToBeInSet",
+          "target_columns": ["type"],
+          "parameters": { "allowedValues": ["numeric", "text"] },
+          "category": "ENUMERATION",
+          "reason": "Kiểu kết quả xét nghiệm chỉ được là numeric (đo lường định lượng) hoặc text (định tính)."
+        }
+      ]
+    }
+  }
+}

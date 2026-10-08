@@ -1,5 +1,9 @@
 """Main FastAPI application."""
 
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+import uvicorn
+
 from backend.api.router import (
     routes_advanced_rules,
     routes_context,
@@ -8,9 +12,6 @@ from backend.api.router import (
     routes_recommendation,
     routes_review,
 )
-import uvicorn
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 
 
 def create_app() -> FastAPI:
@@ -43,7 +44,6 @@ def create_app() -> FastAPI:
 
 
 app = create_app()
-
 
 if __name__ == "__main__":
     uvicorn.run("backend.main:app", host="0.0.0.0", port=8000, reload=True)

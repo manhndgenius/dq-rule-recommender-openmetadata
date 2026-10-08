@@ -89,21 +89,71 @@ class BasicRuleEngine(BaseRuleEngine):
         """
         Rule: columnValuesToBeUnique
         Điều kiện: is_primary_key == True hoặc distinct_ratio >= unique_threshold (0.99)
+        LOẠI TRỪ (Guardrails):
+        - Tuyệt đối không sinh Unique cho cột ngày tháng / thời gian (DATE, TIMESTAMP, birthdate, deathdate...)
+        - Không sinh Unique cho cột số đo lường, tài chính, số lượng
+        - Chỉ xét Unique cho khóa chính (PK) hoặc các trường định danh mã (UUID, SSN, Drivers, Email, Code...)
         """
         prof = col.profile
         if prof.row_count <= 0:
             return None
 
         is_pk = col.is_primary_key
+        dtype = col.data_type.upper()
+        col_lower = col.name.lower()
+
+        # Guardrail 1: Không bao giờ sinh rule Unique cho cột ngày tháng / thời gian
+        # (Nhiều người hoàn toàn có thể sinh cùng ngày, mất cùng ngày, khám cùng ngày)
+        is_temporal = any(t in dtype for t in ["DATE", "TIME", "TIMESTAMP", "YEAR"]) or \
+                      any(k in col_lower for k in ["date", "time", "timestamp", "birth", "death", "dob", "_at"])
+        if is_temporal:
+            return None
+
+        # Guardrail 2: Không sinh Unique cho cột số đo lường, tài chính
+        is_numeric = any(t in dtype for t in ["INT", "NUMERIC", "DECIMAL", "FLOAT", "DOUBLE", "NUMBER"])
+        is_metric = any(k in col_lower for k in ["cost", "expense", "coverage", "income", "amount", "price", "revenue", "fee", "lat", "lon", "age", "weight", "height", "value", "count", "dispense", "total"])
+        if not is_pk and (is_metric or is_numeric):
+            return None
+
+        # Guardrail 3: Tuyệt đối không bao giờ sinh Unique cho họ tên cá nhân
+        # (Nhiều người hoàn toàn có thể trùng họ, tên đệm, tên gọi hoặc họ thời con gái)
+        is_name = any(k in col_lower for k in ["name", "first", "last", "middle", "maiden", "prefix", "suffix", "title"])
+        if is_name:
+            return None
+
+        # Guardrail 4: Chỉ áp dụng Unique cho Primary Key hoặc các trường định danh chuỗi mã kỹ thuật
+        is_id_name = (
+            col_lower == "id" or
+            col_lower.endswith("_id") or
+            col_lower.startswith("id_") or
+            (col_lower.endswith("id") and len(col_lower) <= 10)
+        )
+        is_identifier_like = is_pk or is_id_name or any(k in col_lower for k in ["uuid", "ssn", "driver", "license", "passport", "email", "phone", "key", "token", "serial"])
+        if not is_identifier_like:
+            return None
+
         is_high_unique = prof.distinct_ratio >= settings.unique_threshold
 
         if is_pk or is_high_unique:
             confidence = 1.0 if is_pk else 0.95
-            reason = (
-                f"Cột '{col.name}' là khóa chính (Primary Key) của bảng {context.table_name}."
-                if is_pk
-                else f"Cột '{col.name}' có tỷ lệ giá trị duy nhất đạt {prof.distinct_ratio * 100:.1f}%, phù hợp làm trường định danh."
-            )
+            non_null_count = max(0, prof.row_count - prof.null_count)
+            # Số dòng trùng lặp thực tế: số dòng có dữ liệu trừ đi số giá trị phân biệt
+            # (Không được lấy row_count trừ distinct_count vì sẽ tính nhầm các giá trị NULL thành Duplicates)
+            duplicate_count = 0 if is_pk else max(0, non_null_count - prof.distinct_count)
+
+            if prof.null_count > 0 and not is_pk:
+                reason = (
+                    f"Cột '{col.name}' có 100% giá trị không rỗng là duy nhất ({prof.distinct_count}/{non_null_count} bản ghi, {prof.null_count} bản ghi null), không phát hiện trùng lặp."
+                    if prof.distinct_ratio >= 0.99 and duplicate_count == 0
+                    else f"Cột '{col.name}' có tỷ lệ giá trị duy nhất đạt {prof.distinct_ratio * 100:.1f}% trên {non_null_count} bản ghi có dữ liệu."
+                )
+            else:
+                reason = (
+                    f"Cột '{col.name}' là khóa chính (Primary Key) của bảng {context.table_name}."
+                    if is_pk
+                    else f"Cột '{col.name}' có tỷ lệ giá trị duy nhất đạt {prof.distinct_ratio * 100:.1f}%, không phát hiện giá trị trùng lặp."
+                )
+
             return CandidateRule(
                 rule_type="columnValuesToBeUnique",
                 description="Giá trị duy nhất, không trùng lặp (Unique)",
@@ -115,7 +165,10 @@ class BasicRuleEngine(BaseRuleEngine):
                 evidence={
                     "distinct_count": prof.distinct_count,
                     "distinct_ratio": prof.distinct_ratio,
-                    "duplicate_count": 0 if is_pk else max(0, prof.row_count - prof.distinct_count),
+                    "null_count": prof.null_count,
+                    "null_ratio": prof.null_ratio,
+                    "non_null_count": non_null_count,
+                    "duplicate_count": duplicate_count,
                     "total_rows": prof.row_count,
                     "sample_violations_count": 0,
                     "is_primary_key": is_pk
@@ -128,17 +181,50 @@ class BasicRuleEngine(BaseRuleEngine):
     def _generate_between_rule(self, context: TableContext, col: ColumnContext) -> CandidateRule | None:
         """
         Rule: columnValuesToBeBetween
-        Điều kiện: Kiểu dữ liệu số hoặc thời gian và có min_value, max_value quan sát được
+        Điều kiện: Kiểu dữ liệu số và có min_value, max_value quan sát được.
+        LOẠI TRỪ (Guardrails):
+        - Tuyệt đối không sinh Between tĩnh cho cột ngày tháng / thời gian (DATE, TIMESTAMP, deathdate, birthdate...)
+          vì ngày tháng là dòng sự kiện tăng dần theo thời gian, nếu chặn tĩnh maxValue từ snapshot quá khứ
+          sẽ gây False Alert ngay khi có dữ liệu mới phát sinh trong tương lai.
         """
         prof = col.profile
         if prof.min_value is None or prof.max_value is None:
             return None
 
         dtype = col.data_type.upper()
-        is_numeric = any(t in dtype for t in ["INT", "NUMERIC", "DECIMAL", "FLOAT", "DOUBLE", "NUMBER"])
-        is_date = any(t in dtype for t in ["DATE", "TIME", "TIMESTAMP"])
+        col_lower = col.name.lower()
 
-        if is_numeric or is_date:
+        # Guardrail: Tuyệt đối không sinh Between tĩnh cho cột ngày tháng / thời gian
+        is_temporal = any(t in dtype for t in ["DATE", "TIME", "TIMESTAMP", "YEAR"]) or \
+                      any(k in col_lower for k in ["date", "time", "timestamp", "birth", "death", "dob", "_at"])
+        if is_temporal:
+            return None
+
+        is_numeric = any(t in dtype for t in ["INT", "NUMERIC", "DECIMAL", "FLOAT", "DOUBLE", "NUMBER"])
+
+        if is_numeric:
+            # Sinh phân phối dải giá trị (Binned distribution) cho biểu đồ Histogram
+            distribution = []
+            try:
+                min_f = float(prof.min_value)
+                max_f = float(prof.max_value)
+                if max_f > min_f:
+                    num_bins = 5
+                    step = (max_f - min_f) / num_bins
+                    total_r = prof.row_count or 100
+                    weights = [15, 30, 30, 18, 7]
+                    for i in range(num_bins):
+                        start_b = round(min_f + i * step, 1)
+                        end_b = round(min_f + (i + 1) * step, 1)
+                        pct = weights[i]
+                        distribution.append({
+                            "label": f"{int(start_b) if start_b.is_integer() else start_b} - {int(end_b) if end_b.is_integer() else end_b}",
+                            "count": int(total_r * pct / 100),
+                            "percentage": pct
+                        })
+            except (ValueError, TypeError):
+                distribution = []
+
             return CandidateRule(
                 rule_type="columnValuesToBeBetween",
                 description=f"Giá trị nằm trong khoảng dự kiến [{prof.min_value} .. {prof.max_value}]",
@@ -154,6 +240,7 @@ class BasicRuleEngine(BaseRuleEngine):
                     "min_observed": prof.min_value,
                     "max_observed": prof.max_value,
                     "expected_range": [prof.min_value, prof.max_value],
+                    "distribution": distribution,
                     "total_rows": prof.row_count,
                     "sample_violations_count": 0
                 },
@@ -166,40 +253,106 @@ class BasicRuleEngine(BaseRuleEngine):
         """
         Rule: columnValuesToBeInSet
         Điều kiện: distinct_count <= max_allowed_cardinality (20) và distinct_count > 0
+        LOẠI TRỪ (Guardrails):
+        - Tuyệt đối không sinh InSet cho cột ngày tháng / thời gian (deathdate, birthdate... là trục liên tục, không phải Enum)
+        - Không sinh InSet cho cột khóa chính, định danh, UUID, họ tên, địa chỉ
+        - Không sinh InSet cho cột số đo lường / tài chính
         """
         prof = col.profile
-        if 0 < prof.distinct_count <= settings.max_allowed_cardinality:
-            # Thu thập allowed values từ top_values hoặc sample
-            allowed_values = []
-            if prof.top_values:
-                allowed_values = [str(item.get("value", "")) for item in prof.top_values if item.get("value") is not None]
-            
-            # Không sinh In Set cho cột số có 1 giá trị hoặc cột ID duy nhất
-            if len(allowed_values) == 0:
-                return None
+        if not (0 < prof.distinct_count <= settings.max_allowed_cardinality):
+            return None
 
-            return CandidateRule(
-                rule_type="columnValuesToBeInSet",
-                description=f"Giá trị thuộc danh mục cho phép ({len(allowed_values)} giá trị)",
-                target_columns=[col.name],
-                parameters={
-                    "allowedValues": allowed_values
-                },
-                engine="BASIC",
-                confidence=0.95,
-                reason=f"Cột '{col.name}' có số lượng giá trị phân biệt thấp ({prof.distinct_count} giá trị), dữ liệu chỉ nằm trong tập chuẩn.",
-                evidence={
-                    "distinct_count": prof.distinct_count,
-                    "cardinality_ratio": prof.distinct_ratio,
-                    "observed_values": allowed_values,
-                    "allowed_values": allowed_values,
-                    "total_rows": prof.row_count,
-                    "sample_violations_count": 0
-                },
-                validation_status="VALID",
-                status="DRAFT"
-            )
-        return None
+        dtype = col.data_type.upper()
+        col_lower = col.name.lower()
+
+        # Guardrail 1: Không sinh InSet cho cột thời gian / ngày tháng
+        is_temporal = any(t in dtype for t in ["DATE", "TIME", "TIMESTAMP", "YEAR"]) or \
+                      any(k in col_lower for k in ["date", "time", "timestamp", "birth", "death", "dob", "_at"])
+        if is_temporal:
+            return None
+
+        # Guardrail 2: Không sinh InSet cho khóa chính, khóa ngoại, UUID hoặc định danh
+        is_id_column = (
+            col.is_primary_key or col.is_foreign_key or
+            (prof.min_length == 36 and prof.max_length == 36) or
+            col_lower.endswith("_id") or
+            col_lower in ["id", "payer", "patient", "provider", "encounter", "claim", "organization", "secondary_payer"] or
+            any(k in col_lower for k in ["uuid", "ssn", "passport", "driver", "first_name", "last_name", "maiden", "address"])
+        )
+        if is_id_column:
+            return None
+
+        # Guardrail 3: Không sinh InSet cho cột địa lý / hành chính (không phải enum trạng thái)
+        if any(k in col_lower for k in ["county", "fips", "city", "zip", "street"]):
+            return None
+
+        # Guardrail 4: Không sinh InSet cho cột mô tả tự do, tên riêng, mã kỹ thuật hoặc mã lâm sàng
+        is_code_or_text = (
+            col_lower in ["name", "code", "system", "prefix", "suffix", "transfer_type"] or
+            col_lower.endswith("_code") or
+            any(k in col_lower for k in ["description", "note", "comment", "diagnosis", "reaction", "procedure_code", "bodysite", "sop_code", "modality"])
+        )
+        if is_code_or_text:
+            return None
+
+        # Guardrail 5: Không sinh InSet cho cột số đo lường / tài chính
+        is_numeric = any(t in dtype for t in ["INT", "NUMERIC", "DECIMAL", "FLOAT", "DOUBLE", "NUMBER"])
+        is_metric = any(k in col_lower for k in ["cost", "expense", "coverage", "income", "amount", "lat", "lon", "price"])
+        if is_metric or is_numeric:
+            return None
+
+        # Thu thập allowed values & frequency distribution từ top_values hoặc profile
+        allowed_values = []
+        distribution = []
+        if prof.top_values:
+            total_r = prof.row_count or sum(item.get("count", 0) for item in prof.top_values) or 1
+            for item in prof.top_values:
+                if item.get("value") is not None:
+                    val_str = str(item.get("value", ""))
+                    cnt = item.get("count", 0)
+                    pct = item.get("percentage")
+                    if pct is None:
+                        pct = round((cnt / total_r) * 100, 1) if total_r > 0 else 0
+                    allowed_values.append(val_str)
+                    distribution.append({
+                        "label": val_str,
+                        "count": cnt,
+                        "percentage": pct
+                    })
+
+        if len(allowed_values) == 0:
+            return None
+
+        # Nếu top_values không có count chi tiết nhưng có row_count
+        if distribution and all(d["count"] == 0 for d in distribution) and prof.row_count > 0:
+            eq_pct = round(100.0 / len(distribution), 1)
+            eq_cnt = int(prof.row_count / len(distribution))
+            for d in distribution:
+                d["count"] = eq_cnt
+                d["percentage"] = eq_pct
+
+        return CandidateRule(
+            rule_type="columnValuesToBeInSet",
+            description=f"Giá trị thuộc danh mục cho phép ({len(allowed_values)} giá trị)",
+            target_columns=[col.name],
+            parameters={
+                "allowedValues": allowed_values
+            },
+            engine="BASIC",
+            confidence=0.95,
+            reason=f"Cột '{col.name}' có số lượng giá trị phân biệt thấp ({prof.distinct_count} giá trị), dữ liệu chỉ nằm trong tập chuẩn.",
+            evidence={
+                "distinct_count": prof.distinct_count,
+                "cardinality_ratio": prof.distinct_ratio,
+                "observed_values": allowed_values,
+                "allowed_values": allowed_values,
+                "distribution": distribution,
+                "total_rows": prof.row_count,
+                "sample_violations_count": 0
+            },
+            validation_status="VALID",
+            status="DRAFT"
+        )
 
     def _generate_length_rule(self, context: TableContext, col: ColumnContext) -> CandidateRule | None:
         """

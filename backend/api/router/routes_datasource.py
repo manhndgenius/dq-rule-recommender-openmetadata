@@ -90,15 +90,16 @@ def update_table_tier(table_name: str, req: UpdateTierRequest):
 def publish_rules(req: PublishRequest):
     """Xuất bản các rules đã duyệt lên OpenMetadata Test Cases."""
     target_rules: List[CandidateRule] = []
+    from backend.review.review_service import review_service
     if req.rules and len(req.rules) > 0:
         target_rules = [r for r in req.rules if r.status in ["ACCEPTED", "EDITED"]]
     elif req.rule_ids and len(req.rule_ids) > 0:
-        # Lấy rules từ review service
-        from backend.review.review_service import review_service
         for rid in req.rule_ids:
-            rule = review_service.get_rule(rid)
+            rule = review_service._candidates.get(rid)
             if rule and rule.status in ["ACCEPTED", "EDITED"]:
                 target_rules.append(rule)
+    else:
+        target_rules = [r for r in review_service.list_candidates() if r.status in ["ACCEPTED", "EDITED"]]
 
     result = openmetadata_publisher.publish_rules(target_rules, req.table_name, tier=req.tier)
     return result

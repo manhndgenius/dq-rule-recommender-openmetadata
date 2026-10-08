@@ -78,7 +78,10 @@ class OpenMetadataPublisher:
         elif om_test_def == "columnValuesToBeInSet":
             allowed = params.get("allowedValues", [])
             if isinstance(allowed, list):
-                val_str = ",".join(str(v) for v in allowed)
+                val_str = json.dumps([str(v) for v in allowed])
+            elif isinstance(allowed, str) and not allowed.startswith("["):
+                items = [x.strip() for x in allowed.split(",")]
+                val_str = json.dumps(items)
             else:
                 val_str = str(allowed)
             parameter_values.append({"name": "allowedValues", "value": val_str})

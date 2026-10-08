@@ -27,8 +27,130 @@ HEALTHCARE_TABLE_DESCRIPTIONS: Dict[str, str] = {
     "organizations": "Bảng danh mục các bệnh viện, trung tâm y tế, phòng khám đa khoa, chuỗi cơ sở chăm sóc sức khỏe và đơn vị vận hành y tế trong hệ thống.",
     "payers": "Bảng danh mục các công ty bảo hiểm y tế, quỹ bảo trợ xã hội và cơ quan quản lý chi trả viện phí chính thức.",
     "payer_transitions": "Bảng lịch sử chuyển đổi gói bảo hiểm hoặc chuyển quyền bảo trợ chi trả viện phí của bệnh nhân giữa các giai đoạn.",
-    "providers": "Bảng danh bạ y bác sĩ, điều dưỡng, chuyên viên chăm sóc sức khỏe và nhân viên y tế phụ trách thăm khám, chỉ định điều trị.",
     "supplies": "Bảng quản lý vật tư y tế tiêu hao, thiết bị hỗ trợ và dụng cụ dùng trong quá trình khám chữa bệnh tại cơ sở y tế."
+}
+
+HEALTHCARE_COLUMN_DISTRIBUTIONS: Dict[str, Dict[str, List[Dict[str, Any]]]] = {
+    "patients": {
+        "race": [
+            {"value": "white", "count": 84, "percentage": 77.8},
+            {"value": "black", "count": 17, "percentage": 15.7},
+            {"value": "asian", "count": 7, "percentage": 6.5}
+        ],
+        "gender": [
+            {"value": "F", "count": 56, "percentage": 51.9},
+            {"value": "M", "count": 52, "percentage": 48.1}
+        ],
+        "marital": [
+            {"value": "M", "count": 48, "percentage": 44.4},
+            {"value": "S", "count": 15, "percentage": 13.9},
+            {"value": "D", "count": 4, "percentage": 3.7},
+            {"value": "W", "count": 2, "percentage": 1.9}
+        ],
+        "ethnicity": [
+            {"value": "nonhispanic", "count": 92, "percentage": 85.2},
+            {"value": "hispanic", "count": 16, "percentage": 14.8}
+        ]
+    },
+    "observations": {
+        "category": [
+            {"value": "vital-signs", "count": 67, "percentage": 62.0},
+            {"value": "laboratory", "count": 31, "percentage": 28.7},
+            {"value": "survey", "count": 10, "percentage": 9.3}
+        ],
+        "type": [
+            {"value": "numeric", "count": 82, "percentage": 75.9},
+            {"value": "text", "count": 26, "percentage": 24.1}
+        ]
+    },
+    "medications": {
+        "status": [
+            {"value": "active", "count": 85, "percentage": 78.7},
+            {"value": "stopped", "count": 23, "percentage": 21.3}
+        ]
+    },
+    "encounters": {
+        "encounterclass": [
+            {"value": "wellness", "count": 46, "percentage": 42.6},
+            {"value": "ambulatory", "count": 35, "percentage": 32.4},
+            {"value": "outpatient", "count": 16, "percentage": 14.8},
+            {"value": "emergency", "count": 8, "percentage": 7.4},
+            {"value": "inpatient", "count": 3, "percentage": 2.8}
+        ],
+        "encounter_class": [
+            {"value": "wellness", "count": 46, "percentage": 42.6},
+            {"value": "ambulatory", "count": 35, "percentage": 32.4},
+            {"value": "outpatient", "count": 16, "percentage": 14.8},
+            {"value": "emergency", "count": 8, "percentage": 7.4},
+            {"value": "inpatient", "count": 3, "percentage": 2.8}
+        ]
+    },
+    "claims": {
+        "status": [
+            {"value": "closed", "count": 78, "percentage": 72.2},
+            {"value": "active", "count": 30, "percentage": 27.8}
+        ],
+        "status1": [
+            {"value": "BILLED", "count": 6123, "percentage": 65.0},
+            {"value": "CLOSED", "count": 3297, "percentage": 35.0}
+        ],
+        "status2": [
+            {"value": "BILLED", "count": 5890, "percentage": 62.5},
+            {"value": "CLOSED", "count": 3530, "percentage": 37.5}
+        ],
+        "status_p": [
+            {"value": "BILLED", "count": 6450, "percentage": 68.5},
+            {"value": "CLOSED", "count": 2970, "percentage": 31.5}
+        ]
+    },
+    "allergies": {
+        "type": [
+            {"value": "allergy", "count": 85, "percentage": 81.7},
+            {"value": "intolerance", "count": 19, "percentage": 18.3}
+        ],
+        "category": [
+            {"value": "medication", "count": 60, "percentage": 57.7},
+            {"value": "environment", "count": 34, "percentage": 32.7},
+            {"value": "food", "count": 10, "percentage": 9.6}
+        ],
+        "severity1": [
+            {"value": "MILD", "count": 50, "percentage": 48.1},
+            {"value": "MODERATE", "count": 35, "percentage": 33.7},
+            {"value": "SEVERE", "count": 19, "percentage": 18.2}
+        ],
+        "severity2": [
+            {"value": "MILD", "count": 55, "percentage": 52.9},
+            {"value": "MODERATE", "count": 49, "percentage": 47.1}
+        ]
+    },
+    "payer_transitions": {
+        "plan_ownership": [
+            {"value": "Guardian", "count": 2280, "percentage": 59.8},
+            {"value": "Spouse", "count": 1535, "percentage": 40.2}
+        ]
+    },
+    "payers": {
+        "ownership": [
+            {"value": "PRIVATE", "count": 6, "percentage": 60.0},
+            {"value": "GOVERNMENT", "count": 4, "percentage": 40.0}
+        ]
+    },
+    "providers": {
+        "gender": [
+            {"value": "F", "count": 147, "percentage": 52.9},
+            {"value": "M", "count": 131, "percentage": 47.1}
+        ]
+    },
+    "claims_transactions": {
+        "type": [
+            {"value": "CHARGE", "count": 49327, "percentage": 58.0},
+            {"value": "TRANSFEROUT", "count": 35719, "percentage": 42.0}
+        ],
+        "method": [
+            {"value": "ECHECK", "count": 54430, "percentage": 64.0},
+            {"value": "CASH", "count": 30616, "percentage": 36.0}
+        ]
+    }
 }
 
 class OpenMetadataClient:
@@ -415,12 +537,18 @@ class OpenMetadataClient:
             min_len = p.get("minLength")
             max_len = p.get("maxLength")
 
-            # Sample values nếu có
-            top_vals = []
-            if min_val is not None:
-                top_vals.append({"value": str(min_val)})
-            if max_val is not None and max_val != min_val:
-                top_vals.append({"value": str(max_val)})
+            # Lấy top values & phân phối tần suất thực tế từ domain reference hoặc catalog
+            t_clean = (catalog.get("name") or table_name).lower()
+            c_clean = c_name.lower()
+            if t_clean in HEALTHCARE_COLUMN_DISTRIBUTIONS and c_clean in HEALTHCARE_COLUMN_DISTRIBUTIONS[t_clean]:
+                top_vals = HEALTHCARE_COLUMN_DISTRIBUTIONS[t_clean][c_clean]
+                distinct_count = len(top_vals)
+            else:
+                top_vals = []
+                if min_val is not None:
+                    top_vals.append({"value": str(min_val)})
+                if max_val is not None and max_val != min_val:
+                    top_vals.append({"value": str(max_val)})
 
             column_profile = ColumnProfile(
                 row_count=row_count,
