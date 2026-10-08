@@ -382,18 +382,20 @@ class TestMapAdvancedRuleToSql:
             "columns": ["status", "amount"],
             "conditions": [
                 {
-                    "role": "IF",
-                    "type": "COMPARISON",
-                    "left": "status",
-                    "operator": "EQ",
-                    "right": {"type": "literal", "value": "COMPLETED"}
-                },
-                {
-                    "role": "THEN",
-                    "type": "COMPARISON",
-                    "left": "amount",
-                    "operator": "GT",
-                    "right": {"type": "literal", "value": 0}
+                    "if": [
+                        {
+                            "left": "status",
+                            "operator": "EQ",
+                            "right": {"type": "literal", "value": "COMPLETED"},
+                        }
+                    ],
+                    "then": [
+                        {
+                            "left": "amount",
+                            "operator": "GT",
+                            "right": {"type": "literal", "value": 0},
+                        }
+                    ],
                 }
             ],
             "confidence": 0.9
@@ -913,18 +915,16 @@ class TestConditionalDependency:
             "columns": ["status", "amount"],
             "conditions": [
                 {
-                    "role": "IF",
-                    "type": "COMPARISON",
-                    "left": "status",
-                    "operator": "EQ",
-                    "right": {"type": "literal", "value": "COMPLETED"}
-                },
-                {
-                    "role": "THEN",
-                    "type": "COMPARISON",
-                    "left": "amount",
-                    "operator": "GT",
-                    "right": {"type": "literal", "value": 0}
+                    "if": [{
+                        "left": "status",
+                        "operator": "EQ",
+                        "right": {"type": "literal", "value": "COMPLETED"},
+                    }],
+                    "then": [{
+                        "left": "amount",
+                        "operator": "GT",
+                        "right": {"type": "literal", "value": 0},
+                    }],
                 }
             ]
         }
@@ -951,17 +951,16 @@ class TestConditionalDependency:
             "columns": ["gender", "maiden"],
             "conditions": [
                 {
-                    "role": "IF",
-                    "type": "COMPARISON",
-                    "left": "gender",
-                    "operator": "EQ",
-                    "right": {"type": "literal", "value": "M"}
-                },
-                {
-                    "role": "THEN",
-                    "type": "NULL_CHECK",
-                    "column": "maiden",
-                    "operator": "IS_NULL"
+                    "if": [{
+                        "left": "gender",
+                        "operator": "EQ",
+                        "right": {"type": "literal", "value": "M"},
+                    }],
+                    "then": [{
+                        "left": "maiden",
+                        "operator": "IS_NULL",
+                        "right": None,
+                    }],
                 }
             ]
         }
@@ -983,18 +982,16 @@ class TestConditionalDependency:
             "columns": ["country", "currency"],
             "conditions": [
                 {
-                    "role": "IF",
-                    "type": "COMPARISON",
-                    "left": "country",
-                    "operator": "EQ",
-                    "right": {"type": "literal", "value": "US"}
-                },
-                {
-                    "role": "THEN",
-                    "type": "SET",
-                    "left": "currency",
-                    "operator": "IN",
-                    "values": ["USD", "USN"]
+                    "if": [{
+                        "left": "country",
+                        "operator": "EQ",
+                        "right": {"type": "literal", "value": "US"},
+                    }],
+                    "then": [{
+                        "left": "currency",
+                        "operator": "IN",
+                        "right": {"type": "list", "value": ["USD", "USN"]},
+                    }],
                 }
             ]
         }
@@ -1017,24 +1014,23 @@ class TestConditionalDependency:
             "columns": ["age", "country", "ssn"],
             "conditions": [
                 {
-                    "role": "IF",
-                    "type": "COMPARISON",
-                    "left": "age",
-                    "operator": "GTE",
-                    "right": {"type": "literal", "value": 18}
-                },
-                {
-                    "role": "IF",
-                    "type": "COMPARISON",
-                    "left": "country",
-                    "operator": "EQ",
-                    "right": {"type": "literal", "value": "US"}
-                },
-                {
-                    "role": "THEN",
-                    "type": "NULL_CHECK",
-                    "column": "ssn",
-                    "operator": "IS_NOT_NULL"
+                    "if": [
+                        {
+                            "left": "age",
+                            "operator": "GTE",
+                            "right": {"type": "literal", "value": 18},
+                        },
+                        {
+                            "left": "country",
+                            "operator": "EQ",
+                            "right": {"type": "literal", "value": "US"},
+                        },
+                    ],
+                    "then": [{
+                        "left": "ssn",
+                        "operator": "IS_NOT_NULL",
+                        "right": None,
+                    }],
                 }
             ]
         }
@@ -1058,24 +1054,23 @@ class TestConditionalDependency:
             "columns": ["status", "amount", "completed_at"],
             "conditions": [
                 {
-                    "role": "IF",
-                    "type": "COMPARISON",
-                    "left": "status",
-                    "operator": "EQ",
-                    "right": {"type": "literal", "value": "COMPLETED"}
-                },
-                {
-                    "role": "THEN",
-                    "type": "COMPARISON",
-                    "left": "amount",
-                    "operator": "GT",
-                    "right": {"type": "literal", "value": 0}
-                },
-                {
-                    "role": "THEN",
-                    "type": "NULL_CHECK",
-                    "column": "completed_at",
-                    "operator": "IS_NOT_NULL"
+                    "if": [{
+                        "left": "status",
+                        "operator": "EQ",
+                        "right": {"type": "literal", "value": "COMPLETED"},
+                    }],
+                    "then": [
+                        {
+                            "left": "amount",
+                            "operator": "GT",
+                            "right": {"type": "literal", "value": 0},
+                        },
+                        {
+                            "left": "completed_at",
+                            "operator": "IS_NOT_NULL",
+                            "right": None,
+                        },
+                    ],
                 }
             ]
         }
@@ -1095,11 +1090,11 @@ class TestConditionalDependency:
             "columns": ["amount"],
             "conditions": [
                 {
-                    "role": "THEN",
-                    "type": "COMPARISON",
-                    "left": "amount",
-                    "operator": "GT",
-                    "right": {"type": "literal", "value": 0}
+                    "then": [{
+                        "left": "amount",
+                        "operator": "GT",
+                        "right": {"type": "literal", "value": 0},
+                    }],
                 }
             ]
         }
@@ -1107,7 +1102,7 @@ class TestConditionalDependency:
         with pytest.raises(MapperError) as exc_info:
             map_advanced_rule_to_sql(rule)
 
-        assert "IF" in str(exc_info.value)
+        assert "missing 'if' array" in str(exc_info.value)
 
     def test_missing_then_condition(self):
         """Test that missing THEN condition raises error."""
@@ -1117,11 +1112,11 @@ class TestConditionalDependency:
             "columns": ["status"],
             "conditions": [
                 {
-                    "role": "IF",
-                    "type": "COMPARISON",
-                    "left": "status",
-                    "operator": "EQ",
-                    "right": {"type": "literal", "value": "COMPLETED"}
+                    "if": [{
+                        "left": "status",
+                        "operator": "EQ",
+                        "right": {"type": "literal", "value": "COMPLETED"},
+                    }],
                 }
             ]
         }
@@ -1129,7 +1124,7 @@ class TestConditionalDependency:
         with pytest.raises(MapperError) as exc_info:
             map_advanced_rule_to_sql(rule)
 
-        assert "THEN" in str(exc_info.value)
+        assert "missing 'then' array" in str(exc_info.value)
 
     def test_conditional_rule_from_generator(self):
         """Test với rule format từ generator thực tế.
@@ -1142,18 +1137,16 @@ class TestConditionalDependency:
             "columns": ["gender", "prefix"],
             "conditions": [
                 {
-                    "role": "IF",
-                    "type": "COMPARISON",
-                    "left": "gender",
-                    "operator": "EQ",
-                    "right": {"type": "literal", "value": "M"}
-                },
-                {
-                    "role": "THEN",
-                    "type": "COMPARISON",
-                    "left": "prefix",
-                    "operator": "EQ",
-                    "right": {"type": "literal", "value": "Mr."}
+                    "if": [{
+                        "left": "gender",
+                        "operator": "EQ",
+                        "right": {"type": "literal", "value": "M"},
+                    }],
+                    "then": [{
+                        "left": "prefix",
+                        "operator": "EQ",
+                        "right": {"type": "literal", "value": "Mr."},
+                    }],
                 }
             ],
             "confidence": 0.7
@@ -1167,3 +1160,111 @@ class TestConditionalDependency:
         assert '"prefix" <> ' in result["violation_predicate"]
         assert result["params"]["rule_param_1"] == "M"
         assert result["params"]["rule_param_2"] == "Mr."
+
+    def test_multiple_branches(self):
+        """Each IF-THEN branch contributes an independent violation clause."""
+        rule = {
+            "rule_type": "CONDITIONAL_DEPENDENCY",
+            "table": "members",
+            "columns": ["membership_tier", "support_level"],
+            "conditions": [
+                {
+                    "if": [{
+                        "left": "membership_tier",
+                        "operator": "EQ",
+                        "right": {"type": "literal", "value": "GOLD"},
+                    }],
+                    "then": [{
+                        "left": "support_level",
+                        "operator": "EQ",
+                        "right": {"type": "literal", "value": "PREMIUM"},
+                    }],
+                },
+                {
+                    "if": [{
+                        "left": "membership_tier",
+                        "operator": "EQ",
+                        "right": {"type": "literal", "value": "SILVER"},
+                    }],
+                    "then": [{
+                        "left": "support_level",
+                        "operator": "EQ",
+                        "right": {"type": "literal", "value": "STANDARD"},
+                    }],
+                },
+            ],
+        }
+
+        result = map_advanced_rule_to_sql(rule)
+
+        assert " OR " in result["violation_predicate"]
+        assert result["params"] == {
+            "rule_param_1": "GOLD",
+            "rule_param_2": "PREMIUM",
+            "rule_param_3": "SILVER",
+            "rule_param_4": "STANDARD",
+        }
+
+    @pytest.mark.parametrize(
+        "condition, expected_error",
+        [
+            (
+                {"left": "status", "operator": "IS_NULL", "right": {}},
+                "requires 'right' to be null",
+            ),
+            (
+                {
+                    "left": "unknown_column",
+                    "operator": "EQ",
+                    "right": {"type": "literal", "value": "X"},
+                },
+                "not declared in rule.columns",
+            ),
+            (
+                {
+                    "left": "status",
+                    "operator": "IN",
+                    "right": {"type": "list", "value": []},
+                },
+                "non-empty array",
+            ),
+        ],
+    )
+    def test_invalid_atomic_condition(self, condition, expected_error):
+        rule = {
+            "rule_type": "CONDITIONAL_DEPENDENCY",
+            "table": "orders",
+            "columns": ["status"],
+            "conditions": [{
+                "if": [condition],
+                "then": [{
+                    "left": "status",
+                    "operator": "IS_NOT_NULL",
+                    "right": None,
+                }],
+            }],
+        }
+
+        with pytest.raises(MapperError) as exc_info:
+            map_advanced_rule_to_sql(rule)
+
+        assert expected_error in str(exc_info.value)
+
+    def test_legacy_flat_format_is_rejected(self):
+        rule = {
+            "rule_type": "CONDITIONAL_DEPENDENCY",
+            "table": "orders",
+            "columns": ["status"],
+            "conditions": [{
+                "role": "IF",
+                "type": "COMPARISON",
+                "left": "status",
+                "operator": "EQ",
+                "right": {"type": "literal", "value": "COMPLETED"},
+            }],
+        }
+
+        with pytest.raises(MapperError) as exc_info:
+            map_advanced_rule_to_sql(rule)
+
+        assert "legacy flat conditions" in str(exc_info.value)

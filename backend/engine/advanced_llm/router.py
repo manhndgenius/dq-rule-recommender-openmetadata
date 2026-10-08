@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 class AdvancedRuleRouter:
     """Router phát hiện các loại advanced rule tiềm năng trong bảng."""
 
-    def __init__(self, llm_client: LLMClient, prompt_file: str = "advanced_router_3.md"):
+    def __init__(self, llm_client: LLMClient, prompt_file: str = "advanced_router.md"):
         """Khởi tạo router.
 
         Args:

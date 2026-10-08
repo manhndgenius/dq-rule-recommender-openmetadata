@@ -1,25 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { renderSQLWithParams } from '../../utils/sql';
 
 export default function EditRuleModal({ rule, isOpen, onClose, onSave }) {
-  if (!isOpen || !rule) return null;
-
-  const initialParams = rule.edited_parameters || rule.parameters || {};
+  const initialParams = rule?.edited_parameters || rule?.parameters || {};
   const [minValue, setMinValue] = useState(initialParams.minValue ?? 0);
   const [maxValue, setMaxValue] = useState(initialParams.maxValue ?? 100);
   const [minLength, setMinLength] = useState(initialParams.minLength ?? 1);
   const [maxLength, setMaxLength] = useState(initialParams.maxLength ?? 255);
   const [allowedValues, setAllowedValues] = useState((initialParams.allowedValues || []).join(', '));
-  const [sqlExpression, setSqlExpression] = useState(initialParams.sqlExpression || '');
+  const [sqlExpression, setSqlExpression] = useState(
+    renderSQLWithParams(rule?.sql || rule?.violation_predicate || initialParams.sqlExpression, rule?.params)
+  );
 
-  useEffect(() => {
-    const params = rule.edited_parameters || rule.parameters || {};
-    setMinValue(params.minValue ?? 0);
-    setMaxValue(params.maxValue ?? 100);
-    setMinLength(params.minLength ?? 1);
-    setMaxLength(params.maxLength ?? 255);
-    setAllowedValues((params.allowedValues || []).join(', '));
-    setSqlExpression(params.sqlExpression || '');
-  }, [rule]);
+  if (!isOpen || !rule) return null;
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -35,14 +28,20 @@ export default function EditRuleModal({ rule, isOpen, onClose, onSave }) {
     } else if (rule.rule_type === 'tableCustomSQLQuery') {
       updatedParams.sqlExpression = sqlExpression.trim();
     }
-    onSave(rule.id, updatedParams);
+    if (rule.engine === 'ADVANCED') {
+      updatedParams.sqlExpression = sqlExpression.trim();
+    }
+    const updatedSql = rule.engine === 'ADVANCED' ? sqlExpression.trim() : null;
+    onSave(rule.id, updatedParams, updatedSql);
   };
 
   const isBetweenRule = rule.rule_type === 'columnValuesToBeBetween' || rule.rule_type === 'tableRowCountToBeBetween';
   const isLengthRule = rule.rule_type === 'columnValuesLengthToBeBetween';
   const isInSetRule = rule.rule_type === 'columnValuesToBeInSet';
   const isCustomSqlRule = rule.rule_type === 'tableCustomSQLQuery';
-  const hasNoParams = !isBetweenRule && !isLengthRule && !isInSetRule && !isCustomSqlRule;
+  const isAdvancedSqlRule = rule.engine === 'ADVANCED' && Boolean(rule.sql || rule.violation_predicate);
+  const hasNoParams = !isBetweenRule && !isLengthRule && !isInSetRule && !isCustomSqlRule && !isAdvancedSqlRule;
+  const displayColumns = rule.target_columns || rule.columns || [];
 
   return (
     <div className="modal-backdrop">
@@ -60,8 +59,8 @@ export default function EditRuleModal({ rule, isOpen, onClose, onSave }) {
             <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
               Mục tiêu áp dụng:{' '}
               <strong style={{ color: 'var(--text-light)' }}>
-                {rule.target_columns && rule.target_columns.length > 0 
-                  ? rule.target_columns.join(', ') 
+                {displayColumns.length > 0
+                  ? displayColumns.join(', ')
                   : '📊 Toàn bảng (Table-level)'}
               </strong>
             </p>
@@ -155,6 +154,24 @@ export default function EditRuleModal({ rule, isOpen, onClose, onSave }) {
                   onChange={(e) => setSqlExpression(e.target.value)}
                   required
                 />
+              </div>
+            )}
+
+            {/* Advanced Rule SQL */}
+            {isAdvancedSqlRule && (
+              <div className="form-group">
+                <label className="form-label">Câu SQL tìm các dòng vi phạm:</label>
+                <textarea
+                  className="form-input sql-edit-textarea"
+                  rows={7}
+                  value={sqlExpression}
+                  onChange={(e) => setSqlExpression(e.target.value)}
+                  spellCheck={false}
+                  required
+                />
+                <span className="form-help-text">
+                  Query phải trả về các dòng vi phạm quy tắc dữ liệu.
+                </span>
               </div>
             )}
 

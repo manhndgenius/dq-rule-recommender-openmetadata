@@ -24,9 +24,11 @@ from backend.engine.sql_mapper.operator_maps import (
     DURATION_UNITS,
     SUPPORTED_COMPARISON_OPS,
     SUPPORTED_NULL_OPS,
+    SUPPORTED_SET_OPS,
     SUPPORTED_ARITHMETIC_OPS,
     SUPPORTED_TEMPORAL_OPS,
     SUPPORTED_DURATION_UNITS,
+    get_negated_operator,
 )
 from backend.engine.sql_mapper.sql_utils import quote_identifier
 
@@ -401,3 +403,95 @@ def _compile_operand(operand: dict[str, Any], ctx: CompileContext) -> str:
         return placeholder
     else:
         raise ValueError(f"Unknown operand type: {operand_type}")
+
+
+# =============================================================================
+# New Conditional Atomic Compiler (IF-THEN format)
+# =============================================================================
+
+def compile_conditional_atomic(
+    condition: dict[str, Any],
+    ctx: CompileContext,
+    negate: bool = False,
+) -> str:
+    """Compile một atomic condition theo format IF-THEN mới.
+
+    Format:
+    {
+        "left": "column_name",
+        "operator": "EQ | NEQ | GT | GTE | LT | LTE | IN | NOT_IN | IS_NULL | IS_NOT_NULL",
+        "right": {
+            "type": "literal | column | list",
+            "value": "..."
+        }
+    }
+
+    Args:
+        condition: Atomic condition dict
+        ctx: Compile context
+        negate: True = violation, False = valid
+
+    Returns:
+        SQL predicate string
+
+    Examples:
+        compile_conditional_atomic({
+            "left": "gender",
+            "operator": "EQ",
+            "right": {"type": "literal", "value": "M"}
+        })
+        # → "gender" = :param_1
+    """
+    operator = condition["operator"]
+    left_col = quote_identifier(condition["left"])
+
+    # Validate operator
+    valid_ops = SUPPORTED_COMPARISON_OPS | SUPPORTED_SET_OPS | SUPPORTED_NULL_OPS
+    if operator not in valid_ops:
+        raise ValueError(f"Unsupported conditional operator: {operator}")
+
+    # Handle negation
+    if negate:
+        operator = get_negated_operator(operator)
+
+    # IS_NULL / IS_NOT_NULL - no right operand needed
+    if operator in {"IS_NULL", "IS_NOT_NULL"}:
+        sql_op = SQL_NULL_OPERATORS.get(operator, operator)
+        return f"{left_col} {sql_op}"
+
+    # Get right operand
+    right = condition.get("right")
+    if right is None:
+        raise ValueError(f"Operator {operator} requires 'right' operand")
+
+    right_type = right.get("type", "literal").lower()
+    right_value = right.get("value")
+
+    # IN / NOT_IN with list
+    if operator in {"IN", "NOT_IN"}:
+        if right_type != "list":
+            raise ValueError(f"Operator {operator} requires right.type = 'list'")
+        if not isinstance(right_value, list) or not right_value:
+            raise ValueError(f"Operator {operator} requires non-empty list")
+
+        placeholders = [ctx.add_param(v) for v in right_value]
+        values_list = ", ".join(placeholders)
+        sql_op = "IN" if operator == "IN" else "NOT IN"
+        return f"{left_col} {sql_op} ({values_list})"
+
+    # Comparison operators (EQ, NEQ, GT, GTE, LT, LTE)
+    sql_op = SQL_COMPARISON_OPERATORS.get(operator)
+    if sql_op is None:
+        raise ValueError(f"Unknown comparison operator: {operator}")
+
+    # Column comparison
+    if right_type == "column":
+        right_col = quote_identifier(right_value)
+        return f"{left_col} {sql_op} {right_col}"
+
+    # Literal comparison
+    if right_type == "literal":
+        placeholder = ctx.add_param(right_value)
+        return f"{left_col} {sql_op} {placeholder}"
+
+    raise ValueError(f"Invalid right.type for {operator}: {right_type}")

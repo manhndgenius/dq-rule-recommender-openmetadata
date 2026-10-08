@@ -1,4 +1,5 @@
 import React from 'react';
+import { renderSQLWithParams } from '../../utils/sql';
 
 // Mapping cho rule type labels
 const RULE_TYPE_LABELS = {
@@ -14,6 +15,14 @@ const RULE_TYPE_LABELS = {
   'TEMPORAL': 'Temporal Logic',
   'CROSS_COLUMN': 'Cross-Column',
   'CONDITIONAL_DEPENDENCY': 'Conditional',
+};
+
+// Mô tả ý nghĩa của từng loại Advanced Rule.
+// Nội dung này khác với `reason`: reason giải thích vì sao LLM chọn rule cụ thể.
+const ADVANCED_RULE_DEFINITIONS = {
+  'TEMPORAL': 'Kiểm tra thứ tự thời gian hoặc khoảng thời lượng giữa các cột ngày/giờ, bảo đảm các mốc thời gian tuân theo đúng trình tự nghiệp vụ.',
+  'CROSS_COLUMN': 'Kiểm tra tính nhất quán giữa hai hoặc nhiều cột bằng phép so sánh hoặc quan hệ số học, bảo đảm các giá trị liên quan không mâu thuẫn.',
+  'CONDITIONAL_DEPENDENCY': 'Kiểm tra ràng buộc IF–THEN giữa các cột: khi điều kiện tiền đề đúng, giá trị hoặc trạng thái của các cột phụ thuộc phải thỏa điều kiện hệ quả.',
 };
 
 // Mapping cho rule type badges màu
@@ -43,6 +52,9 @@ export default function RuleCard({ rule, onReviewAction, onOpenEdit }) {
   // Get display label cho rule type
   const ruleTypeLabel = RULE_TYPE_LABELS[rule.rule_type] || rule.rule_type;
   const ruleTypeColor = RULE_TYPE_COLORS[rule.rule_type] || '#6B7280';
+  const advancedRuleDefinition = ADVANCED_RULE_DEFINITIONS[rule.rule_type]
+    || rule.description
+    || rule.rule_type;
 
   // Columns: ADVANCED rules dùng 'columns', BASIC dùng 'target_columns'
   const displayColumns = isAdvanced ? (rule.columns || []) : (rule.target_columns || []);
@@ -97,9 +109,11 @@ export default function RuleCard({ rule, onReviewAction, onOpenEdit }) {
             </span>
           )}
           <div className="rule-title-group">
-            <span className="rule-type-name">{rule.rule_type}</span>
-            {rule.description && (
-              <span className="rule-desc-text">{rule.description}</span>
+            {/* Advanced: hiển thị định nghĩa loại rule; reason được giữ ở phần giải thích bên dưới */}
+            {isAdvanced ? (
+              <span className="rule-desc-text">{advancedRuleDefinition}</span>
+            ) : (
+              <span className="rule-type-name">{rule.rule_type}</span>
             )}
           </div>
         </div>
@@ -131,23 +145,16 @@ export default function RuleCard({ rule, onReviewAction, onOpenEdit }) {
       </div>
 
       {/* SQL Violation Query cho ADVANCED rules */}
-      {isAdvanced && rule.sql && (
+      {isAdvanced && (rule.sql || rule.violation_predicate) && (
         <div className="sql-violation-box">
           <div className="sql-violation-header">
             <span>🔍 Violation Query</span>
             <span className="sql-tag">SQL</span>
           </div>
+
           <code className="sql-violation-code">
-            {rule.violation_predicate || rule.sql}
+            {renderSQLWithParams(rule.sql || rule.violation_predicate, rule.params)}
           </code>
-          {rule.params && Object.keys(rule.params).length > 0 && (
-            <div className="sql-params">
-              <span className="params-label">Params:</span>
-              {Object.entries(rule.params).map(([k, v]) => (
-                <span key={k} className="param-item">{k}: {JSON.stringify(v)}</span>
-              ))}
-            </div>
-          )}
         </div>
       )}
 

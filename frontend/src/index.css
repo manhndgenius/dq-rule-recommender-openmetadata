@@ -117,6 +117,20 @@ button, input, select, textarea {
   font-family: inherit;
 }
 
+.sql-edit-textarea {
+  min-height: 150px;
+  resize: vertical;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  line-height: 1.55;
+}
+
+.form-help-text {
+  display: block;
+  margin-top: 7px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
 body {
   font-family: var(--font-body);
   background-color: var(--bg-app);
@@ -1196,31 +1210,6 @@ body {
 
 [data-theme="light"] .sql-violation-code {
   background: #EDE9FE;
-  color: #6D28D9;
-}
-
-.sql-params {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 8px;
-  font-size: 11px;
-}
-
-.sql-params .params-label {
-  color: #A78BFA;
-  font-weight: 600;
-}
-
-.sql-params .param-item {
-  background: rgba(139, 92, 246, 0.15);
-  color: #C4B5FD;
-  padding: 1px 6px;
-  border-radius: var(--radius-sm);
-}
-
-[data-theme="light"] .sql-params .param-item {
-  background: #DDD6FE;
   color: #6D28D9;
 }
 

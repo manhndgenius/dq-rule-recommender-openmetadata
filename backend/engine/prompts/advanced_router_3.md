@@ -43,7 +43,16 @@ The downstream engine supports:
 - IF → EQ
 - IF → comparison
 - IF → NULL / NOT NULL
-- IF → IN
+- IF → IN (IN SET)
+
+For CONDITIONAL_DEPENDENCY candidates, you may additionally identify:
+
+- subtype = `IN_SET`
+
+When inspecting categorical or low-cardinality columns, consider whether
+the valid state or value set of one column may depend on the value of another.
+Low cardinality alone is not sufficient evidence.
+Return a candidate only when the columns also have a plausible semantic dependency.
 
 Only return a CONDITIONAL_DEPENDENCY candidate when the relationship could plausibly be expressed using one of these patterns.
 
@@ -69,6 +78,9 @@ Inspect the entire table before returning results.
 
 - `TEMPORAL`: inspect date/time columns for meaningful ordering, sequencing, or lifecycle relationships.
 - `CONDITIONAL_DEPENDENCY`: inspect categorical, status, nullable, lifecycle, and identifier columns for possible dependencies.
+- For CONDITIONAL_DEPENDENCY, pay particular attention to pairs of
+  categorical or low-cardinality columns where one column may restrict
+  the valid values or states of another.
 - `CROSS_COLUMN`: inspect numeric, financial, quantitative, structural, and semantically related columns for directly expressible comparison or arithmetic relationships.
 
 Do not stop after finding only the most obvious candidates.
@@ -117,6 +129,7 @@ Return valid JSON using exactly this schema:
   "candidates": [
     {
       "rule_type": "TEMPORAL | CROSS_COLUMN | CONDITIONAL_DEPENDENCY",
+      "subtype": "IN_SET | null",
       "relevant_columns": ["column1", "column2"],
       "confidence": 0.85,
       "reason": "Explain why the relationship may exist based on metadata evidence."
@@ -124,6 +137,10 @@ Return valid JSON using exactly this schema:
   ]
 }
 ```
+
+Subtype rules:
+- Use "IN_SET" only for CONDITIONAL_DEPENDENCY candidates where one categorical or low-cardinality column may plausibly restrict the valid value set of another.
+- Use null for all other candidates.
 
 The `reason` must describe only why the relationship is worth investigating.
 
@@ -258,6 +275,10 @@ Do NOT return a candidate merely because both fields belong to the same business
 ## Final instruction
 
 Review the full table metadata and return all distinct plausible candidates that fit the supported downstream rule patterns.
+
+For CONDITIONAL_DEPENDENCY candidates, assign subtype = "IN_SET" only when the metadata provides reasonable evidence of a categorical value-set dependency; otherwise use subtype = null.
+
+Do not infer the direction of the dependency or the exact value mapping at the Router stage.
 
 Remove duplicate, redundant, or overlapping candidates.
 

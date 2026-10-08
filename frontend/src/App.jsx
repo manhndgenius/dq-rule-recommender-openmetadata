@@ -487,11 +487,16 @@ export default function App() {
     setEditingRule(rule);
   };
 
-  const handleSaveEdit = async (ruleId, updatedParams) => {
+  const handleSaveEdit = async (ruleId, updatedParams, updatedSql = null) => {
     setRules((prev) =>
       prev.map((r) =>
         r.id === ruleId
-          ? { ...r, edited_parameters: updatedParams, status: 'EDITED' }
+          ? {
+              ...r,
+              edited_parameters: updatedParams,
+              ...(updatedSql !== null ? { sql: updatedSql, params: {} } : {}),
+              status: 'EDITED'
+            }
           : r
       )
     );
@@ -540,56 +545,71 @@ export default function App() {
           }
         }
 
-        // 2. Generate ADVANCED rules with SQL (new endpoint)
+        // 2. Generate/Load ADVANCED rules
         console.log('DEBUG: useAdvanced=', useAdvanced, 'tableData.columns=', tableData?.columns?.length);
         if (useAdvanced && tableData && tableData.columns) {
-          const columnsForAPI = tableData.columns.map(col => ({
-            name: col.name,
-            data_type: col.data_type || col.type,
-            nullable: col.nullable,
-            description: col.description || null,
-            profiling: col.profile ? {
-              row_count: col.profile.row_count,
-              null_count: col.profile.null_count,
-              null_ratio: col.profile.null_ratio,
-              distinct_count: col.profile.distinct_count,
-              distinct_ratio: col.profile.distinct_ratio,
-              min_value: col.profile.min_value,
-              max_value: col.profile.max_value,
-              min_length: col.profile.min_length,
-              max_length: col.profile.max_length,
-              top_values: col.profile.top_values || [],
-            } : null
-          }));
+          // Check if we have saved advanced rules first
+          const savedData = await openmetadataService.getSavedAdvancedRules(currentTable);
+          console.log('DEBUG: Saved advanced rules check:', savedData);
 
-          console.log('DEBUG: columnsForAPI sample:', columnsForAPI[0]);
-          const advancedData = await openmetadataService.generateAdvancedRules(currentTable, columnsForAPI, 0.6);
-          console.log('DEBUG: ADVANCED response:', advancedData);
-
-          if (advancedData && advancedData.rules && advancedData.rules.length > 0) {
-            advancedRulesWithSQL = advancedData.rules.map((rule, idx) => ({
-              id: rule.rule_type + '_adv_' + (idx + 1),
-              rule_type: rule.rule_type,
-              description: rule.reason || rule.rule_type,
-              target_columns: rule.columns,
-              columns: rule.columns,
-              parameters: {},
-              expression: null,
-              engine: 'ADVANCED',
-              confidence: rule.confidence,
-              reason: rule.reason || 'Advanced rule',
-              evidence: {},
-              validation_status: 'VALID',
-              validation_message: null,
-              status: 'DRAFT',
-              edited_parameters: null,
-              created_at: new Date().toISOString(),
-              sql: rule.sql,
-              violation_predicate: rule.violation_predicate,
-              params: rule.params,
-              conditions: rule.conditions,
+          if (savedData && savedData.has_rules && savedData.rules && savedData.rules.length > 0) {
+            // Load from saved file
+            console.log('DEBUG: Loading advanced rules from saved file');
+            advancedRulesWithSQL = savedData.rules.map((rule, idx) => ({
+              ...rule,
+              id: rule.id || rule.rule_type + '_adv_' + (idx + 1),
             }));
             allRules = [...allRules, ...advancedRulesWithSQL];
+          } else {
+            // No saved rules, call API to generate
+            const columnsForAPI = tableData.columns.map(col => ({
+              name: col.name,
+              data_type: col.data_type || col.type,
+              nullable: col.nullable,
+              description: col.description || null,
+              profiling: col.profile ? {
+                row_count: col.profile.row_count,
+                null_count: col.profile.null_count,
+                null_ratio: col.profile.null_ratio,
+                distinct_count: col.profile.distinct_count,
+                distinct_ratio: col.profile.distinct_ratio,
+                min_value: col.profile.min_value,
+                max_value: col.profile.max_value,
+                min_length: col.profile.min_length,
+                max_length: col.profile.max_length,
+                top_values: col.profile.top_values || [],
+              } : null
+            }));
+
+            console.log('DEBUG: Calling ADVANCED API...');
+            const advancedData = await openmetadataService.generateAdvancedRules(currentTable, columnsForAPI, 0.6);
+            console.log('DEBUG: ADVANCED response:', advancedData);
+
+            if (advancedData && advancedData.rules && advancedData.rules.length > 0) {
+              advancedRulesWithSQL = advancedData.rules.map((rule, idx) => ({
+                id: rule.rule_type + '_adv_' + (idx + 1),
+                rule_type: rule.rule_type,
+                description: rule.reason || rule.rule_type,
+                target_columns: rule.columns,
+                columns: rule.columns,
+                parameters: {},
+                expression: null,
+                engine: 'ADVANCED',
+                confidence: rule.confidence,
+                reason: rule.reason || 'Advanced rule',
+                evidence: {},
+                validation_status: 'VALID',
+                validation_message: null,
+                status: 'DRAFT',
+                edited_parameters: null,
+                created_at: new Date().toISOString(),
+                sql: rule.sql,
+                violation_predicate: rule.violation_predicate,
+                params: rule.params,
+                conditions: rule.conditions,
+              }));
+              allRules = [...allRules, ...advancedRulesWithSQL];
+            }
           }
         }
 
@@ -628,7 +648,12 @@ export default function App() {
     addToast(`Đang kết nối OpenMetadata Live xuất bản ${readyRules.length} Test Cases...`, 'info');
 
     try {
-      const result = await openmetadataService.publishRules(currentTable, readyRules, tableData?.tier);
+      const result = await openmetadataService.publishRules(
+        currentTable,
+        tableData?.fully_qualified_name,  // table_fqn
+        readyRules,
+        tableData?.tier
+      );
       setIsPublishing(false);
       setPublishResult(result);
       if (result && result.success) {
@@ -996,6 +1021,7 @@ export default function App() {
 
       {/* Modals */}
       <EditRuleModal
+        key={editingRule?.id || 'closed-edit-rule'}
         rule={editingRule}
         isOpen={Boolean(editingRule)}
         onClose={() => setEditingRule(null)}

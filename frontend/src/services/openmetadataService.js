@@ -137,6 +137,45 @@ export const openmetadataService = {
   },
 
   /**
+   * Lấy Advanced Rules đã lưu từ file JSON
+   *
+   * @param {string} tableName - Tên bảng (optional)
+   * @returns {Object} { has_rules, file_info, rules, total }
+   */
+  async getSavedAdvancedRules(tableName = null) {
+    try {
+      let url = `${API_BASE}/advanced-rules/saved`;
+      if (tableName) {
+        url += `?table_name=${encodeURIComponent(tableName)}`;
+      }
+      const res = await fetch(url);
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (err) {
+      console.warn(`Lỗi lấy saved Advanced Rules:`, err);
+    }
+    return { has_rules: false, rules: [], total: 0 };
+  },
+
+  /**
+   * Xóa file lưu trữ Advanced Rules
+   */
+  async deleteSavedAdvancedRules() {
+    try {
+      const res = await fetch(`${API_BASE}/advanced-rules/saved`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (err) {
+      console.warn(`Lỗi xóa saved Advanced Rules:`, err);
+    }
+    return { success: false };
+  },
+
+  /**
    * Sinh Advanced Rules (LLM) với SQL violation queries
    * Pipeline: Router → Generator (LLM) → SQL Mapper → SQL
    * Trả về rules kèm sql, violation_predicate
@@ -213,10 +252,18 @@ export const openmetadataService = {
   /**
    * Xuất bản (Publish) các Rule đã duyệt lên OpenMetadata Test Cases thực tế
    * Đồng thời đồng bộ Tier của bảng lên OpenMetadata
+   *
+   * @param {string} tableName - Tên bảng
+   * @param {string} tableFqn - Fully qualified name (VD: healthcare_postgres.HealthCare.public.patients)
+   * @param {Array|Object} rulesOrIds - Danh sách rules hoặc rule IDs
+   * @param {string} tier - Tier phân loại
    */
-  async publishRules(tableName, rulesOrIds = null, tier = null) {
+  async publishRules(tableName, tableFqn = null, rulesOrIds = null, tier = null) {
     try {
       const payload = { table_name: tableName };
+      if (tableFqn) {
+        payload.table_fqn = tableFqn;
+      }
       if (tier) {
         payload.tier = tier;
       }

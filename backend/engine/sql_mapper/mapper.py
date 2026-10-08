@@ -1,6 +1,6 @@
 """Main SQL Mapper cho Advanced Data Quality Rules.
 
-Chuyển đổi structured rule output từ LLM thành executable SQL.
+Chuyen doi structured rule output tu LLM thanh executable SQL.
 
 Target:
     LLM semantic rule (valid state)
@@ -32,10 +32,12 @@ import logging
 from typing import Any
 
 from backend.engine.sql_mapper.compile_context import CompileContext
-from backend.engine.sql_mapper.condition_compiler import compile_condition
-from backend.engine.sql_mapper.operator_maps import RULE_CONDITION_MATRIX
+from backend.engine.sql_mapper.condition_compiler import (
+    compile_condition,
+    compile_conditional_atomic,
+)
 from backend.engine.sql_mapper.sql_utils import quote_identifier, combine_and, combine_or, build_select_sql
-from backend.engine.sql_mapper.validator import validate_advanced_rule, ValidationError
+from backend.engine.sql_mapper.validator import validate_advanced_rule
 
 logger = logging.getLogger(__name__)
 
@@ -133,41 +135,112 @@ class AdvancedRuleMapper:
     ) -> str:
         """Compile CONDITIONAL_DEPENDENCY rule.
 
-        Valid: IF_GROUP → THEN_GROUP
-        Violation: IF_GROUP AND NOT(THEN_GROUP)
+        Format moi: conditions la array cac IF-THEN branches
+        {
+            "conditions": [
+                {
+                    "if": [atomic_condition, ...],
+                    "then": [atomic_condition, ...]
+                },
+                ...
+            ]
+        }
+
+        Semantic:
+        - if[] noi bang AND
+        - then[] noi bang AND
+        - Violation cua branch = IF_GROUP AND NOT(THEN_GROUP)
+        - Violation cua rule = OR(tat ca violations)
 
         Args:
-            conditions: List of conditions (each has role: IF or THEN)
+            conditions: List of branches (moi branch co "if" va "then")
+
+        Returns:
+            Violation predicate string
+
+        Raises:
+            MapperError: Khi format khong dung hoac thieu du lieu
+        """
+        # Check for new format (branches with if/then)
+        if not conditions:
+            raise MapperError("CONDITIONAL_DEPENDENCY requires non-empty conditions")
+
+        # Detect format: new format co "if" key, old format co "role" key
+        first_item = conditions[0]
+        if "if" in first_item or "then" in first_item:
+            # New format: branches
+            return self._compile_conditional_branches(conditions, ctx)
+        elif "role" in first_item:
+            # Old format: flat conditions with role
+            raise MapperError(
+                "CONDITIONAL_DEPENDENCY now expects conditions as IF-THEN branches; "
+                "legacy flat conditions using role/type are not supported."
+            )
+        else:
+            raise MapperError(
+                "CONDITIONAL_DEPENDENCY conditions must be IF-THEN branches "
+                "with 'if' and 'then' arrays"
+            )
+
+    def _compile_conditional_branches(
+        self,
+        branches: list[dict[str, Any]],
+        ctx: CompileContext,
+    ) -> str:
+        """Compile IF-THEN branches format.
+
+        Args:
+            branches: List of {if: [...], then: [...]} objects
             ctx: Compile context
 
         Returns:
             Violation predicate string
         """
-        # Split by role
-        if_conditions = [c for c in conditions if c.get("role") == "IF"]
-        then_conditions = [c for c in conditions if c.get("role") == "THEN"]
+        branch_violations = []
 
-        # Require at least one IF and one THEN
-        if not if_conditions:
-            raise MapperError("CONDITIONAL_DEPENDENCY requires at least one IF condition")
-        if not then_conditions:
-            raise MapperError("CONDITIONAL_DEPENDENCY requires at least one THEN condition")
+        for branch in branches:
+            # Validate branch structure
+            if "if" not in branch:
+                raise MapperError("Branch missing 'if' array")
+            if "then" not in branch:
+                raise MapperError("Branch missing 'then' array")
 
-        # Compile IF group (no negation)
-        if_group = combine_and([
-            compile_condition(c, ctx, negate=False)
-            for c in if_conditions
-        ])
+            if_conditions = branch["if"]
+            then_conditions = branch["then"]
 
-        # Compile THEN violation group
-        # NOT(B AND C) = NOT(B) OR NOT(C)
-        then_violations = [
-            compile_condition(c, ctx, negate=True)
-            for c in then_conditions
-        ]
-        then_violation_group = combine_or(then_violations)
+            if not if_conditions:
+                raise MapperError("Branch 'if' array cannot be empty")
+            if not then_conditions:
+                raise MapperError("Branch 'then' array cannot be empty")
 
-        return f"({if_group}) AND ({then_violation_group})"
+            # Compile IF group (no negation)
+            # IF(A AND B AND ...) = A AND B AND ...
+            if_preds = [
+                compile_conditional_atomic(c, ctx, negate=False)
+                for c in if_conditions
+            ]
+            if_group = combine_and(if_preds) if len(if_preds) > 1 else if_preds[0]
+
+            # Compile THEN violation group
+            # NOT(C AND D AND ...) = NOT(C) OR NOT(D) OR ...
+            then_violations = [
+                compile_conditional_atomic(c, ctx, negate=True)
+                for c in then_conditions
+            ]
+            then_violation_group = (
+                combine_or(then_violations)
+                if len(then_violations) > 1
+                else then_violations[0]
+            )
+
+            # Branch violation = IF_GROUP AND NOT(THEN_GROUP)
+            branch_violation = f"({if_group}) AND ({then_violation_group})"
+            branch_violations.append(branch_violation)
+
+        # Total violation = OR(branch_1_violation OR branch_2_violation OR ...)
+        if len(branch_violations) == 1:
+            return branch_violations[0]
+        return combine_or(branch_violations)
 
     def _compile_temporal(
         self,

@@ -11,6 +11,14 @@ from backend.engine.basic_engine import BasicRuleEngine
 from backend.integrations.openmetadata.client import openmetadata_client
 from backend.review.review_service import review_service
 
+# Import database service
+try:
+    from backend.storage.db_service import db_service
+    DB_AVAILABLE = True
+except ImportError:
+    DB_AVAILABLE = False
+    db_service = None
+
 
 router = APIRouter(prefix=settings.api_prefix, tags=["recommendation"])
 
@@ -40,8 +48,21 @@ def generate_recommendations(req: GenerateRequest):
     if "BASIC" in req.engines:
         candidates.extend(basic_engine.generate_candidates(context))
 
-    # Lưu vào review service
+    # Lưu vào review service (in-memory)
     review_service.save_candidates(candidates)
+
+    # Lưu vào database (PostgreSQL) - xóa cũ, ghi mới
+    if DB_AVAILABLE and db_service and candidates:
+        try:
+            # Convert candidates to dict for database
+            rules_data = [r.model_dump() if hasattr(r, 'model_dump') else dict(r) for r in candidates]
+            for r in rules_data:
+                r['table_name'] = req.table_name
+            db_service.save_rules(req.table_name, 'BASIC', rules_data)
+        except Exception as e:
+            # Log but don't fail the request
+            import logging
+            logging.warning(f"Failed to save rules to database: {e}")
 
     return {
         "table_name": req.table_name,

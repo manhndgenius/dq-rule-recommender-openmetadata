@@ -22,6 +22,7 @@ class UpdateTierRequest(BaseModel):
 class PublishRequest(BaseModel):
     """Request model cho việc publish rules."""
     table_name: str
+    table_fqn: Optional[str] = None  # Fully qualified name (optional, resolved from table_name if not provided)
     tier: Optional[str] = None
     rule_ids: Optional[List[str]] = None
     rules: Optional[List[CandidateRule]] = None
@@ -100,5 +101,10 @@ def publish_rules(req: PublishRequest):
             if rule and rule.status in ["ACCEPTED", "EDITED"]:
                 target_rules.append(rule)
 
-    result = openmetadata_publisher.publish_rules(target_rules, req.table_name, tier=req.tier)
+    result = openmetadata_publisher.publish_rules(
+        target_rules,
+        req.table_name,
+        tier=req.tier,
+        table_fqn=req.table_fqn
+    )
     return result
