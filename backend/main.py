@@ -6,6 +6,7 @@ from backend.api.router import (
     routes_datasource,
     routes_evaluation,
     routes_generation_jobs,
+    routes_nt_runs,
     routes_recommendation,
     routes_review,
     routes_statistical_rules,
@@ -44,6 +45,7 @@ def create_app() -> FastAPI:
     app.include_router(routes_statistical_rules.router)
     app.include_router(routes_test_cases.router)
     app.include_router(routes_generation_jobs.router)
+    app.include_router(routes_nt_runs.router)
 
     return app
 

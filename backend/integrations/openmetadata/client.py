@@ -1,4 +1,5 @@
 import logging
+import re
 import time
 import urllib.parse
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -6,6 +7,7 @@ from typing import List, Dict, Any, Optional
 import requests
 
 from backend.config.settings import settings
+from backend.contracts.nt_execution import NTRuleResult
 from backend.contracts.table_context import TableContext, ColumnContext, ColumnProfile, ProfileSource, ProfileScope
 
 logger = logging.getLogger("openmetadata_client")
@@ -233,6 +235,38 @@ class OpenMetadataClient:
                 break
         return entities
 
+    def _list_collection_paginated(
+        self,
+        endpoint: str,
+        params: Optional[Dict[str, Any]] = None,
+        limit: int = 100,
+    ) -> List[Dict[str, Any]]:
+        """Fetch an entire OpenMetadata collection without fallbacks."""
+        entities: List[Dict[str, Any]] = []
+        after: Optional[str] = None
+        while True:
+            page_params: Dict[str, Any] = dict(params or {})
+            page_params["limit"] = limit
+            if after:
+                page_params["after"] = after
+            response = requests.get(
+                f"{self.server_url}/{endpoint}",
+                params=page_params,
+                headers=self._get_headers(),
+                timeout=self.timeout,
+            )
+            if response.status_code != 200:
+                raise RuntimeError(
+                    f"OpenMetadata {endpoint} returned HTTP {response.status_code}"
+                )
+            payload = response.json()
+            page = payload.get("data", [])
+            entities.extend(page)
+            after = payload.get("paging", {}).get("after")
+            if not after or not page:
+                break
+        return entities
+
     def list_schemas_paginated(self, database_fqn: str) -> List[Dict[str, Any]]:
         return self._list_entities_paginated(
             endpoint="databaseSchemas",
@@ -246,6 +280,24 @@ class OpenMetadataClient:
             parent_param="databaseSchema",
             parent_fqn=schema_fqn,
         )
+
+    def list_database_tables_for_nt(
+        self,
+        database_fqn: str,
+    ) -> List[Dict[str, Any]]:
+        """Enumerate every table in a database for cross-schema NT checks."""
+        tables: List[Dict[str, Any]] = []
+        for schema in self.list_schemas_paginated(database_fqn):
+            schema_fqn = schema.get("fullyQualifiedName")
+            if not schema_fqn:
+                raise RuntimeError(
+                    "OpenMetadata schema response has no fullyQualifiedName"
+                )
+            for table in self.list_tables_paginated(schema_fqn):
+                normalized = dict(table)
+                normalized.setdefault("databaseSchema", schema)
+                tables.append(normalized)
+        return tables
 
     def resolve_table_fqn_strict(self, table_fqn: str) -> str:
         encoded = urllib.parse.quote(table_fqn, safe="")
@@ -264,6 +316,99 @@ class OpenMetadataClient:
         if not resolved:
             raise RuntimeError("OpenMetadata table response has no fullyQualifiedName")
         return resolved
+
+    def _get_latest_column_profile_for_nt(
+        self,
+        column_fqn: str,
+    ) -> Optional[Dict[str, Any]]:
+        """Load a real profile snapshot for NT checks without mock fallback."""
+        encoded_fqn = urllib.parse.quote(column_fqn, safe="")
+        response = requests.get(
+            f"{self.server_url}/tables/{encoded_fqn}/columnProfile",
+            params={
+                "startTs": 0,
+                "endTs": 2_000_000_000_000,
+                "limit": 100,
+            },
+            headers=self._get_headers(),
+            timeout=self.timeout,
+        )
+        if response.status_code == 404:
+            return None
+        if response.status_code != 200:
+            raise RuntimeError(
+                "OpenMetadata column profile lookup for "
+                f"{column_fqn} returned HTTP {response.status_code}"
+            )
+        profiles = response.json().get("data", [])
+        if not profiles:
+            return None
+        return max(profiles, key=lambda item: int(item.get("timestamp", 0)))
+
+    def get_table_metadata_for_nt(
+        self,
+        table_fqn: str,
+        include_column_profiles: bool = True,
+    ) -> Dict[str, Any]:
+        """Return only metadata actually stored in OpenMetadata for NT rules.
+
+        Unlike ``get_catalog_table`` this method is strict: it never substitutes
+        demo assets or synthesizes descriptions, domains, owners, tags, or
+        profiles when OpenMetadata is unavailable or a field is empty.
+        """
+        encoded_fqn = urllib.parse.quote(table_fqn, safe="")
+        response = requests.get(
+            f"{self.server_url}/tables/name/{encoded_fqn}",
+            params={
+                "fields": (
+                    "columns,owners,tags,domains,tableConstraints,profile,"
+                    "service,database,databaseSchema"
+                )
+            },
+            headers=self._get_headers(),
+            timeout=self.timeout,
+        )
+        if response.status_code != 200:
+            raise RuntimeError(
+                f"OpenMetadata table lookup returned HTTP {response.status_code}"
+            )
+        table = response.json()
+        resolved_fqn = table.get("fullyQualifiedName")
+        if not resolved_fqn:
+            raise RuntimeError("OpenMetadata table response has no fullyQualifiedName")
+
+        columns = [dict(column) for column in table.get("columns") or []]
+        if include_column_profiles and columns:
+            with ThreadPoolExecutor(max_workers=min(8, len(columns))) as executor:
+                futures = {
+                    executor.submit(
+                        self._get_latest_column_profile_for_nt,
+                        column["fullyQualifiedName"],
+                    ): column
+                    for column in columns
+                    if column.get("fullyQualifiedName")
+                }
+                for future in as_completed(futures):
+                    profile = future.result()
+                    if profile is not None:
+                        futures[future]["profile"] = profile
+
+        return {
+            "id": table.get("id"),
+            "name": table.get("name"),
+            "fullyQualifiedName": resolved_fqn,
+            "tableType": table.get("tableType"),
+            "description": table.get("description"),
+            "service": table.get("service"),
+            "database": table.get("database"),
+            "databaseSchema": table.get("databaseSchema"),
+            "owners": table.get("owners") or [],
+            "domains": table.get("domains") or [],
+            "tags": table.get("tags") or [],
+            "columns": columns,
+            "tableConstraints": table.get("tableConstraints") or [],
+            "profile": table.get("profile"),
+        }
 
     def _fetch_single_column_profile(self, column_fqn: str) -> Optional[Dict[str, Any]]:
         """Lấy latest ColumnProfile theo Column FQN (Section 5.7)"""
@@ -729,6 +874,94 @@ class OpenMetadataClient:
     # =========================================================================
     # Test Case Methods
     # =========================================================================
+
+    def list_nt_test_definitions(
+        self,
+        prefix: str = "NT",
+    ) -> List[Dict[str, Any]]:
+        """Return every enabled/disabled NT definition with pagination."""
+        definitions = self._list_collection_paginated(
+            "dataQuality/testDefinitions"
+        )
+        return [
+            definition
+            for definition in definitions
+            if str(definition.get("name") or "").startswith(prefix)
+        ]
+
+    def get_table_nt_test_cases(
+        self,
+        table_fqn: str,
+        prefix: str = "NT",
+    ) -> List[Dict[str, Any]]:
+        """Return all existing NT Test Cases attached to one table."""
+        test_cases = self._list_collection_paginated(
+            "dataQuality/testCases",
+            params={
+                "entityLink": f"<#E::table::{table_fqn}>",
+                "includeAllTests": True,
+                "fields": "testDefinition,parameterValues",
+            },
+        )
+
+        def definition_name(test_case: Dict[str, Any]) -> str:
+            definition = test_case.get("testDefinition") or {}
+            if isinstance(definition, dict):
+                return str(
+                    definition.get("name")
+                    or definition.get("fullyQualifiedName")
+                    or ""
+                )
+            return str(definition)
+
+        return [
+            test_case
+            for test_case in test_cases
+            if definition_name(test_case).startswith(prefix)
+            or re.match(
+                rf"^dq_default_{re.escape(prefix)}[A-Za-z0-9_]+_[0-9a-f]{{8}}$",
+                str(test_case.get("name") or ""),
+            )
+        ]
+
+    def add_test_case_result(
+        self,
+        test_case_fqn: str,
+        result: NTRuleResult,
+        timestamp_ms: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """Publish an NT result to an existing OpenMetadata Test Case."""
+        if not test_case_fqn:
+            raise ValueError("test_case_fqn is required")
+        payload = {
+            "timestamp": (
+                timestamp_ms
+                if timestamp_ms is not None
+                else int(time.time() * 1000)
+            ),
+            "testCaseStatus": result.openmetadata_status,
+            "result": result.message,
+            "testResultValue": result.test_result_values(),
+        }
+        encoded_fqn = urllib.parse.quote(test_case_fqn, safe="")
+        response = requests.post(
+            f"{self.server_url}/dataQuality/testCases/testCaseResults/{encoded_fqn}",
+            json=payload,
+            headers=self._get_headers(),
+            timeout=self.timeout,
+        )
+        if response.status_code not in (200, 201):
+            detail = response.text
+            try:
+                error_payload = response.json()
+                detail = error_payload.get("message") or detail
+            except ValueError:
+                pass
+            raise RuntimeError(
+                "OpenMetadata TestCaseResult publish returned HTTP "
+                f"{response.status_code}: {detail}"
+            )
+        return response.json()
 
     def get_test_definitions(self, prefix: str = "NT") -> List[Dict[str, Any]]:
         """
