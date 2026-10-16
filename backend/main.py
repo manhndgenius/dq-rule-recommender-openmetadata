@@ -5,8 +5,11 @@ from backend.api.router import (
     routes_context,
     routes_datasource,
     routes_evaluation,
+    routes_generation_jobs,
     routes_recommendation,
     routes_review,
+    routes_statistical_rules,
+    routes_test_cases,
 )
 import uvicorn
 from fastapi import FastAPI
@@ -38,6 +41,9 @@ def create_app() -> FastAPI:
     app.include_router(routes_review.router)
     app.include_router(routes_evaluation.router)
     app.include_router(routes_advanced_rules.router)
+    app.include_router(routes_statistical_rules.router)
+    app.include_router(routes_test_cases.router)
+    app.include_router(routes_generation_jobs.router)
 
     return app
 

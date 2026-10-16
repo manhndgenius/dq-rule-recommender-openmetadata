@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
+import { openmetadataService } from '../../services/openmetadataService';
 
 export default function ObservabilityView({ tableData }) {
   const [activeIncidentTab, setActiveIncidentTab] = useState('ALL');
   const [resolvedIncidents, setResolvedIncidents] = useState({});
+  const [creatingTests, setCreatingTests] = useState(false);
+  const [testResult, setTestResult] = useState(null);
 
   if (!tableData || !tableData.observability) {
     return (
@@ -25,6 +28,36 @@ export default function ObservabilityView({ tableData }) {
 
   const handleResolveIncident = (id) => {
     setResolvedIncidents((prev) => ({ ...prev, [id]: true }));
+  };
+
+  const handleCreateDefaultTestCases = async () => {
+    if (!tableData?.fully_qualified_name) {
+      alert('Không tìm thấy FQN của bảng');
+      return;
+    }
+
+    if (!window.confirm('Tạo test cases từ tất cả NT governance rules cho bảng này?')) {
+      return;
+    }
+
+    setCreatingTests(true);
+    setTestResult(null);
+
+    try {
+      const result = await openmetadataService.createDefaultTestCases(tableData.fully_qualified_name);
+      setTestResult(result);
+
+      if (result.success) {
+        alert(`Đã tạo thành công ${result.created_count} test cases!`);
+      } else {
+        alert(`Đã tạo ${result.created_count} test cases, ${result.failed_count} thất bại`);
+      }
+    } catch (err) {
+      console.error('Error creating test cases:', err);
+      alert('Lỗi khi tạo test cases');
+    } finally {
+      setCreatingTests(false);
+    }
   };
 
   return (
@@ -68,6 +101,14 @@ export default function ObservabilityView({ tableData }) {
         </div>
 
         <div className="obs-hero-actions">
+          <button
+            className="btn btn-outline-secondary"
+            onClick={handleCreateDefaultTestCases}
+            disabled={creatingTests}
+            title="Tạo test cases từ tất cả NT governance rules"
+          >
+            {creatingTests ? '⏳ Đang tạo...' : '🧪 Tạo Default Test Cases'}
+          </button>
           <button
             className="btn btn-primary"
             onClick={() => window.open('https://c3-app-009.duckdns.org', '_blank')}

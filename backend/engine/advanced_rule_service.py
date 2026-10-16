@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Iterable
 
 from pydantic import BaseModel, Field
 
@@ -20,6 +20,7 @@ from backend.engine.advanced_llm import (
     GeneratorError,
 )
 from backend.engine.sql_mapper import map_advanced_rule_to_sql, MapperError
+from backend.engine.sql_mapper.sql_renderer import render_sql_literal, SQLRenderError
 
 if TYPE_CHECKING:
     from backend.engine.advanced_llm.router import RouterError
@@ -39,6 +40,7 @@ class RuleWithSQL(BaseModel):
 
     # SQL fields
     sql: str = ""
+    rendered_sql: str = ""
     violation_predicate: str = ""
     params: dict = Field(default_factory=dict)
     sql_error: str | None = None
@@ -92,7 +94,11 @@ class AdvancedRuleService:
                 self._generators[rule_type] = generator_class(self._llm)
         return self._generators.get(rule_type)
 
-    async def recommend(self, context: TableContext) -> tuple[RouterResult, list[GeneratedRule]]:
+    async def recommend(
+        self,
+        context: TableContext,
+        allowed_types: Iterable[str] | None = None,
+    ) -> tuple[RouterResult, list[GeneratedRule]]:
         """Tạo advanced rule recommendations cho một table.
 
         Args:
@@ -111,9 +117,17 @@ class AdvancedRuleService:
             raise
 
         # 2. Filter candidates theo confidence threshold
+        allowed_type_values = {
+            item.value if isinstance(item, AdvancedRuleType) else str(item)
+            for item in (allowed_types or [])
+        }
         selected = [
             c for c in router_result.candidates
             if c.confidence >= self._min_confidence
+            and (
+                not allowed_type_values
+                or getattr(c.rule_type, "value", str(c.rule_type)) in allowed_type_values
+            )
         ]
 
         logger.info(
@@ -163,6 +177,7 @@ class AdvancedRuleService:
         self,
         context: TableContext,
         include_failed_sql: bool = True,
+        allowed_types: Iterable[str] | None = None,
     ) -> AdvancedRuleWithSQLResult:
         """Tạo advanced rules với SQL violation queries.
 
@@ -184,11 +199,31 @@ class AdvancedRuleService:
 
         # 1. Router phát hiện candidates
         try:
-            router_result, generated_rules = await self.recommend(context)
+            router_result, generated_rules = await self.recommend(
+                context,
+                allowed_types=allowed_types,
+            )
         except Exception as e:
             logger.error(f"Pipeline thất bại ở bước recommend: {e}")
             result.errors.append({"step": "recommend", "error": str(e)})
             return result
+
+        allowed_type_values = {
+            item.value if isinstance(item, AdvancedRuleType) else str(item)
+            for item in (allowed_types or [])
+        }
+        if allowed_type_values:
+            router_result.candidates = [
+                candidate
+                for candidate in router_result.candidates
+                if getattr(candidate.rule_type, "value", str(candidate.rule_type))
+                in allowed_type_values
+            ]
+            generated_rules = [
+                rule
+                for rule in generated_rules
+                if str(rule.rule_type) in allowed_type_values
+            ]
 
         # Store candidates info
         result.candidates = [
@@ -235,20 +270,25 @@ class AdvancedRuleService:
                 rule_with_sql.sql = sql_result["sql"]
                 rule_with_sql.violation_predicate = sql_result["violation_predicate"]
                 rule_with_sql.params = sql_result["params"]
+                try:
+                    rule_with_sql.rendered_sql = render_sql_literal(
+                        rule_with_sql.sql,
+                        rule_with_sql.params,
+                    )
+                except SQLRenderError as e:
+                    # Keep the parameterized SQL usable even if rendering fails.
+                    # The API/FE can fall back to `sql` and surface the mapper output.
+                    logger.warning(f"SQL literal rendering failed for rule: {e}")
                 result.total_sql_mapped += 1
 
             except MapperError as e:
                 logger.warning(f"SQL mapping failed cho rule: {e}")
                 rule_with_sql.sql_error = str(e)
-                if include_failed_sql:
-                    result.rules.append(rule_with_sql)
             except Exception as e:
                 logger.error(f"Lỗi không xác định khi map SQL: {e}")
                 rule_with_sql.sql_error = str(e)
-                if include_failed_sql:
-                    result.rules.append(rule_with_sql)
-
-            result.rules.append(rule_with_sql)
+            if not rule_with_sql.sql_error or include_failed_sql:
+                result.rules.append(rule_with_sql)
             result.total_rules_generated += 1
 
         result.total_sql_failed = sum(

@@ -48,3 +48,10 @@ docs/
 scripts/results/*
 doc/
 storage/
+
+# Local profiling datasets and generated outputs
+data/*.csv
+scripts/combined_output_*.json
+
+# Local credential smoke tests
+test_api_key.py

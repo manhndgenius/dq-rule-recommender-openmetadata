@@ -107,7 +107,12 @@ class TemporalGenerator(BaseRuleGenerator):
 
     def _build_user_prompt(self, context: dict[str, Any]) -> str:
         """Build user prompt với serialized context."""
-        return json.dumps(context, indent=2, default=str)
+        return json.dumps(
+            context,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            default=str,
+        )
 
     def _convert_to_rules(
         self,

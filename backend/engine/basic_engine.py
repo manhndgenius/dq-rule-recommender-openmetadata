@@ -1,8 +1,24 @@
 from typing import List, Any
 from backend.engine.base import BaseRuleEngine
+from backend.engine.regex_patterns import detect_format, get_pattern
 from backend.contracts.table_context import TableContext, ColumnContext
 from backend.contracts.candidate_rule import CandidateRule
 from backend.config.settings import settings
+
+
+TEMPORAL_DATA_TYPE_MARKERS = (
+    "DATE",
+    "TIME",
+    "TIMESTAMP",
+    "TIMESTAMPTZ",
+    "INTERVAL",
+)
+
+
+def is_temporal_data_type(data_type: str) -> bool:
+    """Return True for date/time types that must not use numeric Between rules."""
+    normalized = (data_type or "").upper().replace("_", " ")
+    return any(marker in normalized for marker in TEMPORAL_DATA_TYPE_MARKERS)
 
 class BasicRuleEngine(BaseRuleEngine):
     """
@@ -48,6 +64,11 @@ class BasicRuleEngine(BaseRuleEngine):
             length_rule = self._generate_length_rule(context, col)
             if length_rule:
                 candidates.append(length_rule)
+
+            # Rule 6: REGEX FORMAT (String)
+            regex_rule = self._generate_regex_rule(context, col)
+            if regex_rule:
+                candidates.append(regex_rule)
 
         return candidates
 
@@ -125,20 +146,27 @@ class BasicRuleEngine(BaseRuleEngine):
             )
         return None
 
-    def _generate_between_rule(self, context: TableContext, col: ColumnContext) -> CandidateRule | None:
+    def _generate_between_rule(
+        self, context: TableContext, col: ColumnContext
+    ) -> CandidateRule | None:
         """
         Rule: columnValuesToBeBetween
-        Điều kiện: Kiểu dữ liệu số hoặc thời gian và có min_value, max_value quan sát được
+        Điều kiện: Chỉ kiểu dữ liệu số có min_value và max_value; loại trừ temporal.
         """
         prof = col.profile
         if prof.min_value is None or prof.max_value is None:
             return None
 
         dtype = col.data_type.upper()
-        is_numeric = any(t in dtype for t in ["INT", "NUMERIC", "DECIMAL", "FLOAT", "DOUBLE", "NUMBER"])
-        is_date = any(t in dtype for t in ["DATE", "TIME", "TIMESTAMP"])
+        if is_temporal_data_type(dtype):
+            return None
 
-        if is_numeric or is_date:
+        is_numeric = any(
+            marker in dtype
+            for marker in ["INT", "NUMERIC", "DECIMAL", "FLOAT", "DOUBLE", "NUMBER"]
+        )
+
+        if is_numeric:
             return CandidateRule(
                 rule_type="columnValuesToBeBetween",
                 description=f"Giá trị nằm trong khoảng dự kiến [{prof.min_value} .. {prof.max_value}]",
@@ -233,6 +261,75 @@ class BasicRuleEngine(BaseRuleEngine):
                 status="DRAFT"
             )
         return None
+
+    def _generate_regex_rule(self, context: TableContext, col: ColumnContext) -> CandidateRule | None:
+        """
+        Rule: columnValuesToMatchRegex
+        Điều kiện:
+          1. Column là string type (VARCHAR, CHAR, TEXT, STRING)
+          2. Có non-null data (verified profile)
+          3. Column name khớp format alias (email, url, first_name, etc.)
+        """
+        # 1. Check string type
+        dtype = col.data_type.upper()
+        is_string = any(t in dtype for t in ["VARCHAR", "CHAR", "TEXT", "STRING"])
+        if not is_string:
+            return None
+
+        # 2. Check non-null data from profile
+        prof = col.profile
+        if prof.row_count <= 0:
+            return None
+        non_null_count = prof.row_count - (prof.null_count or 0)
+        if non_null_count <= 0:
+            return None
+
+        # 3. Detect format từ column name
+        format_id = detect_format(col.name)
+        if not format_id:
+            return None
+
+        # 4. Get pattern spec
+        pattern_spec = get_pattern(format_id)
+        if not pattern_spec:
+            return None
+
+        regex = pattern_spec["regex"]
+        description = pattern_spec["description"]
+        limitations = pattern_spec.get("limitations", [])
+        requires_review = pattern_spec.get("requires_human_review", False)
+
+        # Build reason message theo format
+        format_reasons = {
+            "EMAIL": f"Cột '{col.name}' chứa địa chỉ email. Đề xuất kiểm tra format email.",
+            "URL_HTTP": f"Cột '{col.name}' chứa URL. Đề xuất kiểm tra format HTTP/HTTPS.",
+            "FIRST_NAME_CAPITALIZED": f"Cột '{col.name}' chứa tên riêng. Đề xuất chuẩn hóa: chữ đầu hoa, còn lại thường.",
+        }
+        reason = format_reasons.get(format_id, f"Cột '{col.name}' có định dạng {format_id}.")
+
+        return CandidateRule(
+            rule_type="columnValuesToMatchRegex",
+            description=f"Kiểm tra {description}",
+            target_columns=[col.name],
+            parameters={"regex": regex},
+            engine="BASIC",
+            confidence=0.90 if not requires_review else 0.75,
+            reason=reason,
+            evidence={
+                "format_id": format_id,
+                "detected_by": "COLUMN_NAME_HEURISTIC",
+                "matched_alias": col.name.lower().strip(),
+                "pattern_source": "BUILT_IN_REGISTRY",
+                "pattern_limitations": limitations,
+                "requires_human_review": requires_review,
+                "source_column_datatype": col.data_type,
+                "non_null_count": non_null_count,
+                "total_rows": prof.row_count,
+            },
+            validation_status="WARNING" if requires_review else "VALID",
+            validation_message="Pattern cần được review bởi người dùng" if requires_review else None,
+            status="DRAFT"
+        )
 
     def _generate_row_count_rule(self, context: TableContext) -> CandidateRule:
         """

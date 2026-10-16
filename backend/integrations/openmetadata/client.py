@@ -6,7 +6,7 @@ from typing import List, Dict, Any, Optional
 import requests
 
 from backend.config.settings import settings
-from backend.contracts.table_context import TableContext, ColumnContext, ColumnProfile
+from backend.contracts.table_context import TableContext, ColumnContext, ColumnProfile, ProfileSource, ProfileScope
 
 logger = logging.getLogger("openmetadata_client")
 
@@ -194,6 +194,77 @@ class OpenMetadataClient:
             for name in fallback_tables
         ]
 
+    def _list_entities_paginated(
+        self,
+        endpoint: str,
+        parent_param: str,
+        parent_fqn: str,
+        limit: int = 100,
+    ) -> List[Dict[str, Any]]:
+        """Fetch every catalog entity page without demo fallbacks.
+
+        Bulk jobs must fail visibly when OpenMetadata cannot enumerate a scope;
+        silently returning the healthcare demo tables could target wrong assets.
+        """
+        entities: List[Dict[str, Any]] = []
+        after: Optional[str] = None
+        while True:
+            params: Dict[str, Any] = {
+                parent_param: parent_fqn,
+                "limit": limit,
+            }
+            if after:
+                params["after"] = after
+            response = requests.get(
+                f"{self.server_url}/{endpoint}",
+                params=params,
+                headers=self._get_headers(),
+                timeout=self.timeout,
+            )
+            if response.status_code != 200:
+                raise RuntimeError(
+                    f"OpenMetadata {endpoint} returned HTTP {response.status_code}"
+                )
+            payload = response.json()
+            page = payload.get("data", [])
+            entities.extend(page)
+            after = payload.get("paging", {}).get("after")
+            if not after or not page:
+                break
+        return entities
+
+    def list_schemas_paginated(self, database_fqn: str) -> List[Dict[str, Any]]:
+        return self._list_entities_paginated(
+            endpoint="databaseSchemas",
+            parent_param="database",
+            parent_fqn=database_fqn,
+        )
+
+    def list_tables_paginated(self, schema_fqn: str) -> List[Dict[str, Any]]:
+        return self._list_entities_paginated(
+            endpoint="tables",
+            parent_param="databaseSchema",
+            parent_fqn=schema_fqn,
+        )
+
+    def resolve_table_fqn_strict(self, table_fqn: str) -> str:
+        encoded = urllib.parse.quote(table_fqn, safe="")
+        response = requests.get(
+            f"{self.server_url}/tables/name/{encoded}",
+            params={"fields": "columns"},
+            headers=self._get_headers(),
+            timeout=self.timeout,
+        )
+        if response.status_code != 200:
+            raise RuntimeError(
+                f"OpenMetadata table lookup returned HTTP {response.status_code}"
+            )
+        payload = response.json()
+        resolved = payload.get("fullyQualifiedName")
+        if not resolved:
+            raise RuntimeError("OpenMetadata table response has no fullyQualifiedName")
+        return resolved
+
     def _fetch_single_column_profile(self, column_fqn: str) -> Optional[Dict[str, Any]]:
         """Lấy latest ColumnProfile theo Column FQN (Section 5.7)"""
         try:
@@ -208,6 +279,63 @@ class OpenMetadataClient:
         except Exception as e:
             logger.debug(f"Lỗi lấy profile cho column {column_fqn}: {e}")
         return None
+
+    def get_column_profile_history(
+        self,
+        column_fqn: str,
+        limit: int = 20,
+    ) -> List[Dict[str, Any]]:
+        """Return newest unique OpenMetadata profiles for a column.
+
+        This is intentionally separate from ``_fetch_single_column_profile``:
+        the existing table context still carries only the latest snapshot for
+        rule evaluation/LLM input, while this method serves API display data.
+        """
+        if limit <= 0:
+            return []
+
+        try:
+            encoded_fqn = urllib.parse.quote(column_fqn, safe="")
+            url = (
+                f"{self.server_url}/tables/{encoded_fqn}/columnProfile"
+                "?startTs=0&endTs=2000000000000&limit=100"
+            )
+            resp = requests.get(
+                url,
+                headers=self._get_headers(),
+                timeout=self.timeout,
+            )
+            if resp.status_code != 200:
+                logger.warning(
+                    "Cannot load column profile history for %s: HTTP %s",
+                    column_fqn,
+                    resp.status_code,
+                )
+                return []
+
+            profiles = resp.json().get("data", [])
+            profiles.sort(key=lambda item: int(item.get("timestamp", 0)), reverse=True)
+
+            # Guard against duplicated historical rows from repeated profiler
+            # ingestion: the UI needs one point per profiling timestamp.
+            unique_profiles: List[Dict[str, Any]] = []
+            seen_timestamps = set()
+            for profile in profiles:
+                timestamp = profile.get("timestamp")
+                if timestamp is None or timestamp in seen_timestamps:
+                    continue
+                seen_timestamps.add(timestamp)
+                unique_profiles.append(profile)
+                if len(unique_profiles) == limit:
+                    break
+            return unique_profiles
+        except Exception as exc:
+            logger.warning(
+                "Cannot load column profile history for %s: %s",
+                column_fqn,
+                exc,
+            )
+            return []
 
     def get_catalog_table(self, table_id_or_name: str) -> Dict[str, Any]:
         """
@@ -385,6 +513,27 @@ class OpenMetadataClient:
             if max_val is not None and max_val != min_val:
                 top_vals.append({"value": str(max_val)})
 
+            # Statistical metrics from OpenMetadata profiler
+            values_count = p.get("valuesCount")
+            valid_count = p.get("validCount")
+            mean_val = p.get("mean")
+            median_val = p.get("median")
+            stddev_val = p.get("stddev")
+            q1_val = p.get("firstQuartile") or p.get("q1")
+            q3_val = p.get("thirdQuartile") or p.get("q3")
+            iqr_val = p.get("interQuartileRange") or p.get("iqr")
+            skew_val = p.get("nonParametricSkew") or p.get("non_parametric_skew")
+
+            # Profile metadata
+            profile_ts = p.get("timestamp")
+            # Determine source: real OM data vs fallback/mock
+            if p.get("mean") is not None or p.get("median") is not None:
+                profile_source = ProfileSource.OPENMETADATA
+            elif p.get("valuesCount") is not None or p.get("distinctCount") is not None:
+                profile_source = ProfileSource.OPENMETADATA
+            else:
+                profile_source = ProfileSource.UNKNOWN
+
             column_profile = ColumnProfile(
                 row_count=row_count,
                 null_count=null_count,
@@ -395,7 +544,21 @@ class OpenMetadataClient:
                 max_value=max_val,
                 min_length=min_len,
                 max_length=max_len,
-                top_values=top_vals
+                top_values=top_vals,
+                # Statistical metrics
+                values_count=values_count,
+                valid_count=valid_count,
+                mean=mean_val,
+                median=median_val,
+                stddev=stddev_val,
+                q1=q1_val,
+                q3=q3_val,
+                iqr=iqr_val,
+                non_parametric_skew=skew_val,
+                # Profile metadata
+                profile_timestamp=profile_ts,
+                profile_source=profile_source,
+                profile_scope=ProfileScope.UNKNOWN,
             )
 
             columns.append(ColumnContext(
@@ -435,6 +598,7 @@ class OpenMetadataClient:
 
         return TableContext(
             datasource_id="openmetadata-live",
+            table_fqn=catalog.get("fqn") or table_name,
             database_name=db_name,
             schema_name=schema_name,
             table_name=catalog.get("name") or table_name,
@@ -561,5 +725,172 @@ class OpenMetadataClient:
                 )
             ]
         )
+
+    # =========================================================================
+    # Test Case Methods
+    # =========================================================================
+
+    def get_test_definitions(self, prefix: str = "NT") -> List[Dict[str, Any]]:
+        """
+        Lấy danh sách Test Definitions từ OpenMetadata.
+
+        Args:
+            prefix: Lọc theo prefix tên (mặc định 'NT' cho governance rules)
+
+        Returns:
+            List of test definition objects
+        """
+        try:
+            url = f"{self.server_url}/dataQuality/testDefinitions?limit=100"
+            resp = requests.get(url, headers=self._get_headers(), timeout=self.timeout)
+
+            if resp.status_code == 200:
+                data = resp.json()
+                definitions = []
+
+                for item in data.get("data", []):
+                    name = item.get("name", "")
+                    # Filter theo prefix
+                    if name.startswith(prefix):
+                        definitions.append({
+                            "id": item.get("id"),
+                            "name": name,
+                            "fullyQualifiedName": item.get("fullyQualifiedName", name),
+                            "displayName": item.get("displayName", name),
+                            "description": item.get("description", ""),
+                            "sqlExpression": item.get("sqlExpression"),
+                            "entityType": item.get("entityType"),
+                            "parameterDefinition": item.get("parameterDefinition") or [],
+                            "enabled": item.get("enabled", True),
+                        })
+
+                return definitions
+
+            logger.warning(f"Lỗi get_test_definitions: {resp.status_code}")
+        except Exception as e:
+            logger.error(f"Lỗi gọi get_test_definitions: {e}")
+
+        return []
+
+    def get_table_test_cases(self, table_fqn: str) -> Dict[str, Any]:
+        """Return Test Cases currently attached to a table in OpenMetadata."""
+        try:
+            url = f"{self.server_url}/dataQuality/testCases"
+            resp = requests.get(
+                url,
+                params={
+                    "entityLink": f"<#E::table::{table_fqn}>",
+                    "includeAllTests": True,
+                    "fields": "testDefinition,parameterValues",
+                    "limit": 100,
+                },
+                headers=self._get_headers(),
+                timeout=self.timeout,
+            )
+
+            if resp.status_code == 200:
+                payload = resp.json()
+                return {
+                    "success": True,
+                    "data": payload.get("data", []),
+                    "total": payload.get("total", 0),
+                }
+
+            return {
+                "success": False,
+                "data": [],
+                "total": 0,
+                "error": f"HTTP {resp.status_code}",
+            }
+        except Exception as exc:
+            logger.error(f"Failed to get Test Cases for {table_fqn}: {exc}")
+            return {
+                "success": False,
+                "data": [],
+                "total": 0,
+                "error": str(exc),
+            }
+
+    def create_test_case(self, test_case: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Tạo một Test Case trên OpenMetadata.
+
+        Args:
+            test_case: Test case payload
+
+        Returns:
+            Created test case object hoặc error info
+        """
+        try:
+            url = f"{self.server_url}/dataQuality/testCases"
+            resp = requests.post(url, json=test_case, headers=self._get_headers(), timeout=self.timeout)
+
+            if resp.status_code in (200, 201):
+                return {
+                    "success": True,
+                    "data": resp.json()
+                }
+
+            # Parse error response
+            error_data = resp.json() if resp.text else {}
+            return {
+                "success": False,
+                "error": error_data.get("message", f"HTTP {resp.status_code}"),
+                "status_code": resp.status_code
+            }
+
+        except Exception as e:
+            logger.error(f"Lỗi tạo test_case: {e}")
+            return {
+                "success": False,
+                "error": str(e)
+            }
+
+    def upsert_test_case(self, test_case: Dict[str, Any]) -> Dict[str, Any]:
+        """Create or update a Test Case by its fully qualified identity."""
+        try:
+            url = f"{self.server_url}/dataQuality/testCases"
+            resp = requests.put(
+                url,
+                json=test_case,
+                headers=self._get_headers(),
+                timeout=self.timeout,
+            )
+
+            if resp.status_code in (200, 201):
+                return {
+                    "success": True,
+                    "data": resp.json(),
+                    "status_code": resp.status_code,
+                }
+
+            error_data = resp.json() if resp.text else {}
+            return {
+                "success": False,
+                "error": error_data.get("message", f"HTTP {resp.status_code}"),
+                "status_code": resp.status_code,
+            }
+        except Exception as e:
+            logger.error(f"Lỗi upsert test_case: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+            }
+
+    def replace_table_name_in_sql(self, sql_template: str, table_name: str) -> str:
+        """
+        Thay {{ table_name }} trong SQL template bằng tên table thực.
+
+        Args:
+            sql_template: SQL template có {{ table_name }}
+            table_name: Tên table thực
+
+        Returns:
+            SQL đã replace
+        """
+        if not sql_template:
+            return ""
+        return sql_template.replace("{{ table_name }}", table_name)
+
 
 openmetadata_client = OpenMetadataClient()

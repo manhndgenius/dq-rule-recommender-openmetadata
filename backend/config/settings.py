@@ -14,6 +14,11 @@ class Settings(BaseModel):
     # OpenMetadata connection config (Support OM_API / OM_TOKEN as specified in integration doc)
     om_api_raw: str = os.getenv("OM_API", os.getenv("OPENMETADATA_SERVER_URL", "https://c3-app-009.duckdns.org/"))
     openmetadata_jwt_token: str = os.getenv("OM_TOKEN", os.getenv("OPENMETADATA_JWT_TOKEN", ""))
+    postgres_host: str = os.getenv("POSTGRES_HOST", "localhost")
+    postgres_port: int = int(os.getenv("POSTGRES_PORT", "5432"))
+    postgres_user: str = os.getenv("POSTGRES_USER", "postgres")
+    postgres_password: str = os.getenv("POSTGRES_PASSWORD", "postgres")
+    postgres_db: str = os.getenv("POSTGRES_DB", "dq_rules")
     
     @property
     def openmetadata_base_url(self) -> str:

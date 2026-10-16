@@ -6,9 +6,14 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from backend.config.settings import settings
+from backend.contracts.generation import GenerationOptions, RuleEngine
 from backend.contracts.table_context import TableContext, ColumnContext, ColumnProfile
+from backend.engine.adapters.advanced_adapter import AdvancedGenerationAdapter
 from backend.engine.advanced_rule_service import AdvancedRuleService
+from backend.engine.sql_mapper.sql_renderer import render_sql_literal, SQLRenderError
 from backend.storage.json_storage import json_storage
+from backend.storage.generation_cache import generation_cache
+from backend.services.generation_service import GenerationService
 
 router = APIRouter(prefix=settings.api_prefix, tags=["advanced-rules"])
 
@@ -51,9 +56,11 @@ class AdvancedRulesRequest(BaseModel):
     """Request model cho advanced rules recommendation."""
 
     table_name: str
+    table_fqn: str | None = None
     table_description: str | None = None
     columns: list[ColumnInput] = Field(min_length=1)
     min_confidence: float = Field(default=0.6, ge=0.0, le=1.0)
+    advanced_types: list[str] | None = None
 
 
 class RuleWithSQL(BaseModel):
@@ -68,6 +75,7 @@ class RuleWithSQL(BaseModel):
 
     # SQL fields
     sql: str = ""
+    rendered_sql: str = ""
     violation_predicate: str = ""
     params: dict = Field(default_factory=dict)
     sql_error: str | None = None
@@ -108,19 +116,32 @@ async def recommend_advanced_rules(req: AdvancedRulesRequest) -> AdvancedRulesRe
             profile=profile or ColumnProfile(),
         ))
 
+    fqn_parts = (req.table_fqn or "").split(".")
     context = TableContext(
-        database_name="request",
-        schema_name="request",
+        table_fqn=req.table_fqn,
+        database_name=fqn_parts[-3] if len(fqn_parts) >= 4 else "request",
+        schema_name=fqn_parts[-2] if len(fqn_parts) >= 4 else "request",
         table_name=req.table_name,
         table_description=req.table_description,
         columns=columns,
     )
 
     # Tao service va chay pipeline voi SQL
-    service = AdvancedRuleService(min_confidence=req.min_confidence)
+    service = GenerationService({
+        RuleEngine.ADVANCED: AdvancedGenerationAdapter(),
+    })
 
     try:
-        result = await service.recommend_with_sql(context)
+        result = await service.generate(
+            context=context,
+            table_fqn=req.table_fqn or req.table_name,
+            engine=RuleEngine.ADVANCED,
+            options=GenerationOptions(
+                min_confidence=req.min_confidence,
+                advanced_types=req.advanced_types,
+            ),
+            persist=False,
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Pipeline failed: {str(e)}")
 
@@ -128,70 +149,68 @@ async def recommend_advanced_rules(req: AdvancedRulesRequest) -> AdvancedRulesRe
     rules_list = [
         RuleWithSQL(
             rule_type=r.rule_type,
-            table=r.table,
-            columns=r.columns,
+            table=req.table_name,
+            columns=r.target_columns,
             conditions=r.conditions,
             confidence=r.confidence,
             reason=r.reason,
-            sql=r.sql,
-            violation_predicate=r.violation_predicate,
+            sql=r.sql or "",
+            rendered_sql=r.rendered_sql or "",
+            violation_predicate=r.violation_predicate or "",
             params=r.params,
-            sql_error=r.sql_error,
+            sql_error=r.validation_message if r.validation_status == "INVALID" else None,
         )
         for r in result.rules
     ]
 
     response = AdvancedRulesResponse(
         table_name=result.table_name,
-        candidates=result.candidates,
+        candidates=result.metadata.get("candidates", []),
         rules=rules_list,
-        total_candidates=result.total_candidates,
-        total_rules_generated=result.total_rules_generated,
-        total_sql_mapped=result.total_sql_mapped,
-        total_sql_failed=result.total_sql_failed,
-        errors=result.errors,
+        total_candidates=result.metadata.get("total_candidates", 0),
+        total_rules_generated=result.metadata.get("total_rules_generated", 0),
+        total_sql_mapped=result.metadata.get("total_sql_mapped", 0),
+        total_sql_failed=result.metadata.get("total_sql_failed", 0),
+        errors=[error.model_dump() for error in result.errors],
     )
-
-    # Luu vao file JSON - ghi de
-    if result.rules:
-        rules_data = []
-        for idx, r in enumerate(result.rules):
-            description = _generate_short_description(r.rule_type, r.columns, r.reason)
-            rules_data.append({
-                'id': f"{r.rule_type}_adv_{idx + 1}",
-                'rule_type': r.rule_type,
-                'description': description,
-                'target_columns': r.columns,
-                'columns': r.columns,
-                'parameters': {},
-                'expression': None,
-                'engine': 'ADVANCED',
-                'confidence': r.confidence,
-                'reason': r.reason,
-                'evidence': {},
-                'validation_status': 'VALID',
-                'validation_message': None,
-                'status': 'DRAFT',
-                'edited_parameters': None,
-                'sql': r.sql,
-                'violation_predicate': r.violation_predicate,
-                'params': r.params,
-                'conditions': r.conditions,
-            })
-        try:
-            json_storage.save_advanced_rules(req.table_name, rules_data)
-        except Exception as e:
-            import logging
-            logging.warning(f"Failed to save advanced rules to JSON: {e}")
 
     return response
 
 
 @router.get("/advanced-rules/saved")
-def get_saved_advanced_rules(table_name: Optional[str] = None):
+def get_saved_advanced_rules(
+    table_name: Optional[str] = None,
+    table_fqn: Optional[str] = None,
+):
     """Lay Advanced Rules da luu tu file JSON."""
-    rules = json_storage.get_advanced_rules(table_name)
-    info = json_storage.get_file_info()
+    rules = []
+    info = None
+    target = table_fqn or table_name
+    if target:
+        try:
+            rules = [
+                rule.model_dump()
+                for rule in generation_cache.get(target, engine="ADVANCED")
+            ]
+            info = {"storage": "memory", "table_fqn": target}
+        except Exception:
+            rules = []
+    if not rules:
+        # Compatibility fallback for data generated before PostgreSQL storage.
+        rules = json_storage.get_advanced_rules(table_name)
+        info = json_storage.get_file_info()
+
+    # Backward compatibility for files created before `rendered_sql` existed.
+    for rule in rules or []:
+        if rule.get("rendered_sql") or not rule.get("sql"):
+            continue
+        try:
+            rule["rendered_sql"] = render_sql_literal(
+                rule["sql"],
+                rule.get("params", {}),
+            )
+        except SQLRenderError:
+            rule["rendered_sql"] = rule["sql"]
 
     return {
         "has_rules": rules is not None and len(rules) > 0,

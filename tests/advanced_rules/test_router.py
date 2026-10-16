@@ -100,12 +100,15 @@ class TestAdvancedRuleRouter:
 
     def test_build_user_prompt(self, router):
         """Router nên build valid JSON prompt."""
-        context = {"table": {"name": "test"}, "columns": []}
+        context = {"table": {"name": "dữ liệu"}, "columns": []}
         prompt = router._build_user_prompt(context)
 
         import json
         parsed = json.loads(prompt)
-        assert parsed["table"]["name"] == "test"
+        assert parsed == context
+        assert "\n" not in prompt
+        assert ": " not in prompt
+        assert "dữ liệu" in prompt
 
     @pytest.mark.asyncio
     async def test_route_returns_result(self, router, mock_llm_client):

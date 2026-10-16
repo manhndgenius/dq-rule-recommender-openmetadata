@@ -301,5 +301,57 @@ export const openmetadataService = {
       console.warn('Lỗi lấy báo cáo Evaluation:', err);
     }
     return null;
+  },
+
+  /**
+   * Lấy danh sách NT governance test definitions
+   */
+  async getTestDefinitions() {
+    try {
+      const res = await fetch(`${API_BASE}/tables/test-definitions`);
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (err) {
+      console.warn('Lỗi lấy test definitions:', err);
+    }
+    return null;
+  },
+
+  /**
+   * Tạo default test cases cho table từ NT governance definitions
+   *
+   * @param {string} tableFqn - Fully qualified name của table
+   * @returns {Object} - Kết quả tạo test cases
+   */
+  async createDefaultTestCases(tableFqn) {
+    try {
+      const res = await fetch(`${API_BASE}/tables/${encodeURIComponent(tableFqn)}/test-cases/default`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (res.ok) {
+        return await res.json();
+      }
+      console.warn(`Lỗi tạo test cases (${res.status})`);
+    } catch (err) {
+      console.warn('Lỗi kết nối tạo test cases:', err);
+    }
+    return null;
+  },
+
+  /**
+   * Lấy danh sách test cases của một table
+   */
+  async getTableTestCases(tableFqn) {
+    try {
+      const res = await fetch(`${API_BASE}/tables/${encodeURIComponent(tableFqn)}/test-cases`);
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (err) {
+      console.warn('Lỗi lấy test cases:', err);
+    }
+    return null;
   }
 };

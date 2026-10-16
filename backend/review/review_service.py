@@ -26,5 +26,8 @@ class ReviewService:
     def list_candidates(self) -> list[CandidateRule]:
         return list(self._candidates.values())
 
+    def get_rule(self, rule_id: str) -> Optional[CandidateRule]:
+        return self._candidates.get(rule_id)
+
 
 review_service = ReviewService()

@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 class AdvancedRuleRouter:
     """Router phát hiện các loại advanced rule tiềm năng trong bảng."""
 
-    def __init__(self, llm_client: LLMClient, prompt_file: str = "advanced_router.md"):
+    def __init__(self, llm_client: LLMClient, prompt_file: str = "advanced_router_3.md"):
         """Khởi tạo router.
 
         Args:
@@ -147,7 +147,12 @@ class AdvancedRuleRouter:
         Returns:
             User prompt string.
         """
-        return json.dumps(context, indent=2, default=str)
+        return json.dumps(
+            context,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            default=str,
+        )
 
     def _post_validate(
         self, full_context: TableContext, result: RouterResult

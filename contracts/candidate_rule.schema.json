@@ -57,7 +57,15 @@
             "columnValuesToBeInSet",
             "tableRowCountToBeBetween",
             "columnValuesToMatchRegex",
-            "tableCustomSQLQuery"
+            "tableCustomSQLQuery",
+            "columnValueMeanToBeBetween",
+            "columnValueMedianToBeBetween",
+            "columnValueStdDevToBeBetween",
+            "columnValueMinToBeBetween",
+            "columnValueMaxToBeBetween",
+            "TEMPORAL",
+            "CROSS_COLUMN",
+            "CONDITIONAL_DEPENDENCY"
           ]
         },
         "target_columns": {
@@ -91,7 +99,7 @@
         "engine": {
           "type": "string",
           "description": "Nguồn gốc sinh ra rule",
-          "enum": ["BASIC", "ADVANCED"]
+          "enum": ["BASIC", "ADVANCED", "STATISTICAL"]
         },
         "confidence": {
           "type": "number",
@@ -134,7 +142,7 @@
         "status": {
           "type": "string",
           "description": "Trạng thái người dùng review trên Web UI",
-          "enum": ["DRAFT", "ACCEPTED", "EDITED", "REJECTED"],
+          "enum": ["DRAFT", "ACCEPTED", "EDITED", "REJECTED", "APPLIED"],
           "default": "DRAFT"
         },
         "edited_parameters": {

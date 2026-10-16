@@ -113,6 +113,50 @@ def test_generate_value_between_rule(sample_table_context):
     assert amount_rule.parameters["minValue"] == 100.0
     assert amount_rule.parameters["maxValue"] == 50000.0
 
+
+@pytest.mark.parametrize(
+    "data_type",
+    [
+        "DATE",
+        "TIME",
+        "TIME WITH TIME ZONE",
+        "DATETIME",
+        "TIMESTAMP",
+        "TIMESTAMPZ",
+        "TIMESTAMPTZ",
+        "TIMESTAMP WITH TIME ZONE",
+        "INTERVAL",
+    ],
+)
+def test_value_between_excludes_temporal_columns(data_type):
+    context = TableContext(
+        datasource_id="postgres-test",
+        database_name="ecommerce_db",
+        schema_name="public",
+        table_name="orders",
+        row_count=100,
+        columns=[
+            ColumnContext(
+                name="event_time",
+                data_type=data_type,
+                profile=ColumnProfile(
+                    row_count=100,
+                    min_value="2025-01-01T00:00:00Z",
+                    max_value="2025-12-31T23:59:59Z",
+                ),
+            )
+        ],
+    )
+
+    candidates = BasicRuleEngine().generate_candidates(context)
+    between_rules = [
+        candidate
+        for candidate in candidates
+        if candidate.rule_type == "columnValuesToBeBetween"
+    ]
+
+    assert between_rules == []
+
 def test_generate_values_in_set_rule(sample_table_context):
     engine = BasicRuleEngine()
     candidates = engine.generate_candidates(sample_table_context)
