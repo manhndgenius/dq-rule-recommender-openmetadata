@@ -110,6 +110,22 @@ def test_nt3_boolean_naming_only_checks_boolean_columns():
     assert result.affected_columns == ["enabled"]
 
 
+def test_nt3_boolean_types_are_fixed_and_ignore_config_override():
+    result = evaluate(
+        "NT3_BooleanNaming",
+        context(
+            columns=[
+                column("invalid_bit_name", "BIT"),
+                column("enabled", "BOOLEAN"),
+            ]
+        ),
+        {"booleanTypes": ["BIT"]},
+    )
+
+    assert result.outcome == NTOutcome.FAIL
+    assert result.affected_columns == ["enabled"]
+
+
 def test_nt4_audit_columns_uses_configurable_required_list():
     result = evaluate(
         "NT4_AuditColumns",
@@ -118,6 +134,20 @@ def test_nt4_audit_columns_uses_configurable_required_list():
     )
     assert result.outcome == NTOutcome.FAIL
     assert result.affected_columns == ["updated_at"]
+
+
+def test_nt4_audit_columns_is_always_case_insensitive():
+    result = evaluate(
+        "NT4_AuditColumns",
+        context(columns=[column("CREATED_AT")]),
+        {
+            "requiredColumns": ["created_at"],
+            "requireAll": True,
+            "caseSensitive": True,
+        },
+    )
+
+    assert result.outcome == NTOutcome.PASS
 
 
 def test_nt5_datetime_suffix_type_mapping():
@@ -238,12 +268,13 @@ def test_nt13_nullable_column_rate_bands(not_null_count, outcome):
     assert evaluate("NT13_NullableRate", context(columns=columns)).outcome == outcome
 
 
-def test_nt14_missing_business_key_is_warning():
+def test_nt14_missing_business_key_is_always_fail():
     result = evaluate(
         "NT14_BusinessKey",
         context(columns=[column("id"), column("description")]),
+        {"missingOutcome": "WARNING"},
     )
-    assert result.outcome == NTOutcome.WARNING
+    assert result.outcome == NTOutcome.FAIL
 
 
 def test_nt16_duplicate_table_requires_catalog_and_detects_other_schema():

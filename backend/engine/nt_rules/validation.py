@@ -217,8 +217,8 @@ def validate_nt_rule_config(
             )
     if definition_name == "NT14_BusinessKey" and config.get(
         "missingOutcome"
-    ) not in {"WARNING", "FAIL"}:
-        errors.append("missingOutcome must be WARNING or FAIL")
+    ) != "FAIL":
+        errors.append("missingOutcome must be FAIL")
     if definition_name == "NT16_DuplicateTable" and config.get(
         "comparisonScope"
     ) != "DATABASE":

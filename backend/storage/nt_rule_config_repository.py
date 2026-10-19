@@ -9,7 +9,10 @@ from typing import Any, Dict, Optional
 
 from psycopg2.extras import RealDictCursor
 
-from backend.engine.nt_rules.config import DEFAULT_RULE_CONFIG
+from backend.engine.nt_rules.config import (
+    DEFAULT_RULE_CONFIG,
+    enforce_nt_rule_config,
+)
 from backend.engine.nt_rules.validation import validate_nt_rule_config
 from backend.storage.db_service import db_service
 
@@ -72,7 +75,7 @@ class NTRuleConfigRepository:
     ) -> Dict[str, Any]:
         effective = copy.deepcopy(DEFAULT_RULE_CONFIG[rule_name])
         effective.update(copy.deepcopy(override))
-        return effective
+        return enforce_nt_rule_config(rule_name, effective)
 
     @classmethod
     def _normalize_override(

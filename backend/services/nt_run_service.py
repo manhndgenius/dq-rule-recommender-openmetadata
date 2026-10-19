@@ -14,7 +14,10 @@ from backend.contracts.nt_execution import (
     NTRunItemStatus,
     RetryNTRunRequest,
 )
-from backend.engine.nt_rules.config import DEFAULT_RULE_CONFIG
+from backend.engine.nt_rules.config import (
+    DEFAULT_RULE_CONFIG,
+    enforce_nt_rule_config,
+)
 from backend.engine.nt_rules.registry import evaluate_nt_rule
 from backend.engine.nt_rules.validation import validate_nt_rule_config
 from backend.integrations.openmetadata.client import (
@@ -176,6 +179,7 @@ class NTRunService:
                         run.rule_configs.get(item.definition_name, {})
                     )
                 )
+                config = enforce_nt_rule_config(item.definition_name, config)
                 validation_errors = validate_nt_rule_config(
                     item.definition_name,
                     config,

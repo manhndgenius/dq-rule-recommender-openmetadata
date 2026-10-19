@@ -37,15 +37,15 @@ DEFAULT_RULE_CONFIG: Dict[str, Dict[str, Any]] = {
     },
     "NT5_DateTimeColumns": {
         "suffixTypeMappings": [
-            {"suffix": "_at", "allowedTypes": ["TIMESTAMPTZ"]},
+            {"suffix": "_at", "allowedTypes": ["TIMESTAMPZ"]},
             {"suffix": "_date", "allowedTypes": ["DATE"]},
         ],
         "excludedColumns": [],
     },
     "NT6_SoftDelete": {
         "acceptedStrategies": [
-            {"column": "is_active", "allowedTypes": ["BOOLEAN", "BOOL"]},
-            {"column": "deleted_at", "allowedTypes": ["TIMESTAMPTZ"]},
+            {"column": "is_active", "allowedTypes": ["BOOLEAN"]},
+            {"column": "deleted_at", "allowedTypes": ["TIMESTAMPZ"]},
         ],
     },
     "NT7_TableComment": {
@@ -60,14 +60,7 @@ DEFAULT_RULE_CONFIG: Dict[str, Dict[str, Any]] = {
     },
     "NT9_PrimaryKeyMissing": {},
     "NT10_ColumnDescription": {
-        "excludedColumns": [
-            "id",
-            "created_at",
-            "created_by",
-            "updated_at",
-            "updated_by",
-            "is_active",
-        ],
+        "excludedColumns": [],
         "excludedPatterns": [],
         "minimumDescriptionLength": 1,
     },
@@ -102,7 +95,7 @@ DEFAULT_RULE_CONFIG: Dict[str, Dict[str, Any]] = {
         "namePatterns": [r"_code$", r"_no$", r"_number$", r"_ref$"],
         "minimumMatches": 1,
         "excludedColumns": [],
-        "missingOutcome": "WARNING",
+        "missingOutcome": "FAIL",
     },
     "NT16_DuplicateTable": {
         "comparisonScope": "DATABASE",
@@ -110,6 +103,42 @@ DEFAULT_RULE_CONFIG: Dict[str, Dict[str, Any]] = {
         "excludedSchemas": [],
     },
 }
+
+
+def enforce_nt_rule_config(rule_name: str, config: Dict[str, Any]) -> Dict[str, Any]:
+    """Apply non-configurable governance invariants and normalize legacy values."""
+    effective = copy.deepcopy(config)
+    if "excludedColumns" in effective:
+        effective["excludedColumns"] = []
+    if rule_name == "NT3_BooleanNaming":
+        effective["booleanTypes"] = ["BOOLEAN", "BOOL"]
+    if rule_name == "NT4_AuditColumns":
+        effective["caseSensitive"] = False
+    if rule_name == "NT14_BusinessKey":
+        effective["missingOutcome"] = "FAIL"
+
+    mapping_field = {
+        "NT5_DateTimeColumns": "suffixTypeMappings",
+        "NT6_SoftDelete": "acceptedStrategies",
+    }.get(rule_name)
+    if mapping_field and isinstance(effective.get(mapping_field), list):
+        aliases = {
+            "BOOL": "BOOLEAN",
+            "TIMESTAMPTZ": "TIMESTAMPZ",
+            "TIMESTAMP WITH TIME ZONE": "TIMESTAMPZ",
+            "DATETIMEOFFSET": "TIMESTAMPZ",
+        }
+        for mapping in effective[mapping_field]:
+            if not isinstance(mapping, dict) or not isinstance(
+                mapping.get("allowedTypes"), list
+            ):
+                continue
+            normalized = [
+                aliases.get(str(value).strip().upper(), str(value).strip().upper())
+                for value in mapping["allowedTypes"]
+            ]
+            mapping["allowedTypes"] = list(dict.fromkeys(normalized))
+    return effective
 
 
 class NTRuleConfigResolver:
@@ -145,4 +174,4 @@ class NTRuleConfigResolver:
                 config[name] = self._parse_value(parameter["value"])
             elif "defaultValue" in parameter:
                 config[name] = self._parse_value(parameter["defaultValue"])
-        return config
+        return enforce_nt_rule_config(definition.name, config)
