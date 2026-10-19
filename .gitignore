@@ -51,8 +51,12 @@ doc/
 /storage/
 
 # Local profiling datasets and generated outputs
+database/
 data/*.csv
+data/*_8_tables.json
 scripts/combined_output_*.json
+scripts/*_8_tables.py
+scripts/analyze_eval.py
 
 # Local credential smoke tests
 test_api_key.py
