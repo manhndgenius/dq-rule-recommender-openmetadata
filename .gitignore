@@ -28,6 +28,7 @@ htmlcov/
 .env
 .env.*
 !.env.example
+!.env.*.example
 
 # IDE & OS Files
 .vscode/
@@ -47,7 +48,7 @@ yarn-error.log*
 docs/
 scripts/results/*
 doc/
-storage/
+/storage/
 
 # Local profiling datasets and generated outputs
 data/*.csv

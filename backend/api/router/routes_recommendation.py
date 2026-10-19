@@ -13,11 +13,11 @@ from backend.engine.adapters.basic_adapter import BasicGenerationAdapter
 from backend.engine.basic_engine import BasicRuleEngine
 from backend.integrations.openmetadata.client import openmetadata_client
 from backend.review.review_service import review_service
-from backend.services.generation_service import GenerationService
-from backend.storage.generation_cache import generation_cache
-
-# PostgreSQL persistence is intentionally disabled for the current phase.
-DB_AVAILABLE = False
+from backend.services.generation_service import (
+    GenerationService,
+    RulePersistenceError,
+)
+from backend.storage.rule_repository import rule_repository
 
 
 router = APIRouter(prefix=settings.api_prefix, tags=["recommendation"])
@@ -45,9 +45,12 @@ def generate_recommendations(req: GenerateRequest):
     target = req.table_fqn or req.table_name
     if not req.engines:
         try:
-            saved = [rule.model_dump() for rule in generation_cache.get(target)]
-        except Exception:
-            saved = []
+            saved = rule_repository.get_rules(target)
+        except Exception as exc:
+            raise HTTPException(
+                status_code=503,
+                detail="PostgreSQL rule storage is unavailable",
+            ) from exc
         return {
             "table_name": req.table_name,
             "table_fqn": target,
@@ -71,13 +74,19 @@ def generate_recommendations(req: GenerateRequest):
         service = GenerationService({
             RuleEngine.BASIC: BasicGenerationAdapter(rule_engine=basic_engine),
         })
-        result = asyncio.run(service.generate(
-            context=context,
-            table_fqn=table_fqn,
-            engine=RuleEngine.BASIC,
-            options=GenerationOptions(),
-            persist=False,
-        ))
+        try:
+            result = asyncio.run(service.generate(
+                context=context,
+                table_fqn=table_fqn,
+                engine=RuleEngine.BASIC,
+                options=GenerationOptions(),
+                persist=True,
+            ))
+        except RulePersistenceError as exc:
+            raise HTTPException(
+                status_code=503,
+                detail="Generated rules could not be persisted",
+            ) from exc
         candidates = result.rules
         reviewable_candidates = result.reviewable_rules
         duplicate_count = result.duplicates_filtered

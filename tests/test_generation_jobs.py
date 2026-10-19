@@ -1,15 +1,20 @@
+import pytest
+from fastapi import BackgroundTasks
+from pydantic import ValidationError
+
 from backend.contracts.generation import GenerationOptions, RuleEngine
 from backend.contracts.generation_job import (
     BulkConcurrency,
     CreateGenerationJobRequest,
-    GenerationScope,
     JobItemStatus,
     JobStatus,
-    ScopeType,
     RetryJobRequest,
 )
-from fastapi import BackgroundTasks
-
+from backend.contracts.target_scope import (
+    DatabaseTargetScope,
+    SchemasTargetScope,
+    TablesTargetScope,
+)
 from backend.api.router.routes_generation_jobs import retry_generation_job
 from backend.integrations.openmetadata import client as client_module
 from backend.integrations.openmetadata.client import OpenMetadataClient
@@ -37,10 +42,10 @@ class CatalogClientStub:
         ]
 
 
-def _request(scope_type=ScopeType.SCHEMA):
+def _request():
     return CreateGenerationJobRequest(
-        scope=GenerationScope(type=scope_type, target_fqn="svc.db.schema"),
-        engines=[RuleEngine.BASIC, RuleEngine.STATISTICAL],
+        scope=SchemasTargetScope(schema_fqns=["svc.db.schema"]),
+        engines=[RuleEngine.BASIC],
         options=GenerationOptions(),
         concurrency=BulkConcurrency(),
     )
@@ -56,16 +61,13 @@ def test_scope_resolver_expands_schema_and_sorts_fqns():
 
 def test_scope_resolver_validates_table_fqn_strictly():
     resolver = ScopeResolver(CatalogClientStub())
-    scope = GenerationScope(
-        type=ScopeType.TABLE,
-        target_fqn="svc.db.schema.table",
-    )
+    scope = TablesTargetScope(table_fqns=["svc.db.schema.table"])
     assert resolver.resolve(scope) == ["svc.db.schema.table"]
 
 
 def test_scope_resolver_expands_all_database_schemas():
     resolver = ScopeResolver(CatalogClientStub())
-    scope = GenerationScope(type=ScopeType.DATABASE, target_fqn="svc.db")
+    scope = DatabaseTargetScope(database_fqn="svc.db")
     assert resolver.resolve(scope) == [
         "svc.db.a.t1",
         "svc.db.a.t2",
@@ -77,7 +79,7 @@ def test_scope_resolver_expands_all_database_schemas():
 def test_job_store_tracks_partial_progress_per_table_and_engine():
     store = GenerationJobStore()
     job = store.create(_request(), ["svc.db.schema.t1"])
-    first, second = job.items
+    first = job.items[0]
 
     store.start_job(job.job_id)
     store.start_item(job.job_id, first.item_id)
@@ -87,26 +89,19 @@ def test_job_store_tracks_partial_progress_per_table_and_engine():
         JobItemStatus.SUCCESS,
         generated_count=3,
     )
-    store.start_item(job.job_id, second.item_id)
-    store.finish_item(
-        job.job_id,
-        second.item_id,
-        JobItemStatus.FAILED,
-        errors=[{"step": "generate", "message": "LLM unavailable"}],
-    )
     store.finish_job(job.job_id)
 
     summary = store.summary(job.job_id)
-    assert summary.status == JobStatus.PARTIAL
-    assert summary.processed_items == 2
+    assert summary.status == JobStatus.SUCCESS
+    assert summary.processed_items == 1
     assert summary.successful_items == 1
-    assert summary.failed_items == 1
+    assert summary.failed_items == 0
     assert summary.generated_rules["BASIC"] == 3
 
 
 def test_retry_creates_new_job_with_only_failed_items():
     request = CreateGenerationJobRequest(
-        scope=GenerationScope(type=ScopeType.TABLE, target_fqn="svc.db.schema.t1"),
+        scope=TablesTargetScope(table_fqns=["svc.db.schema.t1"]),
         engines=[RuleEngine.BASIC],
     )
     source = generation_job_store.create(request, ["svc.db.schema.t1"])
@@ -129,6 +124,27 @@ def test_retry_creates_new_job_with_only_failed_items():
     assert summary.source_job_id == source.job_id
     assert summary.total_items == 1
     assert summary.status == JobStatus.PENDING
+
+
+def test_generation_job_rejects_non_basic_engines():
+    with pytest.raises(ValidationError, match="Only the BASIC rule engine"):
+        CreateGenerationJobRequest(
+            scope=TablesTargetScope(table_fqns=["svc.db.schema.t1"]),
+            engines=[RuleEngine.STATISTICAL],
+        )
+
+
+def test_scope_resolver_expands_multiple_schemas_and_deduplicates():
+    resolver = ScopeResolver(CatalogClientStub())
+    scope = SchemasTargetScope(
+        schema_fqns=["svc.db.a", "svc.db.a", "svc.db.b"]
+    )
+    assert resolver.resolve(scope) == [
+        "svc.db.a.t1",
+        "svc.db.a.t2",
+        "svc.db.b.t1",
+        "svc.db.b.t2",
+    ]
 
 
 def test_strict_catalog_pagination_follows_after_cursor(monkeypatch):

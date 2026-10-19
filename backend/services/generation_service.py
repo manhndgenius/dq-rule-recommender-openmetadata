@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import logging
 from typing import Mapping
 
 from backend.contracts.generation import (
@@ -13,10 +12,13 @@ from backend.contracts.generation import (
 from backend.contracts.table_context import TableContext
 from backend.engine.adapters.base import GenerationEngineAdapter
 from backend.review.review_service import review_service
-from backend.storage.rule_identity import stable_rule_id
 from backend.storage.generation_cache import generation_cache
+from backend.storage.rule_identity import stable_rule_id
+from backend.storage.rule_repository import rule_repository
 
-logger = logging.getLogger(__name__)
+
+class RulePersistenceError(RuntimeError):
+    """Raised when generated rules cannot be durably stored."""
 
 
 class GenerationService:
@@ -58,8 +60,6 @@ class GenerationService:
         generation_cache.save(table_fqn, engine.value, result.rules)
         if persist and result.rules:
             try:
-                from backend.storage.rule_repository import rule_repository
-
                 rule_repository.save_rules(
                     table_fqn=table_fqn,
                     engine=engine.value,
@@ -72,6 +72,7 @@ class GenerationService:
                     },
                 )
             except Exception as exc:
-                logger.warning("Failed to persist %s rules for %s: %s", engine.value, table_fqn, exc)
-                result.warnings.append(f"Persistence failed: {exc}")
+                raise RulePersistenceError(
+                    f"Cannot persist {engine.value} rules for {table_fqn}"
+                ) from exc
         return result

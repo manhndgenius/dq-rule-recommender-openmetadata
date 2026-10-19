@@ -6,6 +6,7 @@ from backend.api.router import routes_recommendation
 from backend.contracts.candidate_rule import CandidateRule
 from backend.integrations.openmetadata.client import OpenMetadataClient
 from backend.integrations.openmetadata import client as client_module
+from backend.services import generation_service as generation_service_module
 from backend.validator.existing_rule_reconciler import reconcile_basic_rules
 
 
@@ -124,6 +125,7 @@ def test_generate_route_returns_applied_but_only_saves_reviewable(monkeypatch):
         ],
     }
     saved = []
+    persisted = []
 
     monkeypatch.setattr(
         routes_recommendation.openmetadata_client,
@@ -145,7 +147,11 @@ def test_generate_route_returns_applied_but_only_saves_reviewable(monkeypatch):
         "save_candidates",
         lambda candidates: saved.extend(candidates),
     )
-    monkeypatch.setattr(routes_recommendation, "DB_AVAILABLE", False)
+    monkeypatch.setattr(
+        generation_service_module.rule_repository,
+        "save_rules",
+        lambda **kwargs: persisted.extend(kwargs["rules"]),
+    )
 
     result = routes_recommendation.generate_recommendations(
         routes_recommendation.GenerateRequest(
@@ -160,6 +166,7 @@ def test_generate_route_returns_applied_but_only_saves_reviewable(monkeypatch):
     assert result["generated_count"] == 1
     assert [rule.status for rule in result["rules"]] == ["APPLIED", "DRAFT"]
     assert [rule.rule_type for rule in saved] == ["columnValuesToBeUnique"]
+    assert [rule["status"] for rule in persisted] == ["APPLIED", "DRAFT"]
 
 
 def test_table_test_case_query_includes_column_level_tests(monkeypatch):

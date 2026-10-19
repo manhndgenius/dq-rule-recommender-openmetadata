@@ -6,11 +6,14 @@ from backend.api.router import (
     routes_datasource,
     routes_evaluation,
     routes_generation_jobs,
+    routes_nt_rules,
+    routes_nt_application_jobs,
     routes_nt_runs,
     routes_recommendation,
     routes_review,
     routes_statistical_rules,
     routes_test_cases,
+    routes_target_scopes,
 )
 import uvicorn
 from fastapi import FastAPI
@@ -29,10 +32,13 @@ def create_app() -> FastAPI:
     )
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=[
+            "http://localhost:3000",
+            "http://localhost:5173",
+        ],
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
+        allow_headers=["Authorization", "Content-Type", "Accept"],
     )
 
     # Include all routers
@@ -44,7 +50,10 @@ def create_app() -> FastAPI:
     app.include_router(routes_advanced_rules.router)
     app.include_router(routes_statistical_rules.router)
     app.include_router(routes_test_cases.router)
+    app.include_router(routes_target_scopes.router)
     app.include_router(routes_generation_jobs.router)
+    app.include_router(routes_nt_rules.router)
+    app.include_router(routes_nt_application_jobs.router)
     app.include_router(routes_nt_runs.router)
 
     return app
@@ -54,4 +63,8 @@ app = create_app()
 
 
 if __name__ == "__main__":
-    uvicorn.run("backend.main:app", host="0.0.0.0", port=8000, reload=True)
+    import os
+
+    host = "127.0.0.1"
+    reload = os.getenv("APP_ENV", "development") == "development"
+    uvicorn.run("backend.main:app", host=host, port=8000, reload=reload)

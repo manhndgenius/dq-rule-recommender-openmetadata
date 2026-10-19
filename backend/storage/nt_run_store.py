@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 from threading import RLock
 from typing import Dict, Iterable, List, Optional
 
@@ -35,24 +36,42 @@ class NTRunStore:
         self,
         request: CreateNTRunRequest,
         definitions: Iterable[NTTestDefinition],
-        mapping: Dict[str, NTTestCaseTarget],
+        test_cases: Iterable[NTTestCaseTarget],
         source_run_id: Optional[str] = None,
+        rule_configs: Optional[Dict[str, Dict]] = None,
     ) -> NTRun:
+        definitions_by_id = {definition.id: definition for definition in definitions}
+        definitions_by_name = {
+            definition.name: definition for definition in definitions
+        }
+        definitions_by_name.update(
+            {definition.fully_qualified_name: definition for definition in definitions}
+        )
         items: List[NTRunItem] = []
-        for definition in definitions:
-            target = mapping.get(definition.name)
+        for target in test_cases:
+            definition = definitions_by_id.get(target.test_definition_id or "")
+            definition = definition or definitions_by_name.get(
+                target.test_definition_name or ""
+            )
+            if not definition or not target.table_fqn:
+                continue
             items.append(
                 NTRunItem(
                     definition_id=definition.id,
                     definition_name=definition.name,
-                    test_case_id=target.id if target else None,
-                    test_case_fqn=(target.fully_qualified_name if target else None),
+                    test_case_id=target.id,
+                    test_case_fqn=target.fully_qualified_name,
+                    table_fqn=target.table_fqn,
                 )
             )
         run = NTRun(
             source_run_id=source_run_id,
             table_fqn=request.table_fqn,
+            test_suite_fqn=request.test_suite_fqn,
             pipeline_id=request.pipeline_id,
+            # The runner may execute after the HTTP request has completed.
+            # Keep an immutable snapshot of the database configuration.
+            rule_configs=copy.deepcopy(rule_configs or {}),
             items=items,
         )
         with self._lock:
@@ -109,7 +128,7 @@ class NTRunStore:
                 item.status in {NTRunItemStatus.ERROR, NTRunItemStatus.SKIPPED}
                 for item in run.items
             )
-            if run.items and completed == len(run.items):
+            if completed == len(run.items):
                 run.status = NTRunStatus.SUCCESS
             elif completed and (failures or unfinished):
                 run.status = NTRunStatus.PARTIAL
@@ -130,6 +149,7 @@ class NTRunStore:
             run_id=run.run_id,
             source_run_id=run.source_run_id,
             table_fqn=run.table_fqn,
+            test_suite_fqn=run.test_suite_fqn,
             pipeline_id=run.pipeline_id,
             status=run.status,
             total_items=len(run.items),

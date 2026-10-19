@@ -9,6 +9,7 @@ from backend.config.settings import settings
 from backend.contracts.candidate_rule import CandidateRule
 from backend.integrations.openmetadata.client import openmetadata_client
 from backend.integrations.openmetadata_publisher import openmetadata_publisher
+from backend.storage.db_service import db_service
 
 
 router = APIRouter(prefix=settings.api_prefix, tags=["datasource"])
@@ -32,10 +33,20 @@ class PublishRequest(BaseModel):
 def health_check():
     """Kiểm tra trạng thái Backend và kết nối OpenMetadata API."""
     is_om_connected = openmetadata_client.check_connection()
+    try:
+        db_service.check_ready()
+        is_postgres_connected = True
+    except Exception:
+        is_postgres_connected = False
     return {
-        "status": "healthy",
+        "status": (
+            "healthy"
+            if is_om_connected and is_postgres_connected
+            else "degraded"
+        ),
         "openmetadata_connected": is_om_connected,
         "openmetadata_url": settings.openmetadata_url,
+        "postgres_connected": is_postgres_connected,
     }
 
 
@@ -95,11 +106,11 @@ def publish_rules(req: PublishRequest):
         target_rules = [r for r in req.rules if r.status in ["ACCEPTED", "EDITED"]]
     elif req.rule_ids and len(req.rule_ids) > 0:
         # Lấy rules từ review service
-        from backend.review.review_service import review_service
+        from backend.storage.rule_repository import rule_repository
         for rid in req.rule_ids:
-            rule = review_service.get_rule(rid)
-            if rule and rule.status in ["ACCEPTED", "EDITED"]:
-                target_rules.append(rule)
+            stored = rule_repository.get_rule(rid)
+            if stored and stored.get("status") in ["ACCEPTED", "EDITED"]:
+                target_rules.append(CandidateRule.model_validate(stored))
 
     result = openmetadata_publisher.publish_rules(
         target_rules,

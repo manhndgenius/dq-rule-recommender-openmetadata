@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any, List, Optional
 
 from backend.contracts.nt_execution import (
@@ -111,8 +112,33 @@ class NTMetadataLoader:
         table_fqn: str,
         prefix: str = "NT",
     ) -> List[NTTestCaseTarget]:
+        return self._targets(
+            self.client.get_table_nt_test_cases(table_fqn, prefix=prefix)
+        )
+
+    def load_test_suite_cases(
+        self,
+        test_suite_fqn: str,
+        prefix: str = "NT",
+        test_case_names: Optional[List[str]] = None,
+    ) -> List[NTTestCaseTarget]:
+        raw_cases = self.client.get_test_suite_nt_test_cases(
+            test_suite_fqn,
+            prefix=prefix,
+        )
+        selected = set(test_case_names or [])
+        if test_case_names is not None:
+            raw_cases = [
+                case
+                for case in raw_cases
+                if case.get("name") in selected
+                or case.get("fullyQualifiedName") in selected
+            ]
+        return self._targets(raw_cases)
+
+    def _targets(self, raw_cases: List[dict]) -> List[NTTestCaseTarget]:
         targets: List[NTTestCaseTarget] = []
-        for raw in self.client.get_table_nt_test_cases(table_fqn, prefix=prefix):
+        for raw in raw_cases:
             test_case_id = raw.get("id")
             name = raw.get("name")
             test_case_fqn = raw.get("fullyQualifiedName")
@@ -121,6 +147,11 @@ class NTMetadataLoader:
                     "OpenMetadata NT Test Case is missing id, name, or fullyQualifiedName"
                 )
             definition = raw.get("testDefinition") or {}
+            entity_link = raw.get("entityLink")
+            table_match = re.search(
+                r"<#E::table::(.+?)(?:::[^:>]+)?>(?:$|\s)",
+                str(entity_link or ""),
+            )
             targets.append(
                 NTTestCaseTarget(
                     id=str(test_case_id),
@@ -132,7 +163,8 @@ class NTMetadataLoader:
                         else None
                     ),
                     test_definition_name=self._reference_name(definition),
-                    entity_link=raw.get("entityLink"),
+                    entity_link=entity_link,
+                    table_fqn=table_match.group(1) if table_match else None,
                 )
             )
         return targets

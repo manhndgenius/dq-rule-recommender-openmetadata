@@ -13,7 +13,10 @@ from backend.engine.statistical_rules.profile_history import (
     enrich_recommendation_profile_history,
 )
 from backend.integrations.openmetadata.client import openmetadata_client
-from backend.services.generation_service import GenerationService
+from backend.services.generation_service import (
+    GenerationService,
+    RulePersistenceError,
+)
 
 router = APIRouter(prefix=settings.api_prefix, tags=["statistical-rules"])
 
@@ -53,13 +56,19 @@ async def generate_statistical_recommendations(req: GenerateStatisticalRequest):
     service = GenerationService({
         RuleEngine.STATISTICAL: StatisticalGenerationAdapter(),
     })
-    result = await service.generate(
-        context=context,
-        table_fqn=table_fqn,
-        engine=RuleEngine.STATISTICAL,
-        options=GenerationOptions(use_llm=req.use_llm),
-        persist=False,
-    )
+    try:
+        result = await service.generate(
+            context=context,
+            table_fqn=table_fqn,
+            engine=RuleEngine.STATISTICAL,
+            options=GenerationOptions(use_llm=req.use_llm),
+            persist=True,
+        )
+    except RulePersistenceError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Generated rules could not be persisted",
+        ) from exc
 
     return {
         "table_fqn": table_fqn,

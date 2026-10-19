@@ -10,9 +10,7 @@ from typing import Dict, List
 from backend.contracts.generation import RuleEngine
 from backend.contracts.generation_job import JobItem, JobItemStatus
 from backend.engine.adapters import (
-    AdvancedGenerationAdapter,
     BasicGenerationAdapter,
-    StatisticalGenerationAdapter,
 )
 from backend.integrations.openmetadata.client import openmetadata_client
 from backend.services.generation_service import GenerationService
@@ -29,16 +27,12 @@ class GenerationJobRunner:
     _global_metadata = asyncio.Semaphore(4)
     _global_engine = {
         RuleEngine.BASIC: asyncio.Semaphore(8),
-        RuleEngine.STATISTICAL: asyncio.Semaphore(2),
-        RuleEngine.ADVANCED: asyncio.Semaphore(2),
     }
 
     def __init__(self, store: GenerationJobStore = generation_job_store):
         self.store = store
         self.generation_service = GenerationService({
             RuleEngine.BASIC: BasicGenerationAdapter(),
-            RuleEngine.STATISTICAL: StatisticalGenerationAdapter(),
-            RuleEngine.ADVANCED: AdvancedGenerationAdapter(),
         })
 
     async def run(self, job_id: str) -> None:
@@ -49,8 +43,6 @@ class GenerationJobRunner:
         local_metadata = asyncio.Semaphore(job.concurrency.metadata)
         local_engine = {
             RuleEngine.BASIC: asyncio.Semaphore(job.concurrency.basic),
-            RuleEngine.STATISTICAL: asyncio.Semaphore(job.concurrency.statistical),
-            RuleEngine.ADVANCED: asyncio.Semaphore(job.concurrency.advanced),
         }
         grouped: Dict[str, List[JobItem]] = defaultdict(list)
         for item in job.items:
@@ -125,7 +117,7 @@ class GenerationJobRunner:
                     table_fqn=item.table_fqn,
                     engine=item.engine,
                     options=options,
-                    persist=False,
+                    persist=True,
                 )
             status = JobItemStatus(result.status)
             self.store.finish_item(

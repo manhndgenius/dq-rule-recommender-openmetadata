@@ -13,7 +13,7 @@ from backend.contracts.nt_execution import (
     NTRunSummary,
     RetryNTRunRequest,
 )
-from backend.services.nt_run_service import nt_run_service
+from backend.services.nt_run_service import NTRunConfigLoadError, nt_run_service
 from backend.storage.nt_run_store import nt_run_store
 
 router = APIRouter(
@@ -29,6 +29,8 @@ def create_nt_run(
 ) -> NTRunSummary:
     try:
         run = nt_run_service.prepare(request)
+    except NTRunConfigLoadError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except Exception as exc:

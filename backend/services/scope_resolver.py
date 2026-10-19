@@ -1,10 +1,15 @@
-"""Resolve TABLE/SCHEMA/DATABASE scopes into canonical table FQNs."""
+"""Resolve canonical target scopes into a stable table-FQN snapshot."""
 
 from __future__ import annotations
 
 from typing import Iterable, List
 
-from backend.contracts.generation_job import GenerationScope, ScopeType
+from backend.contracts.target_scope import (
+    DatabaseTargetScope,
+    SchemasTargetScope,
+    TablesTargetScope,
+    TargetScope,
+)
 from backend.integrations.openmetadata.client import OpenMetadataClient, openmetadata_client
 
 
@@ -30,20 +35,28 @@ class ScopeResolver:
             result.append(fqn)
         return sorted(result)
 
-    def resolve(self, scope: GenerationScope) -> List[str]:
-        target = scope.target_fqn.strip()
+    def resolve(self, scope: TargetScope) -> List[str]:
         try:
-            if scope.type == ScopeType.TABLE:
-                return [self.client.resolve_table_fqn_strict(target)]
+            if isinstance(scope, TablesTargetScope):
+                return sorted({
+                    self.client.resolve_table_fqn_strict(table_fqn)
+                    for table_fqn in scope.table_fqns
+                })
 
-            if scope.type == ScopeType.SCHEMA:
-                tables = self.client.list_tables_paginated(target)
+            if isinstance(scope, SchemasTargetScope):
+                tables = []
+                for schema_fqn in scope.schema_fqns:
+                    tables.extend(self.client.list_tables_paginated(schema_fqn))
                 return self._require_tables(scope, self._canonical_fqns(tables))
 
-            schemas = self.client.list_schemas_paginated(target)
+            if not isinstance(scope, DatabaseTargetScope):
+                raise ScopeResolutionError(f"Unsupported scope type: {scope.type}")
+            schemas = self.client.list_schemas_paginated(scope.database_fqn)
             schema_fqns = self._canonical_fqns(schemas)
             if not schema_fqns:
-                raise ScopeResolutionError(f"No schemas found in database: {target}")
+                raise ScopeResolutionError(
+                    f"No schemas found in database: {scope.database_fqn}"
+                )
             tables = []
             for schema_fqn in schema_fqns:
                 tables.extend(self.client.list_tables_paginated(schema_fqn))
@@ -52,14 +65,14 @@ class ScopeResolver:
             raise
         except Exception as exc:
             raise ScopeResolutionError(
-                f"Could not resolve {scope.type.value} scope {target}: {exc}"
+                f"Could not resolve {scope.type.value} scope: {exc}"
             ) from exc
 
     @staticmethod
-    def _require_tables(scope: GenerationScope, tables: List[str]) -> List[str]:
+    def _require_tables(scope: TargetScope, tables: List[str]) -> List[str]:
         if not tables:
             raise ScopeResolutionError(
-                f"No tables found for {scope.type.value} scope: {scope.target_fqn}"
+                f"No tables found for {scope.type.value} scope"
             )
         return tables
 

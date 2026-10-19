@@ -2,7 +2,6 @@
 
 import hashlib
 import logging
-import re
 from fastapi import APIRouter, HTTPException
 
 from backend.config.settings import settings
@@ -10,13 +9,6 @@ from backend.integrations.openmetadata.client import openmetadata_client
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix=f"{settings.api_prefix}/tables", tags=["test-cases"])
-
-CUSTOM_SQL_TEST_DEFINITION = "tableCustomSQLQuery"
-DEFAULT_CUSTOM_SQL_PARAMETERS = [
-    {"name": "strategy", "value": "ROWS"},
-    {"name": "operator", "value": "<="},
-    {"name": "threshold", "value": "0"},
-]
 
 def _generate_test_case_name(table_fqn: str, definition_name: str) -> str:
     """Tạo tên unique cho test case."""
@@ -29,7 +21,7 @@ async def get_test_definitions():
     """
     Lấy NT Test Definitions trực tiếp từ OpenMetadata.
 
-    OpenMetadata là source of truth cho sqlExpression và parameterDefinition.
+    OpenMetadata là source of truth cho danh tính và metadata của definitions.
     """
     definitions = openmetadata_client.get_test_definitions(prefix="NT")
     return {
@@ -41,13 +33,12 @@ async def get_test_definitions():
 @router.post("/{table_fqn}/test-cases/default")
 async def create_default_test_cases(table_fqn: str):
     """
-    Tạo custom SQL Test Cases từ tất cả enabled NT Test Definitions.
+    Tạo native NT Test Cases từ tất cả enabled NT Test Definitions.
 
     Flow:
     1. Lấy tất cả NT definitions từ OpenMetadata.
-    2. Lấy SQL từ TestDefinition.sqlExpression và render table_name.
-    3. Tạo Test Case bằng definition chung tableCustomSQLQuery.
-    4. Map SQL đã render vào parameterValues.sqlExpression.
+    2. Liên kết mỗi Test Case trực tiếp với NT Test Definition tương ứng.
+    3. DQ Backend đọc config riêng và thực thi handler của rule.
     """
     # Validate table_fqn
     if not table_fqn or "." not in table_fqn:
@@ -56,7 +47,7 @@ async def create_default_test_cases(table_fqn: str):
     # Extract table name from FQN
     table_name = table_fqn.split(".")[-1]
 
-    # OpenMetadata is the source of truth for definitions and SQL expressions.
+    # OpenMetadata is the source of truth for Test Definitions and Test Cases.
     definitions = openmetadata_client.get_test_definitions(prefix="NT")
     definitions = [d for d in definitions if d.get("enabled", True)]
 
@@ -76,36 +67,37 @@ async def create_default_test_cases(table_fqn: str):
             "error": "No enabled NT Test Definitions found on OpenMetadata.",
         }
 
+    existing_result = openmetadata_client.get_table_test_cases(table_fqn)
+    if not existing_result.get("success"):
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "Unable to read existing Test Cases from OpenMetadata: "
+                f"{existing_result.get('error', 'Unknown error')}"
+            ),
+        )
+    existing_by_name = {
+        test_case.get("name"): test_case
+        for test_case in existing_result.get("data", [])
+        if test_case.get("name")
+    }
+
     invalid_definitions = []
     prepared_definitions = []
     for definition in definitions:
         definition_name = definition.get("name", "")
-        sql_expression = definition.get("sqlExpression")
         reasons = []
         if definition.get("entityType") != "TABLE":
             reasons.append(
                 f"entityType must be TABLE, got {definition.get('entityType')}"
             )
-        if not sql_expression:
-            reasons.append("Missing sqlExpression on Test Definition")
-
-        rendered_sql = None
-        if sql_expression:
-            rendered_sql = re.sub(
-                r"\{\{\s*table_name\s*\}\}",
-                table_name,
-                sql_expression,
-            )
-            if re.search(r"\{\{.*?\}\}", rendered_sql, flags=re.DOTALL):
-                reasons.append("SQL contains unsupported unresolved template variables")
-
         if reasons:
             invalid_definitions.append({
                 "definition": definition_name,
                 "reasons": reasons,
             })
         else:
-            prepared_definitions.append((definition, rendered_sql))
+            prepared_definitions.append(definition)
 
     if invalid_definitions:
         return {
@@ -123,25 +115,36 @@ async def create_default_test_cases(table_fqn: str):
         }
 
     created_cases = []
+    skipped_cases = []
     failed_cases = []
 
-    for definition, rendered_sql in prepared_definitions:
+    for definition in prepared_definitions:
         definition_name = definition["name"]
+        test_case_name = _generate_test_case_name(table_fqn, definition_name)
+        existing_case = existing_by_name.get(test_case_name)
+        if existing_case:
+            skipped_cases.append(
+                {
+                    "name": test_case_name,
+                    "sourceDefinition": definition_name,
+                    "status": "EXISTS",
+                    "id": existing_case.get("id"),
+                    "fullyQualifiedName": existing_case.get("fullyQualifiedName"),
+                }
+            )
+            continue
 
         test_case = {
-            "name": _generate_test_case_name(table_fqn, definition_name),
+            "name": test_case_name,
             "displayName": f"{definition.get('displayName', definition_name)} - {table_name}",
-            "description": f"Custom SQL test generated from Test Definition {definition_name}.",
-            "testDefinition": CUSTOM_SQL_TEST_DEFINITION,
+            "description": f"NT governance test generated from Test Definition {definition_name}.",
+            "testDefinition": definition_name,
             "entityLink": f"<#E::table::{table_fqn}>",
-            "parameterValues": [
-                {"name": "sqlExpression", "value": rendered_sql},
-                *DEFAULT_CUSTOM_SQL_PARAMETERS,
-            ],
+            "parameterValues": [],
             "computePassedFailedRowCount": False,
         }
 
-        # PUT creates a missing case and updates an existing case with the same identity.
+        # Existing identities were skipped above, so PUT only creates a missing case.
         result = openmetadata_client.upsert_test_case(test_case)
 
         if result.get("success"):
@@ -149,7 +152,7 @@ async def create_default_test_cases(table_fqn: str):
             created_cases.append({
                 "name": test_case["name"],
                 "sourceDefinition": definition_name,
-                "testDefinition": CUSTOM_SQL_TEST_DEFINITION,
+                "testDefinition": definition_name,
                 "status": "UPSERTED",
                 "id": data.get("id"),
                 "fullyQualifiedName": data.get("fullyQualifiedName")
@@ -159,7 +162,7 @@ async def create_default_test_cases(table_fqn: str):
         else:
             failed_cases.append({
                 "sourceDefinition": definition_name,
-                "testDefinition": CUSTOM_SQL_TEST_DEFINITION,
+                "testDefinition": definition_name,
                 "name": test_case["name"],
                 "error": result.get("error", "Unknown error")
             })
@@ -171,10 +174,10 @@ async def create_default_test_cases(table_fqn: str):
         "table_name": table_name,
         "definition_count": len(definitions),
         "created_count": len(created_cases),
-        "skipped_count": 0,
+        "skipped_count": len(skipped_cases),
         "failed_count": len(failed_cases),
         "test_cases": created_cases,
-        "skipped": [],
+        "skipped": skipped_cases,
         "failed": failed_cases
     }
 

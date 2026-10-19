@@ -1,75 +1,98 @@
 {
-  "table_name": "patients",
-  "saved_at": "2026-10-08T05:25:32.307052Z",
-  "total_rules": 5,
+  "table_name": "encounters",
+  "saved_at": "2026-10-14T09:19:02.449580Z",
+  "total_rules": 4,
   "rules": [
     {
       "id": "TEMPORAL_adv_1",
       "rule_type": "TEMPORAL",
-      "description": "Temporal Constraint: thu tu thoi gian giua deathdate, birthdate",
+      "description": "Temporal Constraint: thu tu thoi gian giua stop_at, start_at",
       "target_columns": [
-        "deathdate",
-        "birthdate"
+        "stop_at",
+        "start_at"
       ],
       "columns": [
-        "deathdate",
-        "birthdate"
+        "stop_at",
+        "start_at"
       ],
       "parameters": {},
       "expression": null,
       "engine": "ADVANCED",
-      "confidence": 0.92,
-      "reason": "Cả hai cột đều là mốc thời gian vòng đời của cùng một bệnh nhân: ngày sinh (birthdate) và ngày mất (deathdate). Về mặt logic, ngày mất bắt buộc phải sau ngày sinh, nên cần kiểm tra điều kiện birthdate BEFORE deathdate. Cột deathdate có tỷ lệ null rất cao (91.67%) cho thấy đây là sự kiện tùy chọn, chỉ xuất hiện khi bệnh nhân đã tử vong, điều này càng củng cố mối quan hệ thứ tự thời gian giữa hai cột.",
+      "confidence": 0.95,
+      "reason": "start_at và stop_at đại diện cho thời điểm bắt đầu và kết thúc của cùng một lần khám/điều trị, thể hiện vòng đời theo trình tự thời gian. Thời điểm kết thúc không thể trước thời điểm bắt đầu, và một lần khám thực tế chỉ kéo dài trong khoảng thời gian ngắn (dữ liệu cho thấy chênh lệch chỉ vài chục phút đến vài giờ), nên thời lượng vượt quá 30 ngày là dấu hiệu nhập liệu sai. Cả hai cột đều không có giá trị null, củng cố mối quan hệ bắt buộc giữa hai mốc thời gian này.",
       "evidence": {},
       "validation_status": "VALID",
       "validation_message": null,
       "status": "DRAFT",
       "edited_parameters": null,
-      "sql": "SELECT * FROM \"patients\" WHERE (\"birthdate\" >= \"deathdate\")",
-      "violation_predicate": "(\"birthdate\" >= \"deathdate\")",
-      "params": {},
+      "sql": "SELECT * FROM \"encounters\" WHERE (\"start_at\" > \"stop_at\" OR \"stop_at\" > \"start_at\" + INTERVAL '1 DAY' * :rule_param_1)",
+      "rendered_sql": "SELECT * FROM \"encounters\" WHERE (\"start_at\" > \"stop_at\" OR \"stop_at\" > \"start_at\" + INTERVAL '1 DAY' * 30)",
+      "violation_predicate": "(\"start_at\" > \"stop_at\" OR \"stop_at\" > \"start_at\" + INTERVAL '1 DAY' * :rule_param_1)",
+      "params": {
+        "rule_param_1": 30
+      },
       "conditions": [
         {
           "type": "TEMPORAL_ORDER",
-          "left": "birthdate",
-          "operator": "BEFORE",
-          "right": "deathdate"
+          "left": "start_at",
+          "operator": "BEFORE_EQUAL",
+          "right": "stop_at"
+        },
+        {
+          "type": "DURATION",
+          "start_column": "start_at",
+          "end_column": "stop_at",
+          "operator": "LTE",
+          "value": 30,
+          "unit": "DAY"
         }
       ]
     },
     {
       "id": "CROSS_COLUMN_adv_2",
       "rule_type": "CROSS_COLUMN",
-      "description": "Cross-Column: rang buoc giua healthcare_coverage, healthcare_expenses",
+      "description": "Cross-Column: rang buoc giua base_encounter_cost, total_claim_cost, payer_coverage",
       "target_columns": [
-        "healthcare_coverage",
-        "healthcare_expenses"
+        "base_encounter_cost",
+        "total_claim_cost",
+        "payer_coverage"
       ],
       "columns": [
-        "healthcare_coverage",
-        "healthcare_expenses"
+        "base_encounter_cost",
+        "total_claim_cost",
+        "payer_coverage"
       ],
       "parameters": {},
       "expression": null,
       "engine": "ADVANCED",
-      "confidence": 0.85,
-      "reason": "healthcare_coverage là số tiền bảo hiểm chi trả cho chi phí y tế, còn healthcare_expenses là tổng chi phí y tế của cùng một bệnh nhân. Vì khoản được bảo hiểm chi trả chỉ là một phần của tổng chi phí, nên healthcare_coverage không được vượt quá healthcare_expenses.",
+      "confidence": 0.9,
+      "reason": "Chi phí cơ bản của lần khám và số tiền bảo hiểm chi trả không được vượt quá tổng chi phí yêu cầu thanh toán của lần khám đó.",
       "evidence": {},
       "validation_status": "VALID",
       "validation_message": null,
       "status": "DRAFT",
       "edited_parameters": null,
-      "sql": "SELECT * FROM \"patients\" WHERE (\"healthcare_coverage\" > \"healthcare_expenses\")",
-      "violation_predicate": "(\"healthcare_coverage\" > \"healthcare_expenses\")",
+      "sql": "SELECT * FROM \"encounters\" WHERE (\"base_encounter_cost\" > \"total_claim_cost\" OR \"payer_coverage\" > \"total_claim_cost\")",
+      "rendered_sql": "SELECT * FROM \"encounters\" WHERE (\"base_encounter_cost\" > \"total_claim_cost\" OR \"payer_coverage\" > \"total_claim_cost\")",
+      "violation_predicate": "(\"base_encounter_cost\" > \"total_claim_cost\" OR \"payer_coverage\" > \"total_claim_cost\")",
       "params": {},
       "conditions": [
         {
           "type": "COMPARISON",
-          "left": "healthcare_coverage",
+          "left": "base_encounter_cost",
           "operator": "LTE",
           "right": {
             "type": "column",
-            "value": "healthcare_expenses"
+            "value": "total_claim_cost"
+          }
+        },
+        {
+          "type": "COMPARISON",
+          "left": "payer_coverage",
+          "operator": "LTE",
+          "right": {
+            "type": "column",
+            "value": "total_claim_cost"
           }
         }
       ]
@@ -77,49 +100,61 @@
     {
       "id": "CONDITIONAL_DEPENDENCY_adv_3",
       "rule_type": "CONDITIONAL_DEPENDENCY",
-      "description": "Conditional Dependency: gender, prefix",
+      "description": "Conditional Dependency: encounter_class, code",
       "target_columns": [
-        "gender",
-        "prefix"
+        "encounter_class",
+        "code"
       ],
       "columns": [
-        "gender",
-        "prefix"
+        "encounter_class",
+        "code"
       ],
       "parameters": {},
       "expression": null,
       "engine": "ADVANCED",
-      "confidence": 0.7,
-      "reason": "Tiền tố xưng hô (prefix) phản ánh danh xưng theo giới tính của bệnh nhân. Cụ thể, khi giới tính là 'M' (Nam) thì tiền tố tương ứng phải là 'Mr.'; giá trị 'Ms.'/'Mrs.' chỉ dùng cho giới tính 'F' (Nữ). Do đó giá trị của cột prefix phụ thuộc vào giá trị của cột gender.",
+      "confidence": 0.65,
+      "reason": "Dựa trên dữ liệu mẫu, các loại lần khám phổ biến là 'ambulatory' và 'wellness' thường đi kèm với các mã SNOMED-CT phổ biến là '108219001' và '86013001'. Đây là một giả thuyết về sự phụ thuộc giá trị có điều kiện giữa loại lần khám và mã loại lần khám, cần được xác minh thêm.",
       "evidence": {},
       "validation_status": "VALID",
       "validation_message": null,
       "status": "DRAFT",
       "edited_parameters": null,
-      "sql": "SELECT * FROM \"patients\" WHERE ((\"gender\" = :rule_param_1)) AND ((\"prefix\" NOT IN (:rule_param_2)))",
-      "violation_predicate": "((\"gender\" = :rule_param_1)) AND ((\"prefix\" NOT IN (:rule_param_2)))",
+      "sql": "SELECT * FROM \"encounters\" WHERE (\"encounter_class\" IN (:rule_param_1, :rule_param_2)) AND (\"code\" NOT IN (:rule_param_3, :rule_param_4))",
+      "rendered_sql": "SELECT * FROM \"encounters\" WHERE (\"encounter_class\" IN ('ambulatory', 'wellness')) AND (\"code\" NOT IN ('108219001', '86013001'))",
+      "violation_predicate": "(\"encounter_class\" IN (:rule_param_1, :rule_param_2)) AND (\"code\" NOT IN (:rule_param_3, :rule_param_4))",
       "params": {
-        "rule_param_1": "M",
-        "rule_param_2": "Mr."
+        "rule_param_1": "ambulatory",
+        "rule_param_2": "wellness",
+        "rule_param_3": "108219001",
+        "rule_param_4": "86013001"
       },
       "conditions": [
         {
-          "role": "IF",
-          "type": "COMPARISON",
-          "left": "gender",
-          "operator": "EQ",
-          "right": {
-            "type": "literal",
-            "value": "M"
-          }
-        },
-        {
-          "role": "THEN",
-          "type": "SET",
-          "left": "prefix",
-          "operator": "IN",
-          "values": [
-            "Mr."
+          "if": [
+            {
+              "left": "encounter_class",
+              "operator": "IN",
+              "right": {
+                "type": "list",
+                "value": [
+                  "ambulatory",
+                  "wellness"
+                ]
+              }
+            }
+          ],
+          "then": [
+            {
+              "left": "code",
+              "operator": "IN",
+              "right": {
+                "type": "list",
+                "value": [
+                  "108219001",
+                  "86013001"
+                ]
+              }
+            }
           ]
         }
       ]
@@ -127,97 +162,56 @@
     {
       "id": "CONDITIONAL_DEPENDENCY_adv_4",
       "rule_type": "CONDITIONAL_DEPENDENCY",
-      "description": "Conditional Dependency: maiden, gender",
+      "description": "Conditional Dependency: encounter_class, reason_code",
       "target_columns": [
-        "maiden",
-        "gender"
+        "encounter_class",
+        "reason_code"
       ],
       "columns": [
-        "maiden",
-        "gender"
+        "encounter_class",
+        "reason_code"
       ],
       "parameters": {},
       "expression": null,
       "engine": "ADVANCED",
-      "confidence": 0.6,
-      "reason": "Trường maiden (họ thời con gái của mẹ) chỉ có ý nghĩa đối với bệnh nhân nữ. Do đó, nếu giới tính của bệnh nhân là 'M' (Nam) thì trường maiden bắt buộc phải là NULL; giá trị NULL chiếm tỷ lệ rất cao (khoảng 81%) trong dữ liệu cũng phù hợp với quy tắc này.",
+      "confidence": 0.65,
+      "reason": "Mã lý do khám/điều trị (reason_code) có thể bắt buộc phải có đối với các loại lần khám như cấp cứu, nội trú, hoặc khám khẩn cấp, trong khi đó có thể không bắt buộc đối với khám sức khỏe định kỳ hoặc khám ngoại trú. Điều này thể hiện mối quan hệ phụ thuộc có điều kiện giữa loại lần khám và sự hiện diện của mã lý do.",
       "evidence": {},
       "validation_status": "VALID",
       "validation_message": null,
       "status": "DRAFT",
       "edited_parameters": null,
-      "sql": "SELECT * FROM \"patients\" WHERE ((\"gender\" = :rule_param_1)) AND ((\"maiden\" IS NOT NULL))",
-      "violation_predicate": "((\"gender\" = :rule_param_1)) AND ((\"maiden\" IS NOT NULL))",
+      "sql": "SELECT * FROM \"encounters\" WHERE (\"encounter_class\" IN (:rule_param_1, :rule_param_2, :rule_param_3)) AND (\"reason_code\" IS NULL)",
+      "rendered_sql": "SELECT * FROM \"encounters\" WHERE (\"encounter_class\" IN ('emergency', 'inpatient', 'urgentcare')) AND (\"reason_code\" IS NULL)",
+      "violation_predicate": "(\"encounter_class\" IN (:rule_param_1, :rule_param_2, :rule_param_3)) AND (\"reason_code\" IS NULL)",
       "params": {
-        "rule_param_1": "M"
+        "rule_param_1": "emergency",
+        "rule_param_2": "inpatient",
+        "rule_param_3": "urgentcare"
       },
       "conditions": [
         {
-          "role": "IF",
-          "type": "COMPARISON",
-          "left": "gender",
-          "operator": "EQ",
-          "right": {
-            "type": "literal",
-            "value": "M"
-          }
-        },
-        {
-          "role": "THEN",
-          "type": "NULL_CHECK",
-          "column": "maiden",
-          "operator": "IS_NULL"
-        }
-      ]
-    },
-    {
-      "id": "CONDITIONAL_DEPENDENCY_adv_5",
-      "rule_type": "CONDITIONAL_DEPENDENCY",
-      "description": "Conditional Dependency: fips, county",
-      "target_columns": [
-        "fips",
-        "county"
-      ],
-      "columns": [
-        "fips",
-        "county"
-      ],
-      "parameters": {},
-      "expression": null,
-      "engine": "ADVANCED",
-      "confidence": 0.6,
-      "reason": "Cột fips được mô tả là mã FIPS của hạt/quận, và cột county chỉ chứa một tập nhỏ các giá trị hạt/quận. Do đó giá trị fips phải tương ứng với hạt/quận được ghi nhận: nếu county là 'Barnstable County' thì fips phải là '25001'.",
-      "evidence": {},
-      "validation_status": "VALID",
-      "validation_message": null,
-      "status": "DRAFT",
-      "edited_parameters": null,
-      "sql": "SELECT * FROM \"patients\" WHERE ((\"county\" = :rule_param_1)) AND ((\"fips\" <> :rule_param_2))",
-      "violation_predicate": "((\"county\" = :rule_param_1)) AND ((\"fips\" <> :rule_param_2))",
-      "params": {
-        "rule_param_1": "Barnstable County",
-        "rule_param_2": "25001"
-      },
-      "conditions": [
-        {
-          "role": "IF",
-          "type": "COMPARISON",
-          "left": "county",
-          "operator": "EQ",
-          "right": {
-            "type": "literal",
-            "value": "Barnstable County"
-          }
-        },
-        {
-          "role": "THEN",
-          "type": "COMPARISON",
-          "left": "fips",
-          "operator": "EQ",
-          "right": {
-            "type": "literal",
-            "value": "25001"
-          }
+          "if": [
+            {
+              "left": "encounter_class",
+              "operator": "IN",
+              "right": {
+                "type": "list",
+                "value": [
+                  "emergency",
+                  "inpatient",
+                  "urgentcare"
+                ]
+              }
+            }
+          ],
+          "then": [
+            {
+              "left": "reason_code",
+              "operator": "IS_NOT_NULL",
+              "right": null
+            }
+          ]
         }
       ]
     }

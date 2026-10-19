@@ -12,7 +12,7 @@ from enum import Enum
 from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 def utc_now() -> str:
@@ -99,6 +99,7 @@ class NTTestCaseTarget(BaseModel):
     test_definition_id: Optional[str] = None
     test_definition_name: Optional[str] = None
     entity_link: Optional[str] = None
+    table_fqn: Optional[str] = None
 
 
 class NTExecutionInputs(BaseModel):
@@ -108,8 +109,20 @@ class NTExecutionInputs(BaseModel):
 
 
 class CreateNTRunRequest(BaseModel):
-    table_fqn: str = Field(min_length=1)
+    model_config = ConfigDict(extra="forbid")
+
+    table_fqn: Optional[str] = Field(default=None, min_length=1)
+    test_suite_fqn: Optional[str] = Field(default=None, min_length=1)
+    test_case_names: Optional[List[str]] = None
     pipeline_id: Optional[str] = None
+
+    @model_validator(mode="after")
+    def validate_scope(self) -> "CreateNTRunRequest":
+        if bool(self.table_fqn) == bool(self.test_suite_fqn):
+            raise ValueError(
+                "Exactly one of table_fqn or test_suite_fqn is required"
+            )
+        return self
 
 
 class NTRuleResult(BaseModel):
@@ -159,6 +172,7 @@ class NTRunItem(BaseModel):
     definition_name: str
     test_case_id: Optional[str] = None
     test_case_fqn: Optional[str] = None
+    table_fqn: str
     status: NTRunItemStatus = NTRunItemStatus.PENDING
     result: Optional[NTRuleResult] = None
     error: Optional[str] = None
@@ -169,8 +183,10 @@ class NTRunItem(BaseModel):
 class NTRun(BaseModel):
     run_id: str = Field(default_factory=lambda: str(uuid4()))
     source_run_id: Optional[str] = None
-    table_fqn: str
+    table_fqn: Optional[str] = None
+    test_suite_fqn: Optional[str] = None
     pipeline_id: Optional[str] = None
+    rule_configs: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
     status: NTRunStatus = NTRunStatus.PENDING
     items: List[NTRunItem] = Field(default_factory=list)
     created_at: str = Field(default_factory=utc_now)
@@ -181,7 +197,8 @@ class NTRun(BaseModel):
 class NTRunSummary(BaseModel):
     run_id: str
     source_run_id: Optional[str] = None
-    table_fqn: str
+    table_fqn: Optional[str] = None
+    test_suite_fqn: Optional[str] = None
     pipeline_id: Optional[str] = None
     status: NTRunStatus
     total_items: int

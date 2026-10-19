@@ -12,8 +12,11 @@ from backend.engine.adapters.advanced_adapter import AdvancedGenerationAdapter
 from backend.engine.advanced_rule_service import AdvancedRuleService
 from backend.engine.sql_mapper.sql_renderer import render_sql_literal, SQLRenderError
 from backend.storage.json_storage import json_storage
-from backend.storage.generation_cache import generation_cache
-from backend.services.generation_service import GenerationService
+from backend.storage.rule_repository import rule_repository
+from backend.services.generation_service import (
+    GenerationService,
+    RulePersistenceError,
+)
 
 router = APIRouter(prefix=settings.api_prefix, tags=["advanced-rules"])
 
@@ -140,8 +143,13 @@ async def recommend_advanced_rules(req: AdvancedRulesRequest) -> AdvancedRulesRe
                 min_confidence=req.min_confidence,
                 advanced_types=req.advanced_types,
             ),
-            persist=False,
+            persist=True,
         )
+    except RulePersistenceError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Generated rules could not be persisted",
+        ) from exc
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Pipeline failed: {str(e)}")
 
@@ -182,19 +190,19 @@ def get_saved_advanced_rules(
     table_name: Optional[str] = None,
     table_fqn: Optional[str] = None,
 ):
-    """Lay Advanced Rules da luu tu file JSON."""
+    """Load Advanced Rules from PostgreSQL with a legacy JSON fallback."""
     rules = []
     info = None
     target = table_fqn or table_name
     if target:
         try:
-            rules = [
-                rule.model_dump()
-                for rule in generation_cache.get(target, engine="ADVANCED")
-            ]
-            info = {"storage": "memory", "table_fqn": target}
-        except Exception:
-            rules = []
+            rules = rule_repository.get_rules(target, engine="ADVANCED")
+            info = {"storage": "postgresql", "table_fqn": target}
+        except Exception as exc:
+            raise HTTPException(
+                status_code=503,
+                detail="PostgreSQL rule storage is unavailable",
+            ) from exc
     if not rules:
         # Compatibility fallback for data generated before PostgreSQL storage.
         rules = json_storage.get_advanced_rules(table_name)

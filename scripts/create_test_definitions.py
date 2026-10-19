@@ -1,4 +1,4 @@
-"""Create the 16 governance test definitions on OpenMetadata.
+"""Create the 15 governance test definitions on OpenMetadata.
 
 All definitions share:
   - entityType = TABLE
@@ -44,85 +44,32 @@ ENV_PATH = ROOT_DIR / "backend" / ".env"
 #   sqlExpression        -> optional default SQL fragment rendered in the UI
 #   supportedDataTypes   -> list of column data types (only when entityType=COLUMN)
 #
-# We keep every definition at the TABLE level and rely on tableCustomSQLQuery
-# semantics for the "how" – each rule's SQL/parameters live on the TestCase.
+# Definitions stay at TABLE level and are executed by the DQ backend handlers.
+# OpenMetadata stores the Test Cases and results but does not execute the rules.
 # ---------------------------------------------------------------------------
 
 COMMON_FIELDS: Dict[str, Any] = {
     "entityType": "TABLE",
-    "testPlatforms": ["OpenMetadata"],
+    # Executed by the DQ backend; OpenMetadata's native runner must skip them.
+    "testPlatforms": ["Other"],
     "supportedServices": ["Postgres"],
 }
 
 
-def _sql_param(name: str, description: str, required: bool = True) -> Dict[str, Any]:
-    return {
-        "name": name,
-        "displayName": name,
-        "description": description,
-        "dataType": "STRING",
-        "required": required,
-    }
-
-
-def _number_param(name: str, description: str, required: bool = True) -> Dict[str, Any]:
-    return {
-        "name": name,
-        "displayName": name,
-        "description": description,
-        "dataType": "INT",
-        "required": required,
-    }
-
-
-def _operator_param(
-    name: str = "operator",
-    description: str = "Comparison operator applied to the failing-row count.",
-) -> Dict[str, Any]:
-    return {
-        "name": name,
-        "displayName": name,
-        "description": description,
-        "dataType": "STRING",
-        "required": True,
-        "optionValues": ["<", "<=", ">", ">=", "==", "!="],
-    }
-
-
-def _threshold_param() -> Dict[str, Any]:
-    return {
-        "name": "threshold",
-        "displayName": "threshold",
-        "description": "Maximum allowed number of failing rows. Rows failing above the threshold mark the test as FAILED.",
-        "dataType": "INT",
-        "required": True,
-    }
-
-
-def _strategy_param() -> Dict[str, Any]:
-    return {
-        "name": "strategy",
-        "displayName": "strategy",
-        "description": "How the test executes the SQL – ROWS counts failing rows, COUNT returns a single scalar.",
-        "dataType": "STRING",
-        "required": True,
-        "optionValues": ["ROWS", "COUNT"],
-    }
-
-
 def _base_sql_def(name: str, display: str, description: str) -> Dict[str, Any]:
-    """Build a tableCustomSQLQuery-style definition body."""
-    params = [_sql_param("sqlExpression", "SQL query whose failing rows are reported by the test."), _operator_param(), _threshold_param(), _strategy_param()]
+    """Build an external NT Test Definition body."""
     return {
         "name": name,
         "displayName": display,
         "description": description,
-        "parameterDefinition": params,
+        # Runtime parameters live in the DQ configuration store. Keeping this
+        # empty avoids duplicating config on each OpenMetadata Test Case.
+        "parameterDefinition": [],
         **COMMON_FIELDS,
     }
 
 
-# 16 governance rules (NT1..NT16, skipping NT15 which is absent from the table)
+# 15 governance rules (NT1..NT16, skipping NT15 which is absent from the table)
 RULES: List[Dict[str, Any]] = [
     _base_sql_def(
         "NT1_TableNaming",
@@ -288,6 +235,7 @@ def main() -> int:
                 {"op": "replace", "path": "/description", "value": body["description"]},
                 {"op": "replace", "path": "/parameterDefinition", "value": body["parameterDefinition"]},
                 {"op": "replace", "path": "/supportedServices", "value": body["supportedServices"]},
+                {"op": "replace", "path": "/testPlatforms", "value": body["testPlatforms"]},
             ]
             patch_headers = {**headers, "Content-Type": "application/json-patch+json"}
             try:

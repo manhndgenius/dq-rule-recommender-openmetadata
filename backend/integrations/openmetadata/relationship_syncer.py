@@ -29,22 +29,23 @@ class RelationshipSyncer:
 
     def __init__(
         self,
-        pg_host: str = "localhost",
-        pg_port: int = 5432,
-        pg_db: str = "HealthCare",
-        pg_user: str = "postgres",
-        pg_password: str = "postgres",
+        pg_host: str | None = None,
+        pg_port: int | None = None,
+        pg_db: str | None = None,
+        pg_user: str | None = None,
+        pg_password: str | None = None,
         server_url: str | None = None,
         token: str | None = None,
     ):
         """Khởi tạo RelationshipSyncer."""
-        # PostgreSQL connection
+        import os as _os
+        # PostgreSQL connection - require env vars
         self._pg_conn = psycopg2.connect(
-            host=pg_host,
-            port=pg_port,
-            dbname=pg_db,
-            user=pg_user,
-            password=pg_password,
+            host=pg_host or os.getenv("POSTGRES_HOST", ""),
+            port=pg_port or int(os.getenv("POSTGRES_PORT", "5432")),
+            dbname=pg_db or os.getenv("POSTGRES_DB", "HealthCare"),
+            user=pg_user or os.getenv("POSTGRES_USER", ""),
+            password=pg_password or os.getenv("POSTGRES_PASSWORD", ""),
         )
         self._pg_conn.autocommit = True
 

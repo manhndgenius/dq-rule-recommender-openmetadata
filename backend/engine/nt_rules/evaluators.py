@@ -427,7 +427,7 @@ def evaluate_domain_owner(
     context: NTMetadataContext,
     config: Dict[str, Any],
 ) -> NTRuleResult:
-    """NT12_DomainOwner: kiểm tra Domain/Owner bắt buộc và danh mục/type được phép."""
+    """NT12_DomainOwner: kiểm tra Domain/Owner bắt buộc và domain phải nằm trong whitelist."""
     required = [str(field) for field in config.get("requiredFields") or []]
     minimum_owner_count = int(config.get("minimumOwnerCount", 1))
     missing = [
@@ -438,28 +438,28 @@ def evaluate_domain_owner(
     if "owners" in required and len(context.owners) < minimum_owner_count:
         missing.append("owners")
 
-    allowed_domains = {
-        str(value).lower() for value in config.get("allowedDomains") or []
-    }
-    actual_domains = {_reference_name(item).lower() for item in context.domains}
-    invalid_domains = (
-        sorted(actual_domains - allowed_domains) if allowed_domains else []
-    )
+    # Domain phải nằm trong whitelist (dùng regex match, không phân biệt hoa thường)
+    allowed_domains = [str(value) for value in config.get("allowedDomains") or []]
+    actual_domain_names = [_reference_name(item) for item in context.domains]
+    invalid_domains: List[str] = []
 
-    allowed_owner_types = {
-        str(value).lower() for value in config.get("allowedOwnerTypes") or []
-    }
-    invalid_owners = [
-        _reference_name(owner)
-        for owner in context.owners
-        if allowed_owner_types
-        and str(owner.get("type") or "").lower() not in allowed_owner_types
-    ]
+    for domain_name in actual_domain_names:
+        # Check xem domain có khớp với bất kỳ allowed domain nào không (regex, ignore case)
+        matched = False
+        domain_lower = domain_name.lower()
+        for allowed in allowed_domains:
+            # Tạo regex pattern từ allowed domain, escape special chars rồi thêm flexibility
+            # VD: "Bệnh nhân & Định danh" sẽ khớp với "Bệnh nhân & Định danh", "bệnh nhân & định danh", etc.
+            pattern = re.escape(allowed.lower())
+            if re.search(pattern, domain_lower):
+                matched = True
+                break
+        if not matched:
+            invalid_domains.append(domain_name)
+
     violations = list(dict.fromkeys(missing))
     if invalid_domains:
         violations.append("domains_not_allowed")
-    if invalid_owners:
-        violations.append("owner_types_not_allowed")
     return make_result(
         "NT12_DomainOwner",
         NTOutcome.FAIL if violations else NTOutcome.PASS,
@@ -470,14 +470,13 @@ def evaluate_domain_owner(
         ),
         expected={
             "requiredFields": required,
-            "allowedDomains": sorted(allowed_domains),
+            "allowedDomains": allowed_domains,
             "minimumOwnerCount": minimum_owner_count,
         },
         observed={
-            "domains": sorted(actual_domains),
+            "domains": actual_domain_names,
             "ownerCount": len(context.owners),
             "invalidDomains": invalid_domains,
-            "invalidOwners": invalid_owners,
         },
     )
 

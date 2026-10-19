@@ -31,11 +31,11 @@ class ConstraintSyncer:
         token: str | None = None,
     ) -> None:
         self._pg_conn = psycopg2.connect(
-            host=pg_host or os.getenv("PGHOST", "localhost"),
-            port=pg_port or int(os.getenv("PGPORT", "5432")),
-            dbname=pg_db or os.getenv("PGDATABASE", "HealthCare"),
-            user=pg_user or os.getenv("PGUSER", "postgres"),
-            password=pg_password or os.getenv("PGPASSWORD", "postgres"),
+            host=pg_host or os.getenv("POSTGRES_HOST", "localhost"),
+            port=pg_port or int(os.getenv("POSTGRES_PORT", "5432")),
+            dbname=pg_db or os.getenv("POSTGRES_DB", "HealthCare"),
+            user=pg_user or os.getenv("POSTGRES_USER", ""),
+            password=pg_password or os.getenv("POSTGRES_PASSWORD", ""),
         )
         self._pg_schema = pg_schema or os.getenv("PGSCHEMA", "public")
         self._fqn_prefix = (

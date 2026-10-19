@@ -2,77 +2,46 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from enum import Enum
 from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
 from pydantic import BaseModel, Field, model_validator
 
 from backend.contracts.generation import GenerationOptions, RuleEngine
-
-
-def utc_now() -> str:
-    return datetime.now(timezone.utc).isoformat()
-
-
-class ScopeType(str, Enum):
-    TABLE = "TABLE"
-    SCHEMA = "SCHEMA"
-    DATABASE = "DATABASE"
-
-
-class JobStatus(str, Enum):
-    PENDING = "PENDING"
-    RUNNING = "RUNNING"
-    SUCCESS = "SUCCESS"
-    PARTIAL = "PARTIAL"
-    FAILED = "FAILED"
-
-
-class JobItemStatus(str, Enum):
-    PENDING = "PENDING"
-    RUNNING = "RUNNING"
-    SUCCESS = "SUCCESS"
-    PARTIAL = "PARTIAL"
-    FAILED = "FAILED"
-    SKIPPED = "SKIPPED"
-
-
-TERMINAL_ITEM_STATUSES = {
-    JobItemStatus.SUCCESS,
-    JobItemStatus.PARTIAL,
-    JobItemStatus.FAILED,
-    JobItemStatus.SKIPPED,
-}
-
-
-class GenerationScope(BaseModel):
-    type: ScopeType
-    target_fqn: str = Field(min_length=1)
+from backend.contracts.batch_job import (
+    JobItemStatus,
+    JobStatus,
+    TERMINAL_ITEM_STATUSES,
+    utc_now,
+)
+from backend.contracts.target_scope import TargetScope
 
 
 class BulkConcurrency(BaseModel):
     metadata: int = Field(default=4, ge=1, le=8)
     basic: int = Field(default=8, ge=1, le=16)
-    statistical: int = Field(default=2, ge=1, le=4)
-    advanced: int = Field(default=2, ge=1, le=4)
 
 
 class CreateGenerationJobRequest(BaseModel):
-    scope: GenerationScope
-    engines: List[RuleEngine] = Field(min_length=1)
+    scope: TargetScope
+    engines: List[RuleEngine] = Field(default_factory=lambda: [RuleEngine.BASIC], min_length=1)
     options: GenerationOptions = Field(default_factory=GenerationOptions)
     concurrency: BulkConcurrency = Field(default_factory=BulkConcurrency)
 
     @model_validator(mode="after")
-    def deduplicate_engines(self):
+    def validate_basic_only(self):
         self.engines = list(dict.fromkeys(self.engines))
+        unsupported = [engine.value for engine in self.engines if engine != RuleEngine.BASIC]
+        if unsupported:
+            raise ValueError(
+                "Only the BASIC rule engine is enabled for go-live; unsupported engines: "
+                + ", ".join(unsupported)
+            )
         return self
 
 
 class PreviewResponse(BaseModel):
-    scope: GenerationScope
+    scope: TargetScope
     total_tables: int
     tables: List[str]
     total_items: int
@@ -97,7 +66,7 @@ class JobItem(BaseModel):
 class GenerationJob(BaseModel):
     job_id: str = Field(default_factory=lambda: str(uuid4()))
     source_job_id: Optional[str] = None
-    scope: GenerationScope
+    scope: TargetScope
     engines: List[RuleEngine]
     options: GenerationOptions
     concurrency: BulkConcurrency
@@ -112,7 +81,7 @@ class GenerationJob(BaseModel):
 class JobSummary(BaseModel):
     job_id: str
     source_job_id: Optional[str] = None
-    scope: GenerationScope
+    scope: TargetScope
     engines: List[RuleEngine]
     status: JobStatus
     total_tables: int

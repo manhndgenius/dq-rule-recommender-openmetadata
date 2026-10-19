@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import math
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, status
@@ -17,7 +16,7 @@ from backend.contracts.generation_job import (
     RetryJobRequest,
 )
 from backend.services.generation_job_runner import generation_job_runner
-from backend.services.scope_resolver import ScopeResolutionError, scope_resolver
+from backend.api.router.routes_target_scopes import resolve_scope_or_422
 from backend.storage.generation_job_store import generation_job_store
 
 router = APIRouter(
@@ -27,10 +26,7 @@ router = APIRouter(
 
 
 async def _resolve_tables(request: CreateGenerationJobRequest) -> list[str]:
-    try:
-        return await asyncio.to_thread(scope_resolver.resolve, request.scope)
-    except ScopeResolutionError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return await resolve_scope_or_422(request.scope)
 
 
 @router.post("/preview", response_model=PreviewResponse)
@@ -38,13 +34,7 @@ async def preview_generation_job(
     request: CreateGenerationJobRequest,
 ) -> PreviewResponse:
     tables = await _resolve_tables(request)
-    estimates = {engine.value: 0 for engine in request.engines}
-    if RuleEngine.STATISTICAL in request.engines and request.options.use_llm:
-        estimates[RuleEngine.STATISTICAL.value] = len(tables)
-    if RuleEngine.ADVANCED in request.engines:
-        selected_types = len(request.options.advanced_types or []) or 3
-        estimates["ADVANCED_MIN"] = len(tables)
-        estimates["ADVANCED_MAX"] = len(tables) * (1 + selected_types)
+    estimates = {RuleEngine.BASIC.value: 0}
     return PreviewResponse(
         scope=request.scope,
         total_tables=len(tables),

@@ -918,10 +918,52 @@ class OpenMetadataClient:
             test_case
             for test_case in test_cases
             if definition_name(test_case).startswith(prefix)
-            or re.match(
-                rf"^dq_default_{re.escape(prefix)}[A-Za-z0-9_]+_[0-9a-f]{{8}}$",
-                str(test_case.get("name") or ""),
+        ]
+
+    def get_test_suite_nt_test_cases(
+        self,
+        test_suite_fqn: str,
+        prefix: str = "NT",
+    ) -> List[Dict[str, Any]]:
+        """Return native NT Test Cases that belong to a logical Test Suite."""
+        encoded_fqn = urllib.parse.quote(test_suite_fqn, safe="")
+        response = requests.get(
+            f"{self.server_url}/dataQuality/testSuites/name/{encoded_fqn}",
+            headers=self._get_headers(),
+            timeout=self.timeout,
+        )
+        if response.status_code != 200:
+            raise RuntimeError(
+                "OpenMetadata Test Suite lookup returned HTTP "
+                f"{response.status_code}: {response.text}"
             )
+        suite_id = response.json().get("id")
+        if not suite_id:
+            raise RuntimeError("OpenMetadata Test Suite response has no id")
+
+        test_cases = self._list_collection_paginated(
+            "dataQuality/testCases",
+            params={
+                "testSuiteId": suite_id,
+                "includeAllTests": True,
+                "fields": "testDefinition,parameterValues",
+            },
+        )
+
+        def definition_name(test_case: Dict[str, Any]) -> str:
+            definition = test_case.get("testDefinition") or {}
+            if isinstance(definition, dict):
+                return str(
+                    definition.get("name")
+                    or definition.get("fullyQualifiedName")
+                    or ""
+                )
+            return str(definition)
+
+        return [
+            test_case
+            for test_case in test_cases
+            if definition_name(test_case).startswith(prefix)
         ]
 
     def add_test_case_result(

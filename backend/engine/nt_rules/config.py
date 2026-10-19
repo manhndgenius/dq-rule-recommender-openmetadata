@@ -78,9 +78,19 @@ DEFAULT_RULE_CONFIG: Dict[str, Dict[str, Any]] = {
     },
     "NT12_DomainOwner": {
         "requiredFields": ["domains", "owners"],
-        "allowedDomains": [],
+        "allowedDomains": [
+            "Bệnh nhân & Định danh",
+            "Hành trình Bệnh nhân",
+            "Trải nghiệm & Chăm sóc liên tục",
+            "Danh mục Dịch vụ Y tế",
+            "Lâm sàng",
+            "Tài chính & Doanh thu",
+            "Vận hành & Năng lực",
+            "Nhân sự Y tế",
+            "Quản trị Rủi ro",
+            "Tham chiếu & Nền tảng",
+        ],
         "minimumOwnerCount": 1,
-        "allowedOwnerTypes": [],
     },
     "NT13_NullableRate": {
         "warningThreshold": 50.0,
