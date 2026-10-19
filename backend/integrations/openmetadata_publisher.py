@@ -151,11 +151,10 @@ class OpenMetadataPublisher:
             if "maxLength" in params and params["maxLength"] is not None:
                 parameter_values.append({"name": "maxLength", "value": str(params["maxLength"])})
         elif om_test_def == "columnValuesToBeInSet":
-            allowed = params.get("allowedValues", [])
-            if isinstance(allowed, list):
-                val_str = ",".join(str(v) for v in allowed)
-            else:
-                val_str = str(allowed)
+            allowed = params.get("allowedValues")
+            if not isinstance(allowed, list) or not allowed:
+                return {}, "allowedValues must be configured before publishing"
+            val_str = ",".join(str(v) for v in allowed)
             parameter_values.append({"name": "allowedValues", "value": val_str})
 
         # Entity Link - Advanced rules always use table-level

@@ -90,6 +90,69 @@ def test_generate_not_null_rule_positive(sample_table_context):
     # notes có null_count = 450 -> KHÔNG được sinh NOT NULL
     assert "notes" not in target_cols
 
+
+def test_not_null_requires_null_count_metric():
+    context = TableContext(
+        database_name="db",
+        schema_name="public",
+        table_name="events",
+        row_count=100,
+        columns=[
+            ColumnContext(
+                name="missing_null_profile",
+                data_type="VARCHAR",
+                profile=ColumnProfile(row_count=100),
+            ),
+            ColumnContext(
+                name="ratio_only",
+                data_type="VARCHAR",
+                profile=ColumnProfile(row_count=100, null_ratio=0.0),
+            ),
+            ColumnContext(
+                name="count_only",
+                data_type="VARCHAR",
+                profile=ColumnProfile(row_count=100, null_count=0),
+            ),
+        ],
+    )
+
+    rules = BasicRuleEngine().generate_candidates(context)
+    targets = {
+        rule.target_columns[0]
+        for rule in rules
+        if rule.rule_type == "columnValuesToBeNotNull"
+    }
+
+    assert "missing_null_profile" not in targets
+    assert "ratio_only" not in targets
+    assert "count_only" in targets
+
+
+def test_not_null_rejects_conflicting_null_metrics():
+    context = TableContext(
+        database_name="db",
+        schema_name="public",
+        table_name="events",
+        row_count=100,
+        columns=[
+            ColumnContext(
+                name="conflicting_profile",
+                data_type="VARCHAR",
+                profile=ColumnProfile(
+                    row_count=100,
+                    null_count=0,
+                    null_ratio=0.1,
+                ),
+            )
+        ],
+    )
+
+    rules = BasicRuleEngine().generate_candidates(context)
+
+    assert all(
+        rule.rule_type != "columnValuesToBeNotNull" for rule in rules
+    )
+
 def test_generate_unique_rule(sample_table_context):
     engine = BasicRuleEngine()
     candidates = engine.generate_candidates(sample_table_context)
@@ -165,7 +228,36 @@ def test_generate_values_in_set_rule(sample_table_context):
     status_rule = next((c for c in in_set_rules if "order_status" in c.target_columns), None)
     
     assert status_rule is not None
-    assert set(status_rule.parameters["allowedValues"]) == {"PENDING", "SHIPPED", "COMPLETED", "CANCELLED"}
+    assert status_rule.parameters == {}
+    assert status_rule.validation_status == "WARNING"
+    assert status_rule.evidence["requires_allowed_values_configuration"] is True
+
+
+def test_generate_values_in_set_rule_without_sample_values():
+    context = TableContext(
+        database_name="db",
+        schema_name="public",
+        table_name="events",
+        row_count=100,
+        columns=[
+            ColumnContext(
+                name="event_status",
+                data_type="VARCHAR",
+                profile=ColumnProfile(
+                    row_count=100,
+                    distinct_count=3,
+                    distinct_ratio=0.03,
+                ),
+            )
+        ],
+    )
+
+    rules = BasicRuleEngine().generate_candidates(context)
+    in_set = next(
+        rule for rule in rules if rule.rule_type == "columnValuesToBeInSet"
+    )
+
+    assert in_set.parameters == {}
 
 def test_generate_length_between_rule(sample_table_context):
     engine = BasicRuleEngine()

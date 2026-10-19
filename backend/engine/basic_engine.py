@@ -75,10 +75,19 @@ class BasicRuleEngine(BaseRuleEngine):
     def _generate_not_null_rule(self, context: TableContext, col: ColumnContext) -> CandidateRule | None:
         """
         Rule: columnValuesToBeNotNull
-        Điều kiện: row_count > 0 và null_count == 0 hoặc null_ratio == 0
+        Điều kiện: row_count > 0, null_count có trong profile và bằng 0.
+        null_ratio, nếu có, cũng phải bằng 0.
         """
         prof = col.profile
-        if prof.row_count > 0 and (prof.null_count == 0 or prof.null_ratio == 0.0):
+        has_null_count = "null_count" in prof.model_fields_set
+        has_null_ratio = "null_ratio" in prof.model_fields_set
+
+        if (
+            prof.row_count > 0
+            and has_null_count
+            and prof.null_count == 0
+            and (not has_null_ratio or prof.null_ratio == 0.0)
+        ):
             confidence = 1.0 if not col.nullable else 0.95
             reason = (
                 f"Cột '{col.name}' đóng vai trò khóa chính và không có bản ghi nào bị rỗng."
@@ -96,7 +105,7 @@ class BasicRuleEngine(BaseRuleEngine):
                 evidence={
                     "null_count": prof.null_count,
                     "null_ratio": prof.null_ratio,
-                    "non_null_count": prof.row_count - prof.null_count,
+                    "non_null_count": prof.row_count,
                     "total_rows": prof.row_count,
                     "sample_violations_count": 0,
                     "is_primary_key": col.is_primary_key
@@ -193,38 +202,33 @@ class BasicRuleEngine(BaseRuleEngine):
     def _generate_in_set_rule(self, context: TableContext, col: ColumnContext) -> CandidateRule | None:
         """
         Rule: columnValuesToBeInSet
-        Điều kiện: distinct_count <= max_allowed_cardinality (20) và distinct_count > 0
+        Điều kiện: distinct_count <= max_allowed_cardinality (20) và distinct_count > 0.
+        Chỉ đề xuất loại rule; allowedValues do người dùng cấu hình.
         """
         prof = col.profile
         if 0 < prof.distinct_count <= settings.max_allowed_cardinality:
-            # Thu thập allowed values từ top_values hoặc sample
-            allowed_values = []
-            if prof.top_values:
-                allowed_values = [str(item.get("value", "")) for item in prof.top_values if item.get("value") is not None]
-            
-            # Không sinh In Set cho cột số có 1 giá trị hoặc cột ID duy nhất
-            if len(allowed_values) == 0:
-                return None
-
             return CandidateRule(
                 rule_type="columnValuesToBeInSet",
-                description=f"Giá trị thuộc danh mục cho phép ({len(allowed_values)} giá trị)",
+                description="Nên cấu hình tập giá trị cho phép",
                 target_columns=[col.name],
-                parameters={
-                    "allowedValues": allowed_values
-                },
+                parameters={},
                 engine="BASIC",
-                confidence=0.95,
-                reason=f"Cột '{col.name}' có số lượng giá trị phân biệt thấp ({prof.distinct_count} giá trị), dữ liệu chỉ nằm trong tập chuẩn.",
+                confidence=0.85,
+                reason=(
+                    f"Cột '{col.name}' có số lượng giá trị phân biệt thấp "
+                    f"({prof.distinct_count} giá trị), phù hợp để cấu hình rule Values In Set. "
+                    "Hệ thống không tự suy luận tập giá trị cho phép."
+                ),
                 evidence={
                     "distinct_count": prof.distinct_count,
                     "cardinality_ratio": prof.distinct_ratio,
-                    "observed_values": allowed_values,
-                    "allowed_values": allowed_values,
                     "total_rows": prof.row_count,
-                    "sample_violations_count": 0
+                    "requires_allowed_values_configuration": True,
                 },
-                validation_status="VALID",
+                validation_status="WARNING",
+                validation_message=(
+                    "Cần nhập allowedValues trước khi Accept/Publish rule."
+                ),
                 status="DRAFT"
             )
         return None

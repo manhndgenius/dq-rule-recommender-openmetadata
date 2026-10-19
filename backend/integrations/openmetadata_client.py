@@ -406,8 +406,10 @@ class OpenMetadataClient:
             is_pk = "PRIMARY_KEY" in (c.get("constraint") or "")
             
             p = c.get("profile") or {}
-            null_count = int(p.get("nullCount") or 0)
-            null_ratio = float(p.get("nullProportion") or 0.0)
+            raw_null_count = p.get("nullCount")
+            raw_null_ratio = p.get("nullProportion")
+            null_count = int(raw_null_count) if raw_null_count is not None else 0
+            null_ratio = float(raw_null_ratio) if raw_null_ratio is not None else 0.0
             distinct_count = int(p.get("distinctCount") or 0)
             distinct_ratio = float(p.get("distinctProportion") or 0.0)
             min_val = p.get("min")
@@ -422,18 +424,21 @@ class OpenMetadataClient:
             if max_val is not None and max_val != min_val:
                 top_vals.append({"value": str(max_val)})
 
-            column_profile = ColumnProfile(
+            profile_values = dict(
                 row_count=row_count,
-                null_count=null_count,
-                null_ratio=null_ratio,
                 distinct_count=distinct_count,
                 distinct_ratio=distinct_ratio,
                 min_value=min_val,
                 max_value=max_val,
                 min_length=min_len,
                 max_length=max_len,
-                top_values=top_vals
+                top_values=top_vals,
             )
+            if raw_null_count is not None:
+                profile_values["null_count"] = null_count
+            if raw_null_ratio is not None:
+                profile_values["null_ratio"] = null_ratio
+            column_profile = ColumnProfile(**profile_values)
 
             columns.append(ColumnContext(
                 name=c_name,

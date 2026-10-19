@@ -81,6 +81,8 @@ def test_repository_merges_defaults_versions_updates_and_resets():
     )
     assert updated["version"] == 2
     assert updated["config"]["failureThreshold"] == 90
+    assert updated["config"]["excludedColumns"] == []
+    assert "excludedColumns" not in updated["override"]
 
     with pytest.raises(NTRuleConfigConflictError) as conflict:
         repository.upsert(

@@ -34,11 +34,6 @@ NT_RULE_FORM_FIELDS: Dict[str, List[Dict[str, Any]]] = {
     "NT2_ColumnNaming": [
         {"name": "nameRegex", "label": "Name regex", "control": "REGEX"},
         {
-            "name": "excludedColumns",
-            "label": "Excluded columns",
-            "control": "TAG_LIST",
-        },
-        {
             "name": "excludedPatterns",
             "label": "Excluded patterns",
             "control": "REGEX_LIST",
@@ -46,20 +41,8 @@ NT_RULE_FORM_FIELDS: Dict[str, List[Dict[str, Any]]] = {
     ],
     "NT3_BooleanNaming": [
         {
-            "name": "booleanTypes",
-            "label": "Boolean data types",
-            "control": "MULTI_SELECT",
-            "options": ["BOOLEAN", "BOOL", "BIT"],
-            "allowCustom": True,
-        },
-        {
             "name": "allowedPrefixes",
             "label": "Allowed prefixes",
-            "control": "TAG_LIST",
-        },
-        {
-            "name": "excludedColumns",
-            "label": "Excluded columns",
             "control": "TAG_LIST",
         },
     ],
@@ -70,11 +53,6 @@ NT_RULE_FORM_FIELDS: Dict[str, List[Dict[str, Any]]] = {
             "control": "TAG_LIST",
         },
         {"name": "requireAll", "label": "Require all", "control": "BOOLEAN"},
-        {
-            "name": "caseSensitive",
-            "label": "Case sensitive",
-            "control": "BOOLEAN",
-        },
     ],
     "NT5_DateTimeColumns": [
         {
@@ -83,13 +61,11 @@ NT_RULE_FORM_FIELDS: Dict[str, List[Dict[str, Any]]] = {
             "control": "EDITABLE_MAPPING",
             "columns": [
                 {"name": "suffix", "control": "TEXT"},
-                {"name": "allowedTypes", "control": "TAG_LIST"},
+                {
+                    "name": "allowedTypes",
+                    "control": "DATA_TYPE_MULTI_SELECT",
+                },
             ],
-        },
-        {
-            "name": "excludedColumns",
-            "label": "Excluded columns",
-            "control": "TAG_LIST",
         },
     ],
     "NT6_SoftDelete": [
@@ -99,7 +75,10 @@ NT_RULE_FORM_FIELDS: Dict[str, List[Dict[str, Any]]] = {
             "control": "EDITABLE_MAPPING",
             "columns": [
                 {"name": "column", "control": "TEXT"},
-                {"name": "allowedTypes", "control": "TAG_LIST"},
+                {
+                    "name": "allowedTypes",
+                    "control": "DATA_TYPE_MULTI_SELECT",
+                },
             ],
         },
     ],
@@ -146,11 +125,6 @@ NT_RULE_FORM_FIELDS: Dict[str, List[Dict[str, Any]]] = {
     "NT9_PrimaryKeyMissing": [],
     "NT10_ColumnDescription": [
         {
-            "name": "excludedColumns",
-            "label": "Excluded columns",
-            "control": "TAG_LIST",
-        },
-        {
             "name": "excludedPatterns",
             "label": "Excluded patterns",
             "control": "REGEX_LIST",
@@ -177,11 +151,6 @@ NT_RULE_FORM_FIELDS: Dict[str, List[Dict[str, Any]]] = {
             "control": "NUMBER",
             "minimum": 0,
             "integer": True,
-        },
-        {
-            "name": "excludedColumns",
-            "label": "Excluded columns",
-            "control": "TAG_LIST",
         },
     ],
     "NT12_DomainOwner": [
@@ -224,11 +193,6 @@ NT_RULE_FORM_FIELDS: Dict[str, List[Dict[str, Any]]] = {
             "label": "Included columns",
             "control": "TAG_LIST",
         },
-        {
-            "name": "excludedColumns",
-            "label": "Excluded columns",
-            "control": "TAG_LIST",
-        },
     ],
     "NT14_BusinessKey": [
         {
@@ -244,15 +208,10 @@ NT_RULE_FORM_FIELDS: Dict[str, List[Dict[str, Any]]] = {
             "integer": True,
         },
         {
-            "name": "excludedColumns",
-            "label": "Excluded columns",
-            "control": "TAG_LIST",
-        },
-        {
             "name": "missingOutcome",
             "label": "Outcome when missing",
             "control": "SELECT",
-            "options": ["WARNING", "FAIL"],
+            "options": ["FAIL"],
         },
     ],
     "NT16_DuplicateTable": [
@@ -280,7 +239,7 @@ NT_RULE_FORM_FIELDS: Dict[str, List[Dict[str, Any]]] = {
 def get_nt_rule_config_schema() -> Dict[str, Any]:
     """Return a serializable, versioned catalog consumed by the OM UI."""
     return {
-        "version": 1,
+        "version": 4,
         "rules": [
             {
                 "name": name,

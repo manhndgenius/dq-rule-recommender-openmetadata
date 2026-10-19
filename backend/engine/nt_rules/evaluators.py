@@ -99,9 +99,9 @@ def evaluate_boolean_naming(
     config: Dict[str, Any],
 ) -> NTRuleResult:
     """NT3_BooleanNaming: cột BOOLEAN phải bắt đầu bằng prefix is_, has_ hoặc can_."""
+    # BOOLEAN and BOOL are a fixed governance invariant, not user config.
     boolean_types = {
-        normalize_data_type(value)
-        for value in config.get("booleanTypes") or ["BOOLEAN", "BOOL"]
+        normalize_data_type(value) for value in ("BOOLEAN", "BOOL")
     }
     prefixes = [
         str(prefix).lower()
@@ -139,7 +139,8 @@ def evaluate_audit_columns(
 ) -> NTRuleResult:
     """NT4_AuditColumns: kiểm tra bảng có đủ danh sách cột audit được cấu hình."""
     required = [str(name) for name in config.get("requiredColumns") or []]
-    case_sensitive = bool(config.get("caseSensitive", False))
+    # NT4 always compares audit-column names case-insensitively.
+    case_sensitive = False
     available = {
         column.name if case_sensitive else column.name.lower()
         for column in context.columns
@@ -554,13 +555,7 @@ def evaluate_business_key(
         and any(pattern.search(column.name) for pattern in patterns)
     ]
     minimum = int(config.get("minimumMatches", 1))
-    if len(matches) >= minimum:
-        outcome = NTOutcome.PASS
-    else:
-        try:
-            outcome = NTOutcome(str(config.get("missingOutcome") or "WARNING").upper())
-        except ValueError:
-            outcome = NTOutcome.WARNING
+    outcome = NTOutcome.PASS if len(matches) >= minimum else NTOutcome.FAIL
     return make_result(
         "NT14_BusinessKey",
         outcome,
