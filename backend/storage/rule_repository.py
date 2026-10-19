@@ -95,13 +95,29 @@ class RuleRepository:
 
     def _upsert(self, cursor, rule: Dict[str, Any]) -> str:
         identity = (rule["table_fqn"], rule["engine"], rule["rule_fingerprint"])
+        columns = rule.get("target_columns") or rule.get("columns") or []
+
+        # Parameters are part of the fingerprint. When generation changes a
+        # parameter set, remove only the obsolete unreviewed version of that
+        # same logical rule. Reviewed/APPLIED records remain untouched.
+        cursor.execute(
+            "DELETE FROM dq_rules WHERE table_fqn=%s AND engine=%s "
+            "AND rule_type=%s AND target_columns=%s AND status='DRAFT' "
+            "AND rule_fingerprint<>%s",
+            (
+                rule["table_fqn"],
+                rule["engine"],
+                rule.get("rule_type"),
+                columns,
+                rule["rule_fingerprint"],
+            ),
+        )
         cursor.execute(
             "SELECT status FROM dq_rules WHERE table_fqn=%s AND engine=%s "
             "AND rule_fingerprint=%s FOR UPDATE",
             identity,
         )
         current = cursor.fetchone()
-        columns = rule.get("target_columns") or rule.get("columns") or []
         common = (
             rule.get("table_name"), rule.get("rule_type"), rule.get("subtype"),
             rule.get("description"), columns,

@@ -546,8 +546,8 @@ class OpenMetadataClient:
                             "distinctCount": col.profile.distinct_count,
                             "distinctProportion": col.profile.distinct_ratio,
                             "min": col.profile.min_value,
-                            "max": col.profile.max_value
-                        }
+                            "max": col.profile.max_value,
+                        },
                     }
                     for col in context.columns
                 ]
@@ -594,7 +594,7 @@ class OpenMetadataClient:
                 "dataType": col.get("dataTypeDisplay") or col.get("dataType", "STRING"),
                 "constraint": col.get("constraint"),
                 "description": col.get("description", ""),
-                "profile": p_data
+                "profile": p_data,
             })
 
         t_name = table_detail.get("name") or table_id_or_name
@@ -642,8 +642,10 @@ class OpenMetadataClient:
             is_pk = "PRIMARY_KEY" in (c.get("constraint") or "")
             
             p = c.get("profile") or {}
-            null_count = int(p.get("nullCount") or 0)
-            null_ratio = float(p.get("nullProportion") or 0.0)
+            raw_null_count = p.get("nullCount")
+            raw_null_ratio = p.get("nullProportion")
+            null_count = int(raw_null_count) if raw_null_count is not None else 0
+            null_ratio = float(raw_null_ratio) if raw_null_ratio is not None else 0.0
             distinct_count = int(p.get("distinctCount") or 0)
             distinct_ratio = float(p.get("distinctProportion") or 0.0)
             min_val = p.get("min")
@@ -651,12 +653,7 @@ class OpenMetadataClient:
             min_len = p.get("minLength")
             max_len = p.get("maxLength")
 
-            # Sample values nếu có
             top_vals = []
-            if min_val is not None:
-                top_vals.append({"value": str(min_val)})
-            if max_val is not None and max_val != min_val:
-                top_vals.append({"value": str(max_val)})
 
             # Statistical metrics from OpenMetadata profiler
             values_count = p.get("valuesCount")
@@ -679,10 +676,8 @@ class OpenMetadataClient:
             else:
                 profile_source = ProfileSource.UNKNOWN
 
-            column_profile = ColumnProfile(
+            profile_values = dict(
                 row_count=row_count,
-                null_count=null_count,
-                null_ratio=null_ratio,
                 distinct_count=distinct_count,
                 distinct_ratio=distinct_ratio,
                 min_value=min_val,
@@ -705,6 +700,11 @@ class OpenMetadataClient:
                 profile_source=profile_source,
                 profile_scope=ProfileScope.UNKNOWN,
             )
+            if raw_null_count is not None:
+                profile_values["null_count"] = null_count
+            if raw_null_ratio is not None:
+                profile_values["null_ratio"] = null_ratio
+            column_profile = ColumnProfile(**profile_values)
 
             columns.append(ColumnContext(
                 name=c_name,
