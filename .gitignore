@@ -64,11 +64,9 @@ database/
 /results/
 data/*.csv
 data/*_8_tables.json
+# Local scripts (Group 4: Only track migrate_database.py and SQL files)
+scripts/*.py
+!scripts/migrate_database.py
 scripts/combined_output_*.json
-scripts/*_8_tables.py
-scripts/analyze_eval.py
-
-# Local smoke test and utility scripts
+scripts/results/*
 test_api_key.py
-scripts/demo_guardrail.py
-scripts/delete_nt_rules.py
