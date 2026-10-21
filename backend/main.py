@@ -1,7 +1,20 @@
 """Main FastAPI application."""
 
+import logging
 import sys
 from pathlib import Path
+
+# Ensure UTF-8 output on Windows console
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8")
+
+logging.basicConfig(
+    level=logging.WARNING,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%H:%M:%S",
+)
 
 # Ensure workspace root is in sys.path when running `python backend/main.py`
 _ROOT_DIR = Path(__file__).resolve().parents[1]

@@ -60,3 +60,7 @@ scripts/analyze_eval.py
 
 # Local credential smoke tests
 test_api_key.py
+
+#Demo guardrails
+/scripts/demo_guardrail.py
+/scripts/delete_nt_rules.py

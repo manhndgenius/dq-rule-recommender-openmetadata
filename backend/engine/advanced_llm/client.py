@@ -132,6 +132,8 @@ class LLMClient:
         cleaned = (content or "").strip()
 
         # 1. Loại bỏ các thẻ suy nghĩ <thought>...</thought> hoặc <think>...</think>
+        if "<thought>" in cleaned or "<think>" in cleaned:
+            logger.warning("[GUARDRAIL CAN THIỆP] Phát hiện và đã bóc tách thẻ suy nghĩ (<thought>/<think>) từ LLM output")
         cleaned = re.sub(r"<thought>.*?</thought>", "", cleaned, flags=re.DOTALL)
         cleaned = re.sub(r"<think>.*?</think>", "", cleaned, flags=re.DOTALL)
 

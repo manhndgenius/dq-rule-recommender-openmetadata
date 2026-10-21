@@ -1,4 +1,5 @@
 import logging
+import os
 import re
 import time
 import urllib.parse
@@ -43,7 +44,7 @@ class OpenMetadataClient:
     def __init__(self, server_url: Optional[str] = None, token: Optional[str] = None):
         self.server_url = (server_url or settings.openmetadata_base_url).rstrip("/")
         self.token = token if token is not None else settings.openmetadata_jwt_token
-        self.timeout = 10  # 10s timeout
+        self.timeout = int(os.getenv("OM_TIMEOUT", "30"))  # 30s timeout
         self._cache: Dict[str, Dict[str, Any]] = {}
         self._cache_ttl = 180  # 3 phút cache
 

@@ -196,8 +196,8 @@ class AdvancedRuleRouter:
             ]
             if invalid_cols:
                 logger.warning(
-                    f"Loại bỏ candidate {candidate.rule_type}: "
-                    f"columns không hợp lệ {invalid_cols}"
+                    f"[GUARDRAIL CHẶN] Loại bỏ candidate {candidate.rule_type}: "
+                    f"Cột không tồn tại trong bảng: {invalid_cols}"
                 )
                 continue
 
@@ -209,17 +209,17 @@ class AdvancedRuleRouter:
             if rule_type_upper in ("TEMPORAL", "CROSS_COLUMN", "CONDITIONAL_DEPENDENCY"):
                 if len(candidate.relevant_columns) < 2:
                     logger.warning(
-                        f"Loại bỏ candidate {candidate.rule_type}: yêu cầu ít nhất 2 cột, "
-                        f"nhưng chỉ có {len(candidate.relevant_columns)}: {candidate.relevant_columns}"
+                        f"[GUARDRAIL CHẶN] Loại bỏ candidate {candidate.rule_type}: "
+                        f"Thiếu cột so sánh (yêu cầu >= 2 cột, chỉ có {len(candidate.relevant_columns)}: {candidate.relevant_columns})"
                     )
                     continue
 
             # 4. Guardrail: Loại bỏ candidate đã tồn tại trong existing_rules
             candidate_sig = (rule_type_upper, tuple(sorted(candidate.relevant_columns)))
             if candidate_sig in existing_signatures:
-                logger.info(
-                    f"Loại bỏ candidate {candidate.rule_type} do đã tồn tại trong existing_rules: "
-                    f"{candidate.relevant_columns}"
+                logger.warning(
+                    f"[GUARDRAIL CHẶN] Loại bỏ candidate {candidate.rule_type}: "
+                    f"Đã tồn tại trong existing_rules của bảng: {candidate.relevant_columns}"
                 )
                 continue
 
