@@ -61,6 +61,7 @@ def setup_llm():
         api_key=os.getenv("LLM_API", ""),
         base_url=os.getenv("LLM_BASE_URL", "https://api.deepseek.com"),
         model=os.getenv("LLM_MODEL", "deepseek-flash"),
+        timeout_seconds=float(os.getenv("LLM_TIMEOUT_SECONDS", "600")),
     ))
 
 
@@ -134,14 +135,14 @@ def create_output_dir(table_name: str, component: str) -> Path:
     return RESULTS_DIR / dir_name
 
 
-async def test_router(table_name: str, save: bool = True) -> tuple:
+async def test_router(table_name: str, save: bool = True, prompt_file: str | None = None) -> tuple:
     """Test Router only."""
     print(f"\n{'=' * 60}")
     print(f"TEST: Router for table '{table_name}'")
     print(f"{'=' * 60}")
 
     llm = setup_llm()
-    router = AdvancedRuleRouter(llm)
+    router = AdvancedRuleRouter(llm, prompt_file=prompt_file)
     om = OpenMetadataClient()
     ctx = om.get_table_context(table_name)
 
@@ -600,6 +601,8 @@ async def main():
     parser = argparse.ArgumentParser(description="Test Advanced Rule Engine")
     parser.add_argument("--table", default="patients", help="Table name")
     parser.add_argument("--min-confidence", type=float, default=0.6, help="Min confidence threshold")
+    parser.add_argument("--prompt-file", type=str, default=None,
+                        help="Prompt file name in backend/engine/prompts/ (e.g. advanced_router_2.md)")
     parser.add_argument("--router-only", action="store_true", help="Test router only")
     parser.add_argument("--temporal", action="store_true", help="Test temporal generator")
     parser.add_argument("--cross-column", action="store_true", help="Test cross-column generator")
@@ -651,7 +654,7 @@ async def main():
         return
 
     if args.router_only:
-        await test_router(args.table, save)
+        await test_router(args.table, save, args.prompt_file)
     elif args.temporal:
         await test_temporal_generator(args.table, save)
     elif args.cross_column:
@@ -661,7 +664,7 @@ async def main():
     elif args.full_pipeline_sql:
         await test_full_pipeline_with_sql(args.table, args.min_confidence, save)
     elif args.all:
-        await test_router(args.table, save)
+        await test_router(args.table, save, args.prompt_file)
         await test_temporal_generator(args.table, save)
         await test_cross_column_generator(args.table, save)
         await test_conditional_generator(args.table, save)

@@ -1,3 +1,4 @@
+from typing import Optional
 import os
 from pathlib import Path
 from pydantic import BaseModel
@@ -16,7 +17,10 @@ class Settings(BaseModel):
     om_api_raw: str = os.getenv("OM_API", "")
     # Service-to-service calls must use the OpenMetadata bot identity.
     # OM_TOKEN remains a compatibility fallback for older deployments.
-    openmetadata_jwt_token: str = os.getenv("BOT_TOKEN", "").strip()
+    openmetadata_jwt_token: str = (
+        os.getenv("BOT_TOKEN", "").strip() or os.getenv("OM_TOKEN", "").strip()
+    )
+    database_url: Optional[str] = os.getenv("DATABASE_URL")
     postgres_host: str = os.getenv("POSTGRES_HOST", "localhost")
     postgres_port: int = int(os.getenv("POSTGRES_PORT", "5432"))
     postgres_user: str = os.getenv("POSTGRES_USER", "postgres")

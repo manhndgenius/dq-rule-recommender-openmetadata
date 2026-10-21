@@ -117,3 +117,24 @@ class TestLLMClient:
                     user_prompt="Test",
                     response_model=MockResponse,
                 )
+
+    def test_clean_and_parse_json_with_thought_tags(self):
+        """Client nên bóc tách thẻ thought và parse JSON thành công."""
+        raw = "<thought>Analyzing the columns\nStep 1: Check date</thought> {\"message\": \"ok\", \"status\": \"done\"}"
+        res = LLMClient._clean_and_parse_json(raw)
+        assert res["message"] == "ok"
+        assert res["status"] == "done"
+
+    def test_clean_and_parse_json_with_markdown_fence(self):
+        """Client nên loại bỏ markdown code fences."""
+        raw = "```json\n{\"message\": \"hello\", \"status\": \"success\"}\n```"
+        res = LLMClient._clean_and_parse_json(raw)
+        assert res["message"] == "hello"
+        assert res["status"] == "success"
+
+    def test_clean_and_parse_json_with_text_around(self):
+        """Client nên tìm khối JSON { ... } lớn nhất khi có text xung quanh."""
+        raw = "Here is the result:\n{\"message\": \"found\", \"status\": \"yes\"}\nHope this helps!"
+        res = LLMClient._clean_and_parse_json(raw)
+        assert res["message"] == "found"
+        assert res["status"] == "yes"

@@ -32,7 +32,10 @@ class LLMConfig:
         default_factory=lambda: float(os.getenv("LLM_TIMEOUT_SECONDS", "600"))
     )
     max_retries: int = field(
-        default_factory=lambda: int(os.getenv("LLM_MAX_RETRIES", "3"))
+        default_factory=lambda: int(os.getenv("LLM_MAX_RETRIES", "1"))
+    )
+    max_tokens: int = field(
+        default_factory=lambda: int(os.getenv("LLM_MAX_TOKENS", "1024"))
     )
 
 
@@ -90,6 +93,7 @@ class LLMClient:
             ],
             "response_format": {"type": "json_object"},
             "temperature": 0.1,
+            "max_tokens": self.config.max_tokens,
         }
 
         async with httpx.AsyncClient(timeout=self.config.timeout_seconds) as client:
@@ -98,7 +102,7 @@ class LLMClient:
 
     @retry(
         retry=retry_if_exception_type((httpx.TimeoutException, httpx.HTTPStatusError)),
-        stop=stop_after_attempt(3),
+        stop=stop_after_attempt(1),
         wait=wait_exponential(multiplier=1, min=1, max=10),
         reraise=True,
     )
@@ -117,13 +121,42 @@ class LLMClient:
         data = response.json()
         content = data.get("choices", [{}])[0].get("message", {}).get("content", "{}")
 
-        try:
-            import json
+        return self._clean_and_parse_json(content)
 
-            return json.loads(content)
-        except json.JSONDecodeError as e:
-            logger.warning(f"Invalid JSON từ LLM: {e}")
-            raise LLMResponseError(f"Invalid JSON response: {e}")
+    @staticmethod
+    def _clean_and_parse_json(content: str) -> dict[str, Any]:
+        """Làm sạch output và parse JSON an toàn (loại bỏ thinking tags, markdown fences)."""
+        import json
+        import re
+
+        cleaned = (content or "").strip()
+
+        # 1. Loại bỏ các thẻ suy nghĩ <thought>...</thought> hoặc <think>...</think>
+        cleaned = re.sub(r"<thought>.*?</thought>", "", cleaned, flags=re.DOTALL)
+        cleaned = re.sub(r"<think>.*?</think>", "", cleaned, flags=re.DOTALL)
+
+        # 2. Loại bỏ markdown code blocks ```json ... ``` hoặc ``` ... ```
+        cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned, flags=re.MULTILINE)
+        cleaned = re.sub(r"\s*```$", "", cleaned, flags=re.MULTILINE)
+        cleaned = cleaned.strip()
+
+        # 3. Thử parse trực tiếp
+        try:
+            return json.loads(cleaned)
+        except json.JSONDecodeError:
+            pass
+
+        # 4. Tìm khối JSON { ... } lớn nhất nếu có text thừa xung quanh
+        match = re.search(r"(\{.*\})", cleaned, flags=re.DOTALL)
+        if match:
+            candidate_json = match.group(1).strip()
+            try:
+                return json.loads(candidate_json)
+            except json.JSONDecodeError:
+                pass
+
+        logger.warning(f"Invalid JSON từ LLM: {content[:200]}")
+        raise LLMResponseError(f"Invalid JSON response: {content[:200]}")
 
     def _parse_response(
         self, data: dict[str, Any], response_model: Type[BaseModel]
