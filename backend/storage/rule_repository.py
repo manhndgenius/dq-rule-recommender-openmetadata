@@ -61,7 +61,12 @@ class RuleRepository:
                 if hasattr(created_at, "isoformat")
                 else str(created_at)
             )
-        return CandidateRule.model_validate(payload).model_dump()
+        candidate = CandidateRule.model_validate(payload).model_dump()
+        if candidate.get("edited_parameters"):
+            candidate["parameters"] = candidate["edited_parameters"]
+        candidate["table_name"] = row.get("table_name") or ""
+        candidate["table_fqn"] = row.get("table_fqn") or row.get("table_name") or ""
+        return candidate
 
     def save_rules(
         self,
@@ -200,6 +205,59 @@ class RuleRepository:
                 query += " ORDER BY id"
                 cursor.execute(query, params)
                 return [self._candidate(dict(row)) for row in cursor.fetchall()]
+
+    def list_saved_rules(self) -> Dict[str, Any]:
+        """Return every persisted rule plus table/status summaries.
+
+        This is intentionally read-only and independent of generation jobs so
+        the UI can browse PostgreSQL recommendations without triggering a new
+        generation run.
+        """
+        self.ensure_schema()
+        with self._connection() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute(
+                    """
+                    SELECT *
+                    FROM dq_rules
+                    ORDER BY table_fqn NULLS LAST, table_name, id
+                    """
+                )
+                items = [
+                    self._candidate(dict(row)) for row in cursor.fetchall()
+                ]
+
+                cursor.execute(
+                    """
+                    SELECT
+                        COALESCE(table_fqn, table_name) AS table_fqn,
+                        table_name,
+                        COUNT(*)::INTEGER AS rule_count
+                    FROM dq_rules
+                    GROUP BY COALESCE(table_fqn, table_name), table_name
+                    ORDER BY COALESCE(table_fqn, table_name)
+                    """
+                )
+                tables = [dict(row) for row in cursor.fetchall()]
+
+                cursor.execute(
+                    """
+                    SELECT status, COUNT(*)::INTEGER AS rule_count
+                    FROM dq_rules
+                    GROUP BY status
+                    """
+                )
+                status_counts = {
+                    row["status"]: row["rule_count"]
+                    for row in cursor.fetchall()
+                }
+
+        return {
+            "items": items,
+            "total": len(items),
+            "tables": tables,
+            "status_counts": status_counts,
+        }
 
     def get_rule(self, rule_id: str) -> Dict[str, Any] | None:
         self.ensure_schema()

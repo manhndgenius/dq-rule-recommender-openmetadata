@@ -29,7 +29,7 @@ class LLMConfig:
     api_key: str = field(default_factory=lambda: os.getenv("LLM_API", ""))
     model: str = field(default_factory=lambda: os.getenv("LLM_MODEL", "deepseek-flash"))
     timeout_seconds: float = field(
-        default_factory=lambda: float(os.getenv("LLM_TIMEOUT_SECONDS", "120"))
+        default_factory=lambda: float(os.getenv("LLM_TIMEOUT_SECONDS", "600"))
     )
     max_retries: int = field(
         default_factory=lambda: int(os.getenv("LLM_MAX_RETRIES", "3"))

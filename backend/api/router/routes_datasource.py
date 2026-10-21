@@ -10,6 +10,7 @@ from backend.contracts.candidate_rule import CandidateRule
 from backend.integrations.openmetadata.client import openmetadata_client
 from backend.integrations.openmetadata_publisher import openmetadata_publisher
 from backend.storage.db_service import db_service
+from backend.storage.rule_repository import rule_repository
 
 
 router = APIRouter(prefix=settings.api_prefix, tags=["datasource"])
@@ -106,7 +107,6 @@ def publish_rules(req: PublishRequest):
         target_rules = [r for r in req.rules if r.status in ["ACCEPTED", "EDITED"]]
     elif req.rule_ids and len(req.rule_ids) > 0:
         # Lấy rules từ review service
-        from backend.storage.rule_repository import rule_repository
         for rid in req.rule_ids:
             stored = rule_repository.get_rule(rid)
             if stored and stored.get("status") in ["ACCEPTED", "EDITED"]:
@@ -118,4 +118,14 @@ def publish_rules(req: PublishRequest):
         tier=req.tier,
         table_fqn=req.table_fqn
     )
+
+    # PostgreSQL is the source of truth for recommendation status. Only rules
+    # confirmed by OpenMetadata are transitioned; failed rules stay reviewable.
+    applied_rule_ids: List[str] = []
+    for published_case in result.get("published_test_cases", []):
+        rule_id = published_case.get("rule_id")
+        if rule_id and rule_repository.update_status(rule_id, "APPLIED"):
+            applied_rule_ids.append(rule_id)
+    result["applied_rule_ids"] = applied_rule_ids
+
     return result

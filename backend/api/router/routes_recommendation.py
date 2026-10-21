@@ -34,6 +34,18 @@ class GenerateRequest(BaseModel):
     engines: List[str] = Field(default_factory=lambda: ["BASIC"])
 
 
+@router.get("/rules/saved")
+def get_saved_rules():
+    """List persisted recommendations without starting generation."""
+    try:
+        return rule_repository.list_saved_rules()
+    except Exception as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="PostgreSQL rule storage is unavailable",
+        ) from exc
+
+
 @router.post("/recommendations/generate")
 def generate_recommendations(req: GenerateRequest):
     """Sinh recommendations cho một table.

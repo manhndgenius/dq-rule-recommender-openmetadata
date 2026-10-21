@@ -51,7 +51,7 @@ def test_migration_is_current_and_creates_only_two_application_tables():
             )
             tables = [row[0] for row in cursor.fetchall()]
 
-    assert tables == ["dq_rules", "nt_rule_configs", "schema_migrations"]
+    assert tables == ["dq_rules", "dq_schema_migrations", "nt_rule_configs"]
 
 
 def test_rule_survives_reload_and_review_state_survives_regeneration(repository):

@@ -3,6 +3,7 @@ import uuid
 import re
 import json
 import hashlib
+import urllib.parse
 from typing import List, Dict, Any, Optional
 import requests
 
@@ -55,6 +56,45 @@ class OpenMetadataPublisher:
         if self.token:
             headers["Authorization"] = f"Bearer {self.token}"
         return headers
+
+    def _upsert_test_case(
+        self,
+        payload: Dict[str, Any],
+        table_fqn: str,
+    ):
+        """Create a missing TestCase, otherwise update the existing one.
+
+        OpenMetadata 1.12.13's PUT authorization path resolves the TestCase
+        before create-or-update. With a bot identity this can return 404 when
+        the TestCase does not exist, so creation must use POST explicitly.
+        """
+        test_case_fqn = f"{table_fqn}.{payload['name']}"
+        encoded_fqn = urllib.parse.quote(test_case_fqn, safe="")
+        lookup_url = (
+            f"{self.server_url}/dataQuality/testCases/name/{encoded_fqn}"
+        )
+        collection_url = f"{self.server_url}/dataQuality/testCases"
+
+        lookup = requests.get(
+            lookup_url,
+            headers=self._get_headers(),
+            timeout=self.timeout,
+        )
+        if lookup.status_code == 404:
+            return requests.post(
+                collection_url,
+                headers=self._get_headers(),
+                json=payload,
+                timeout=self.timeout,
+            )
+        if lookup.status_code == 200:
+            return requests.put(
+                collection_url,
+                headers=self._get_headers(),
+                json=payload,
+                timeout=self.timeout,
+            )
+        return lookup
 
     def _sanitize_name(self, name: str) -> str:
         """Chuẩn hóa name theo quy tắc ký tự của OpenMetadata"""
@@ -318,8 +358,6 @@ class OpenMetadataPublisher:
         published_cases = []
         failed_cases = []
 
-        url = f"{self.server_url}/dataQuality/testCases"
-
         for r in publishable_rules:
             # Build payload first to validate
             payload, build_error = self.build_test_case_payload(r, table_fqn)
@@ -357,7 +395,7 @@ class OpenMetadataPublisher:
 
             # Publish to OpenMetadata
             try:
-                resp = requests.put(url, headers=self._get_headers(), json=payload, timeout=self.timeout)
+                resp = self._upsert_test_case(payload, table_fqn)
                 if resp.status_code in [200, 201]:
                     data = resp.json()
                     published_cases.append({

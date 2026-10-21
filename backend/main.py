@@ -19,6 +19,8 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from backend.config.settings import settings
+
 
 def create_app() -> FastAPI:
     """Tạo FastAPI application."""
@@ -32,10 +34,7 @@ def create_app() -> FastAPI:
     )
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[
-            "http://localhost:3000",
-            "http://localhost:5173",
-        ],
+        allow_origins=settings.cors_origins,
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
         allow_headers=["Authorization", "Content-Type", "Accept"],

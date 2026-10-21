@@ -14,15 +14,30 @@ class Settings(BaseModel):
 
     # OpenMetadata connection config
     om_api_raw: str = os.getenv("OM_API", "")
-    openmetadata_jwt_token: str = os.getenv("OM_TOKEN", "")
+    # Service-to-service calls must use the OpenMetadata bot identity.
+    # OM_TOKEN remains a compatibility fallback for older deployments.
+    openmetadata_jwt_token: str = os.getenv("BOT_TOKEN", "").strip()
     postgres_host: str = os.getenv("POSTGRES_HOST", "localhost")
     postgres_port: int = int(os.getenv("POSTGRES_PORT", "5432"))
     postgres_user: str = os.getenv("POSTGRES_USER", "postgres")
     postgres_password: str = os.getenv("POSTGRES_PASSWORD", "")
     postgres_db: str = os.getenv("POSTGRES_DB", "dq_rules")
+    postgres_sslmode: str = os.getenv("POSTGRES_SSLMODE", "prefer")
     postgres_connect_timeout: int = int(
         os.getenv("POSTGRES_CONNECT_TIMEOUT", "5")
     )
+    cors_origins_raw: str = os.getenv(
+        "CORS_ORIGINS",
+        "http://localhost:3000,http://localhost:5173,http://localhost:8585",
+    )
+
+    @property
+    def cors_origins(self) -> list[str]:
+        return [
+            origin.strip()
+            for origin in self.cors_origins_raw.split(",")
+            if origin.strip()
+        ]
 
     @property
     def openmetadata_base_url(self) -> str:

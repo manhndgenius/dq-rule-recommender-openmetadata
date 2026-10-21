@@ -9,6 +9,7 @@ from backend.storage.db_service import DatabaseService
 
 
 MIGRATIONS_DIR = Path(__file__).resolve().parents[2] / "migrations"
+MIGRATION_TABLE = "dq_schema_migrations"
 
 
 class MigrationRunner:
@@ -29,13 +30,13 @@ class MigrationRunner:
             with connection.cursor() as cursor:
                 cursor.execute(
                     """
-                    CREATE TABLE IF NOT EXISTS schema_migrations (
+                    CREATE TABLE IF NOT EXISTS dq_schema_migrations (
                         version VARCHAR(255) PRIMARY KEY,
                         applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
                     )
                     """
                 )
-                cursor.execute("SELECT version FROM schema_migrations")
+                cursor.execute(f"SELECT version FROM {MIGRATION_TABLE}")
                 completed = {row[0] for row in cursor.fetchall()}
 
                 for migration in self.migration_files():
@@ -44,7 +45,7 @@ class MigrationRunner:
                         continue
                     cursor.execute(migration.read_text(encoding="utf-8"))
                     cursor.execute(
-                        "INSERT INTO schema_migrations(version) VALUES (%s)",
+                        f"INSERT INTO {MIGRATION_TABLE}(version) VALUES (%s)",
                         (version,),
                     )
                     applied.append(version)
@@ -54,10 +55,13 @@ class MigrationRunner:
         files = [migration.name for migration in self.migration_files()]
         with self.database.connection() as connection:
             with connection.cursor() as cursor:
-                cursor.execute("SELECT to_regclass('public.schema_migrations')")
+                cursor.execute(
+                    "SELECT to_regclass(%s)",
+                    (f"public.{MIGRATION_TABLE}",),
+                )
                 if cursor.fetchone()[0] is None:
                     return files
-                cursor.execute("SELECT version FROM schema_migrations")
+                cursor.execute(f"SELECT version FROM {MIGRATION_TABLE}")
                 completed = {row[0] for row in cursor.fetchall()}
         return [version for version in files if version not in completed]
 

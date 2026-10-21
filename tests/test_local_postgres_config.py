@@ -26,6 +26,7 @@ def test_backend_example_matches_local_postgres_compose():
 
     assert backend_env["POSTGRES_HOST"] == "127.0.0.1"
     assert backend_env["POSTGRES_PORT"] == "5433"
+    assert backend_env["POSTGRES_SSLMODE"] == "disable"
     assert '"5433:5432"' in compose
     assert backend_env["POSTGRES_DB"] == database_env["POSTGRES_DB"]
     assert backend_env["POSTGRES_USER"] == database_env["POSTGRES_USER"]

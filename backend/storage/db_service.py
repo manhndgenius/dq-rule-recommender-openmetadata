@@ -23,6 +23,7 @@ class DatabaseService:
             'user': getattr(settings, 'postgres_user', 'postgres'),
             'password': getattr(settings, 'postgres_password', 'postgres'),
             'database': getattr(settings, 'postgres_db', 'dq_rules'),
+            'sslmode': getattr(settings, 'postgres_sslmode', 'prefer'),
         }
 
     def _get_connection(self):
