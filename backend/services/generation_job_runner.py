@@ -10,10 +10,12 @@ from typing import Dict, List
 from backend.contracts.generation import RuleEngine
 from backend.contracts.generation_job import JobItem, JobItemStatus
 from backend.engine.adapters import (
+    AdvancedGenerationAdapter,
     BasicGenerationAdapter,
 )
 from backend.integrations.openmetadata.client import openmetadata_client
 from backend.services.generation_service import GenerationService
+from backend.services.heavy_job_coordinator import heavy_job_coordinator
 from backend.storage.generation_job_store import (
     GenerationJobStore,
     generation_job_store,
@@ -23,44 +25,37 @@ logger = logging.getLogger(__name__)
 
 
 class GenerationJobRunner:
-    # Global caps apply across all concurrently running jobs.
-    _global_metadata = asyncio.Semaphore(4)
-    _global_engine = {
-        RuleEngine.BASIC: asyncio.Semaphore(8),
-    }
-
     def __init__(self, store: GenerationJobStore = generation_job_store):
         self.store = store
         self.generation_service = GenerationService({
             RuleEngine.BASIC: BasicGenerationAdapter(),
+            RuleEngine.ADVANCED: AdvancedGenerationAdapter(),
         })
 
     async def run(self, job_id: str) -> None:
+        async with heavy_job_coordinator.slot(job_id, "GENERATION"):
+            await self._run_sequentially(job_id)
+
+    async def _run_sequentially(self, job_id: str) -> None:
         job = self.store.get(job_id)
         if not job:
             return
         self.store.start_job(job_id)
-        local_metadata = asyncio.Semaphore(job.concurrency.metadata)
-        local_engine = {
-            RuleEngine.BASIC: asyncio.Semaphore(job.concurrency.basic),
-        }
         grouped: Dict[str, List[JobItem]] = defaultdict(list)
         for item in job.items:
             if item.status == JobItemStatus.PENDING:
                 grouped[item.table_fqn].append(item)
 
         try:
-            await asyncio.gather(*(
-                self._run_table(
+            # Strictly process one table at a time. Within a table, engines are
+            # also processed sequentially in the order requested by the user.
+            for table_fqn, items in grouped.items():
+                await self._run_table(
                     job_id,
                     table_fqn,
                     items,
                     job.options,
-                    local_metadata,
-                    local_engine,
                 )
-                for table_fqn, items in grouped.items()
-            ))
         finally:
             self.store.finish_job(job_id)
 
@@ -70,15 +65,12 @@ class GenerationJobRunner:
         table_fqn: str,
         items: List[JobItem],
         options,
-        local_metadata: asyncio.Semaphore,
-        local_engine: Dict[RuleEngine, asyncio.Semaphore],
     ) -> None:
         try:
-            async with self._global_metadata, local_metadata:
-                context = await asyncio.to_thread(
-                    openmetadata_client.get_table_context,
-                    table_fqn,
-                )
+            context = await asyncio.to_thread(
+                openmetadata_client.get_table_context,
+                table_fqn,
+            )
         except Exception as exc:
             for item in items:
                 self.store.start_item(job_id, item.item_id)
@@ -90,16 +82,13 @@ class GenerationJobRunner:
                 )
             return
 
-        await asyncio.gather(*(
-            self._run_item(
+        for item in items:
+            await self._run_item(
                 job_id,
                 item,
                 context,
                 options,
-                local_engine[item.engine],
             )
-            for item in items
-        ))
 
     async def _run_item(
         self,
@@ -107,18 +96,16 @@ class GenerationJobRunner:
         item: JobItem,
         context,
         options,
-        local_semaphore: asyncio.Semaphore,
     ) -> None:
         self.store.start_item(job_id, item.item_id)
         try:
-            async with self._global_engine[item.engine], local_semaphore:
-                result = await self.generation_service.generate(
-                    context=context,
-                    table_fqn=item.table_fqn,
-                    engine=item.engine,
-                    options=options,
-                    persist=True,
-                )
+            result = await self.generation_service.generate(
+                context=context,
+                table_fqn=item.table_fqn,
+                engine=item.engine,
+                options=options,
+                persist=True,
+            )
             status = JobItemStatus(result.status)
             self.store.finish_item(
                 job_id,

@@ -1,3 +1,5 @@
+import asyncio
+
 import pytest
 from fastapi import BackgroundTasks
 from pydantic import ValidationError
@@ -19,6 +21,10 @@ from backend.api.router.routes_generation_jobs import retry_generation_job
 from backend.integrations.openmetadata import client as client_module
 from backend.integrations.openmetadata.client import OpenMetadataClient
 from backend.services.scope_resolver import ScopeResolver
+from backend.services.generation_job_runner import (
+    GenerationJobRunner,
+    generation_job_runner,
+)
 from backend.storage.generation_job_store import (
     GenerationJobStore,
     generation_job_store,
@@ -126,12 +132,67 @@ def test_retry_creates_new_job_with_only_failed_items():
     assert summary.status == JobStatus.PENDING
 
 
-def test_generation_job_rejects_non_basic_engines():
-    with pytest.raises(ValidationError, match="Only the BASIC rule engine"):
+def test_generation_job_accepts_advanced_but_rejects_statistical():
+    request = CreateGenerationJobRequest(
+        scope=TablesTargetScope(table_fqns=["svc.db.schema.t1"]),
+        engines=[RuleEngine.BASIC, RuleEngine.ADVANCED],
+    )
+    assert request.engines == [RuleEngine.BASIC, RuleEngine.ADVANCED]
+    assert request.concurrency.advanced == 1
+
+    with pytest.raises(
+        ValidationError,
+        match="Only the BASIC and ADVANCED rule engines",
+    ):
         CreateGenerationJobRequest(
             scope=TablesTargetScope(table_fqns=["svc.db.schema.t1"]),
             engines=[RuleEngine.STATISTICAL],
         )
+
+
+def test_generation_job_runner_registers_go_live_engines_only():
+    assert set(generation_job_runner.generation_service.adapters) == {
+        RuleEngine.BASIC,
+        RuleEngine.ADVANCED,
+    }
+
+
+def test_generation_job_runner_processes_tables_and_engines_sequentially(
+    monkeypatch,
+):
+    store = GenerationJobStore()
+    request = CreateGenerationJobRequest(
+        scope=TablesTargetScope(
+            table_fqns=["svc.db.schema.t1", "svc.db.schema.t2"]
+        ),
+        engines=[RuleEngine.BASIC, RuleEngine.ADVANCED],
+    )
+    job = store.create(
+        request,
+        ["svc.db.schema.t1", "svc.db.schema.t2"],
+    )
+    runner = GenerationJobRunner(store)
+    calls = []
+
+    async def fake_run_table(job_id, table_fqn, items, options):
+        calls.append((table_fqn, [item.engine for item in items]))
+        for item in items:
+            store.start_item(job_id, item.item_id)
+            store.finish_item(
+                job_id,
+                item.item_id,
+                JobItemStatus.SUCCESS,
+                generated_count=1,
+            )
+
+    monkeypatch.setattr(runner, "_run_table", fake_run_table)
+    asyncio.run(runner.run(job.job_id))
+
+    assert calls == [
+        ("svc.db.schema.t1", [RuleEngine.BASIC, RuleEngine.ADVANCED]),
+        ("svc.db.schema.t2", [RuleEngine.BASIC, RuleEngine.ADVANCED]),
+    ]
+    assert store.summary(job.job_id).status == JobStatus.SUCCESS
 
 
 def test_scope_resolver_expands_multiple_schemas_and_deduplicates():

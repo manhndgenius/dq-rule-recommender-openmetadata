@@ -46,8 +46,10 @@ def create_app() -> FastAPI:
     app.include_router(routes_recommendation.router)
     app.include_router(routes_review.router)
     app.include_router(routes_evaluation.router)
-    app.include_router(routes_advanced_rules.router)
-    app.include_router(routes_statistical_rules.router)
+    if settings.enable_advanced_rules:
+        app.include_router(routes_advanced_rules.router)
+    if settings.enable_statistical_rules:
+        app.include_router(routes_statistical_rules.router)
     app.include_router(routes_test_cases.router)
     app.include_router(routes_target_scopes.router)
     app.include_router(routes_generation_jobs.router)

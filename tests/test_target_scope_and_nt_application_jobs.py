@@ -35,7 +35,7 @@ def test_shared_scope_preview_returns_server_resolved_snapshot(monkeypatch):
     ]
 
 
-def test_candidate_preview_accepts_basic_only(monkeypatch):
+def test_candidate_preview_accepts_basic_and_advanced(monkeypatch):
     monkeypatch.setattr(
         routes_target_scopes.scope_resolver,
         "resolve",
@@ -47,18 +47,21 @@ def test_candidate_preview_accepts_basic_only(monkeypatch):
     }
     response = client.post(
         "/api/v1/recommendation-jobs/preview",
-        json={**base_payload, "engines": ["BASIC"]},
+        json={**base_payload, "engines": ["BASIC", "ADVANCED"]},
     )
     assert response.status_code == 200
-    assert response.json()["total_items"] == 1
-    assert response.json()["estimated_llm_calls"] == {"BASIC": 0}
+    assert response.json()["total_items"] == 2
+    assert response.json()["estimated_llm_calls"] == {
+        "BASIC": 0,
+        "ADVANCED": 4,
+    }
 
     response = client.post(
         "/api/v1/recommendation-jobs/preview",
         json={**base_payload, "engines": ["STATISTICAL"]},
     )
     assert response.status_code == 422
-    assert "Only the BASIC rule engine" in response.text
+    assert "Only the BASIC and ADVANCED rule engines" in response.text
 
 
 def test_empty_selection_is_rejected_instead_of_meaning_all_tables():
@@ -114,3 +117,5 @@ def test_new_job_routes_are_registered():
     assert "/api/v1/recommendation-jobs" in paths
     assert "/api/v1/nt-application-jobs" in paths
     assert "/api/v1/nt-application-jobs/{job_id}" in paths
+    assert "/api/v1/advanced-rules/recommend" in paths
+    assert "/api/v1/recommendations/statistical/generate" not in paths

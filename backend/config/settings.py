@@ -8,6 +8,13 @@ env_path = Path(__file__).resolve().parents[1] / ".env"
 load_dotenv(dotenv_path=env_path)
 
 
+def _env_bool(name: str, default: bool) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
 class Settings(BaseModel):
     app_env: str = os.getenv("APP_ENV", "development")
     api_prefix: str = "/api/v1"
@@ -30,6 +37,8 @@ class Settings(BaseModel):
         "CORS_ORIGINS",
         "http://localhost:3000,http://localhost:5173,http://localhost:8585",
     )
+    enable_advanced_rules: bool = _env_bool("ENABLE_ADVANCED_RULES", True)
+    enable_statistical_rules: bool = _env_bool("ENABLE_STATISTICAL_RULES", False)
 
     @property
     def cors_origins(self) -> list[str]:

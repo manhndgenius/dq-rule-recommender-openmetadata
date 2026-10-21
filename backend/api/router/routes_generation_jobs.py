@@ -34,7 +34,12 @@ async def preview_generation_job(
     request: CreateGenerationJobRequest,
 ) -> PreviewResponse:
     tables = await _resolve_tables(request)
-    estimates = {RuleEngine.BASIC.value: 0}
+    estimates = {
+        engine.value: (
+            len(tables) * 4 if engine == RuleEngine.ADVANCED else 0
+        )
+        for engine in request.engines
+    }
     return PreviewResponse(
         scope=request.scope,
         total_tables=len(tables),

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import Mapping
 
 from backend.contracts.generation import (
@@ -60,7 +61,8 @@ class GenerationService:
         generation_cache.save(table_fqn, engine.value, result.rules)
         if persist and result.rules:
             try:
-                rule_repository.save_rules(
+                await asyncio.to_thread(
+                    rule_repository.save_rules,
                     table_fqn=table_fqn,
                     engine=engine.value,
                     rules=[rule.model_dump() for rule in result.rules],

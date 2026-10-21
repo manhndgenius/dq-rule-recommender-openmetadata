@@ -18,8 +18,11 @@ from backend.contracts.target_scope import TargetScope
 
 
 class BulkConcurrency(BaseModel):
-    metadata: int = Field(default=4, ge=1, le=8)
-    basic: int = Field(default=8, ge=1, le=16)
+    # Kept in the request contract for backward compatibility. Bulk jobs are
+    # intentionally executed one table and one engine at a time.
+    metadata: int = Field(default=1, ge=1, le=8)
+    basic: int = Field(default=1, ge=1, le=16)
+    advanced: int = Field(default=1, ge=1, le=4)
 
 
 class CreateGenerationJobRequest(BaseModel):
@@ -29,12 +32,14 @@ class CreateGenerationJobRequest(BaseModel):
     concurrency: BulkConcurrency = Field(default_factory=BulkConcurrency)
 
     @model_validator(mode="after")
-    def validate_basic_only(self):
+    def validate_go_live_engines(self):
         self.engines = list(dict.fromkeys(self.engines))
-        unsupported = [engine.value for engine in self.engines if engine != RuleEngine.BASIC]
+        enabled = {RuleEngine.BASIC, RuleEngine.ADVANCED}
+        unsupported = [engine.value for engine in self.engines if engine not in enabled]
         if unsupported:
             raise ValueError(
-                "Only the BASIC rule engine is enabled for go-live; unsupported engines: "
+                "Only the BASIC and ADVANCED rule engines are enabled for go-live; "
+                "unsupported engines: "
                 + ", ".join(unsupported)
             )
         return self

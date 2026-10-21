@@ -1,5 +1,6 @@
 """API routes cho Test Cases."""
 
+import asyncio
 import hashlib
 import logging
 from fastapi import APIRouter, HTTPException
@@ -32,6 +33,13 @@ async def get_test_definitions():
 
 @router.post("/{table_fqn}/test-cases/default")
 async def create_default_test_cases(table_fqn: str):
+    # The OpenMetadata client uses synchronous requests. Run the complete
+    # table operation outside the event loop so a slow write cannot freeze all
+    # FastAPI endpoints while the background job continues.
+    return await asyncio.to_thread(_create_default_test_cases_sync, table_fqn)
+
+
+def _create_default_test_cases_sync(table_fqn: str):
     """
     Tạo native NT Test Cases từ tất cả enabled NT Test Definitions.
 

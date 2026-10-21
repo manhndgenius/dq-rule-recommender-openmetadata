@@ -8,6 +8,7 @@ from backend.storage.nt_application_job_store import (
     NtApplicationJobStore,
     nt_application_job_store,
 )
+from backend.services.heavy_job_coordinator import heavy_job_coordinator
 
 
 logger = logging.getLogger(__name__)
@@ -18,6 +19,10 @@ class NtApplicationJobRunner:
         self.store = store
 
     async def run(self, job_id: str) -> None:
+        async with heavy_job_coordinator.slot(job_id, "NT_APPLICATION"):
+            await self._run_sequentially(job_id)
+
+    async def _run_sequentially(self, job_id: str) -> None:
         job = self.store.get(job_id)
         if not job:
             return
