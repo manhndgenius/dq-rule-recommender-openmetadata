@@ -18,17 +18,19 @@ logger = logging.getLogger(__name__)
 class AdvancedRuleRouter:
     """Router phát hiện các loại advanced rule tiềm năng trong bảng."""
 
-    def __init__(self, llm_client: LLMClient, prompt_file: str = "advanced_router_3.md"):
+    def __init__(self, llm_client: LLMClient, prompt_file: str | None = None):
         """Khởi tạo router.
 
         Args:
             llm_client: LLM client để gọi API.
             prompt_file: Tên file prompt trong prompts/ (không có đường dẫn).
-                       Ví dụ: "advanced_router.md" hoặc "advanced_router_2.md"
+                       Có thể set qua env ROUTER_PROMPT_FILE, mặc định là advanced_router_3.md.
         """
+        import os
+        selected_prompt = prompt_file or os.getenv("ROUTER_PROMPT_FILE", "advanced_router_3.md")
         self._llm = llm_client
-        self._prompt_path = Path(__file__).parent.parent / "prompts" / prompt_file
-        self._prompt_file = prompt_file
+        self._prompt_path = Path(__file__).parent.parent / "prompts" / selected_prompt
+        self._prompt_file = selected_prompt
 
     def _load_prompt(self) -> str:
         """Load router prompt template."""
@@ -160,6 +162,8 @@ class AdvancedRuleRouter:
         """Post-validate các candidates từ router.
 
         - Loại bỏ candidates có column không hợp lệ
+        - Loại bỏ candidates không đủ số lượng cột tối thiểu (Arity Check)
+        - Loại bỏ candidates trùng với existing_rules
         - Loại bỏ duplicate candidates
         - Sắp xếp theo confidence giảm dần
 
@@ -171,26 +175,57 @@ class AdvancedRuleRouter:
             RouterResult đã được validate.
         """
         valid_column_names = {col.name for col in full_context.columns}
+
+        # Guardrail: Trích xuất signature của các existing rules đã có trên bảng
+        existing_signatures = set()
+        for r in getattr(full_context, "existing_rules", []) or []:
+            if isinstance(r, dict):
+                r_type = str(r.get("rule_type") or r.get("test_definition") or "").upper()
+                cols = r.get("columns") or ([r.get("column_name")] if r.get("column_name") else [])
+                if r_type and cols:
+                    existing_signatures.add((r_type, tuple(sorted(str(c) for c in cols if c))))
+            elif isinstance(r, str):
+                existing_signatures.add(r.upper().strip())
+
         valid_candidates = []
 
         for candidate in result.candidates:
-            # Validate columns tồn tại
+            # 1. Validate columns tồn tại
             invalid_cols = [
                 col for col in candidate.relevant_columns if col not in valid_column_names
             ]
             if invalid_cols:
                 logger.warning(
-                    f"Loại bỏ candidate {candidate.rule_type}: "
-                    f"columns không hợp lệ {invalid_cols}"
+                    f"[GUARDRAIL CHẶN] Loại bỏ candidate {candidate.rule_type}: "
+                    f"Cột không tồn tại trong bảng: {invalid_cols}"
                 )
                 continue
 
-            # Loại bỏ duplicate columns trong candidate
+            # 2. Loại bỏ duplicate columns trong candidate
             candidate.relevant_columns = list(set(candidate.relevant_columns))
+
+            # 3. Guardrail: Arity check - kiểm tra số lượng cột tối thiểu
+            rule_type_upper = str(candidate.rule_type).upper()
+            if rule_type_upper in ("TEMPORAL", "CROSS_COLUMN", "CONDITIONAL_DEPENDENCY"):
+                if len(candidate.relevant_columns) < 2:
+                    logger.warning(
+                        f"[GUARDRAIL CHẶN] Loại bỏ candidate {candidate.rule_type}: "
+                        f"Thiếu cột so sánh (yêu cầu >= 2 cột, chỉ có {len(candidate.relevant_columns)}: {candidate.relevant_columns})"
+                    )
+                    continue
+
+            # 4. Guardrail: Loại bỏ candidate đã tồn tại trong existing_rules
+            candidate_sig = (rule_type_upper, tuple(sorted(candidate.relevant_columns)))
+            if candidate_sig in existing_signatures:
+                logger.warning(
+                    f"[GUARDRAIL CHẶN] Loại bỏ candidate {candidate.rule_type}: "
+                    f"Đã tồn tại trong existing_rules của bảng: {candidate.relevant_columns}"
+                )
+                continue
 
             valid_candidates.append(candidate)
 
-        # Loại bỏ exact duplicate candidates
+        # 5. Loại bỏ exact duplicate candidates
         seen = set()
         unique_candidates = []
         for candidate in valid_candidates:
@@ -199,7 +234,7 @@ class AdvancedRuleRouter:
                 seen.add(key)
                 unique_candidates.append(candidate)
 
-        # Sắp xếp theo confidence giảm dần
+        # 6. Sắp xếp theo confidence giảm dần
         unique_candidates.sort(key=lambda c: c.confidence, reverse=True)
 
         return RouterResult(candidates=unique_candidates)

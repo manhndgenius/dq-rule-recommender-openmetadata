@@ -21,6 +21,12 @@ class ReviewService:
         rule.status = request.action
         if request.action == "EDITED" and request.edited_parameters:
             rule.edited_parameters = request.edited_parameters
+            rule.parameters = request.edited_parameters
+            if rule.rule_type == "columnValuesToBeInSet":
+                allowed = request.edited_parameters.get("allowedValues")
+                if isinstance(allowed, list) and len(allowed) > 0:
+                    rule.validation_status = "VALID"
+                    rule.validation_message = None
         return rule
 
     def list_candidates(self) -> list[CandidateRule]:

@@ -276,15 +276,48 @@ class RuleRepository:
         self.ensure_schema()
         with self._connection() as conn:
             with conn.cursor() as cursor:
-                cursor.execute(
-                    "UPDATE dq_rules SET status=%s, edited_parameters=COALESCE(%s,edited_parameters), "
-                    "updated_at=CURRENT_TIMESTAMP WHERE rule_id=%s",
-                    (
-                        status,
-                        self._json(edited_parameters, {}) if edited_parameters is not None else None,
-                        rule_id,
-                    ),
-                )
+                is_valid_in_set = False
+                if edited_parameters and isinstance(edited_parameters, dict):
+                    allowed = edited_parameters.get("allowedValues")
+                    if isinstance(allowed, list) and len(allowed) > 0:
+                        is_valid_in_set = True
+
+                if is_valid_in_set:
+                    cursor.execute(
+                        """
+                        UPDATE dq_rules 
+                        SET status=%s, 
+                            edited_parameters=COALESCE(%s, edited_parameters),
+                            parameters=COALESCE(%s, parameters),
+                            validation_status='VALID',
+                            validation_message=NULL,
+                            updated_at=CURRENT_TIMESTAMP 
+                        WHERE rule_id=%s
+                        """,
+                        (
+                            status,
+                            self._json(edited_parameters, {}) if edited_parameters is not None else None,
+                            self._json(edited_parameters, {}) if edited_parameters is not None else None,
+                            rule_id,
+                        ),
+                    )
+                else:
+                    cursor.execute(
+                        """
+                        UPDATE dq_rules 
+                        SET status=%s, 
+                            edited_parameters=COALESCE(%s, edited_parameters),
+                            parameters=COALESCE(%s, parameters),
+                            updated_at=CURRENT_TIMESTAMP 
+                        WHERE rule_id=%s
+                        """,
+                        (
+                            status,
+                            self._json(edited_parameters, {}) if edited_parameters is not None else None,
+                            self._json(edited_parameters, {}) if edited_parameters is not None else None,
+                            rule_id,
+                        ),
+                    )
                 changed = cursor.rowcount > 0
             conn.commit()
         return changed

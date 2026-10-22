@@ -1,0 +1,2555 @@
+{
+  "title": "Unified Golden Set Ground Truth Rules (8 Healthcare Tables)",
+  "dataset": "Healthcare Synthea Dataset",
+  "description": "Standardized ground truth benchmark for evaluating data quality rule recommendations across 8 healthcare tables.",
+  "total_tables": 8,
+  "total_rules": 220,
+  "tables": [
+    "patients",
+    "observations",
+    "medications",
+    "encounters",
+    "conditions",
+    "procedures",
+    "allergies",
+    "immunizations"
+  ],
+  "table_breakdown": {
+    "patients": {
+      "total": 69,
+      "basic": 42,
+      "advanced": 27
+    },
+    "observations": {
+      "total": 18,
+      "basic": 11,
+      "advanced": 7
+    },
+    "medications": {
+      "total": 22,
+      "basic": 14,
+      "advanced": 8
+    },
+    "encounters": {
+      "total": 38,
+      "basic": 23,
+      "advanced": 15
+    },
+    "conditions": {
+      "total": 12,
+      "basic": 7,
+      "advanced": 5
+    },
+    "procedures": {
+      "total": 18,
+      "basic": 10,
+      "advanced": 8
+    },
+    "allergies": {
+      "total": 30,
+      "basic": 18,
+      "advanced": 12
+    },
+    "immunizations": {
+      "total": 13,
+      "basic": 8,
+      "advanced": 5
+    }
+  },
+  "rules": [
+    {
+      "rule_id": "GT_B_patients_001",
+      "table": "patients",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "id"
+      ],
+      "expression": "id IS NOT NULL",
+      "description": "Mã định danh UUID bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_patients_002",
+      "table": "patients",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeUnique",
+      "columns": [
+        "id"
+      ],
+      "expression": "COUNT(DISTINCT id) = COUNT(*)",
+      "description": "Không trùng lặp bệnh nhân"
+    },
+    {
+      "rule_id": "GT_B_patients_003",
+      "table": "patients",
+      "engine": "Basic",
+      "rule_type": "columnValuesLengthToBeBetween",
+      "columns": [
+        "id"
+      ],
+      "expression": "LENGTH(id) = 36",
+      "description": "Chuẩn UUIDv4 36 ký tự"
+    },
+    {
+      "rule_id": "GT_B_patients_004",
+      "table": "patients",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "birthdate"
+      ],
+      "expression": "birthdate IS NOT NULL",
+      "description": "Ngày sinh bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_patients_005",
+      "table": "patients",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "ssn"
+      ],
+      "expression": "ssn IS NOT NULL",
+      "description": "Số an sinh xã hội bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_patients_006",
+      "table": "patients",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeUnique",
+      "columns": [
+        "ssn"
+      ],
+      "expression": "COUNT(DISTINCT ssn) = COUNT(*)",
+      "description": "Mỗi bệnh nhân 1 số SSN duy nhất"
+    },
+    {
+      "rule_id": "GT_B_patients_007",
+      "table": "patients",
+      "engine": "Basic",
+      "rule_type": "columnValuesLengthToBeBetween",
+      "columns": [
+        "ssn"
+      ],
+      "expression": "LENGTH(ssn) = 11",
+      "description": "Định dạng SSN chuẩn 11 ký tự (XXX-XX-XXXX)"
+    },
+    {
+      "rule_id": "GT_B_patients_008",
+      "table": "patients",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "first"
+      ],
+      "expression": "first IS NOT NULL",
+      "description": "Tên bệnh nhân không được rỗng"
+    },
+    {
+      "rule_id": "GT_B_patients_009",
+      "table": "patients",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "last"
+      ],
+      "expression": "last IS NOT NULL",
+      "description": "Họ bệnh nhân không được rỗng"
+    },
+    {
+      "rule_id": "GT_B_patients_010",
+      "table": "patients",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "race"
+      ],
+      "expression": "race IS NOT NULL",
+      "description": "Chủng tộc bắt buộc khai báo"
+    },
+    {
+      "rule_id": "GT_B_patients_011",
+      "table": "patients",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeInSet",
+      "columns": [
+        "race"
+      ],
+      "expression": "race IN ('white','black','asian','native','other')",
+      "description": "Danh mục chủng tộc chuẩn CDC"
+    },
+    {
+      "rule_id": "GT_B_patients_012",
+      "table": "patients",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "ethnicity"
+      ],
+      "expression": "ethnicity IS NOT NULL",
+      "description": "Dân tộc bắt buộc khai báo"
+    },
+    {
+      "rule_id": "GT_B_patients_013",
+      "table": "patients",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeInSet",
+      "columns": [
+        "ethnicity"
+      ],
+      "expression": "ethnicity IN ('hispanic','nonhispanic')",
+      "description": "Phân loại nguồn gốc dân tộc"
+    },
+    {
+      "rule_id": "GT_B_patients_014",
+      "table": "patients",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "gender"
+      ],
+      "expression": "gender IS NOT NULL",
+      "description": "Giới tính sinh học bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_patients_015",
+      "table": "patients",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeInSet",
+      "columns": [
+        "gender"
+      ],
+      "expression": "gender IN ('M', 'F')",
+      "description": "Giới tính sinh học chuẩn FHIR"
+    },
+    {
+      "rule_id": "GT_B_patients_016",
+      "table": "patients",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "birthplace"
+      ],
+      "expression": "birthplace IS NOT NULL",
+      "description": "Nơi sinh bệnh nhân bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_patients_017",
+      "table": "patients",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "address"
+      ],
+      "expression": "address IS NOT NULL",
+      "description": "Địa chỉ thường trú không được rỗng"
+    },
+    {
+      "rule_id": "GT_B_patients_018",
+      "table": "patients",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "city"
+      ],
+      "expression": "city IS NOT NULL",
+      "description": "Thành phố cư trú bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_patients_019",
+      "table": "patients",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "state"
+      ],
+      "expression": "state IS NOT NULL",
+      "description": "Bang cư trú bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_patients_020",
+      "table": "patients",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "county"
+      ],
+      "expression": "county IS NOT NULL",
+      "description": "Quận/hạt cư trú bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_patients_021",
+      "table": "patients",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "zip"
+      ],
+      "expression": "zip IS NOT NULL",
+      "description": "Mã bưu điện bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_patients_022",
+      "table": "patients",
+      "engine": "Basic",
+      "rule_type": "columnValuesLengthToBeBetween",
+      "columns": [
+        "zip"
+      ],
+      "expression": "LENGTH(zip) = 5",
+      "description": "Chuẩn mã bưu chính Hoa Kỳ 5 số"
+    },
+    {
+      "rule_id": "GT_B_patients_023",
+      "table": "patients",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "lat"
+      ],
+      "expression": "lat IS NOT NULL",
+      "description": "Vĩ độ định vị GPS bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_patients_024",
+      "table": "patients",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeBetween",
+      "columns": [
+        "lat"
+      ],
+      "expression": "lat BETWEEN -90 AND 90",
+      "description": "Tọa độ vĩ độ hợp lệ toàn cầu"
+    },
+    {
+      "rule_id": "GT_B_patients_025",
+      "table": "patients",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "lon"
+      ],
+      "expression": "lon IS NOT NULL",
+      "description": "Kinh độ định vị GPS bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_patients_026",
+      "table": "patients",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeBetween",
+      "columns": [
+        "lon"
+      ],
+      "expression": "lon BETWEEN -180 AND 180",
+      "description": "Tọa độ kinh độ hợp lệ toàn cầu"
+    },
+    {
+      "rule_id": "GT_B_patients_027",
+      "table": "patients",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "healthcare_expenses"
+      ],
+      "expression": "healthcare_expenses IS NOT NULL",
+      "description": "Tổng chi phí y tế tích lũy bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_patients_028",
+      "table": "patients",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeBetween",
+      "columns": [
+        "healthcare_expenses"
+      ],
+      "expression": "healthcare_expenses >= 0",
+      "description": "Chi phí y tế tích lũy không âm"
+    },
+    {
+      "rule_id": "GT_B_patients_029",
+      "table": "patients",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "healthcare_coverage"
+      ],
+      "expression": "healthcare_coverage IS NOT NULL",
+      "description": "Hạn mức bảo hiểm chi trả bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_patients_030",
+      "table": "patients",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeBetween",
+      "columns": [
+        "healthcare_coverage"
+      ],
+      "expression": "healthcare_coverage >= 0",
+      "description": "Hạn mức bảo hiểm chi trả không âm"
+    },
+    {
+      "rule_id": "GT_B_patients_031",
+      "table": "patients",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "income"
+      ],
+      "expression": "income IS NOT NULL",
+      "description": "Thu nhập hộ gia đình bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_patients_032",
+      "table": "patients",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeBetween",
+      "columns": [
+        "income"
+      ],
+      "expression": "income >= 0",
+      "description": "Thu nhập không được âm"
+    },
+    {
+      "rule_id": "GT_B_patients_033",
+      "table": "patients",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeInSet",
+      "columns": [
+        "marital"
+      ],
+      "expression": "marital IN ('M','S','D','W')",
+      "description": "Tình trạng hôn nhân (Kết hôn, Độc thân, Ly hôn, Góa)"
+    },
+    {
+      "rule_id": "GT_B_patients_034",
+      "table": "patients",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeInSet",
+      "columns": [
+        "prefix"
+      ],
+      "expression": "prefix IN ('Mr.','Ms.','Mrs.','Dr.')",
+      "description": "Danh xưng chuẩn nhân xưng"
+    },
+    {
+      "rule_id": "GT_B_patients_035",
+      "table": "patients",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeInSet",
+      "columns": [
+        "suffix"
+      ],
+      "expression": "suffix IN ('PhD','JD','MD','II','III')",
+      "description": "Hậu tố chức danh/thế hệ"
+    },
+    {
+      "rule_id": "GT_B_patients_036",
+      "table": "patients",
+      "engine": "Basic",
+      "rule_type": "columnValuesLengthToBeBetween",
+      "columns": [
+        "drivers"
+      ],
+      "expression": "LENGTH(drivers) = 9",
+      "description": "Định dạng bằng lái xe chuẩn 9 ký tự"
+    },
+    {
+      "rule_id": "GT_B_patients_037",
+      "table": "patients",
+      "engine": "Basic",
+      "rule_type": "columnValuesLengthToBeBetween",
+      "columns": [
+        "passport"
+      ],
+      "expression": "LENGTH(passport) = 10",
+      "description": "Định dạng hộ chiếu chuẩn 10 ký tự"
+    },
+    {
+      "rule_id": "GT_B_patients_038",
+      "table": "patients",
+      "engine": "Basic",
+      "rule_type": "columnValuesLengthToBeBetween",
+      "columns": [
+        "fips"
+      ],
+      "expression": "LENGTH(fips) = 5",
+      "description": "Mã quận hạt chuẩn liên bang FIPS 5 số"
+    },
+    {
+      "rule_id": "GT_B_patients_039",
+      "table": "patients",
+      "engine": "Basic",
+      "rule_type": "tableRowCountToBeBetween",
+      "columns": [
+        "table"
+      ],
+      "expression": "COUNT(*) BETWEEN 100 AND 100000",
+      "description": "Số lượng bản ghi bệnh nhân tối thiểu"
+    },
+    {
+      "rule_id": "GT_B_patients_040",
+      "table": "patients",
+      "engine": "Basic",
+      "rule_type": "columnValuesLengthToBeBetween",
+      "columns": [
+        "county"
+      ],
+      "expression": "LENGTH(county) BETWEEN 2 AND 50",
+      "description": "Độ dài tên quận hạt hợp lệ"
+    },
+    {
+      "rule_id": "GT_B_patients_041",
+      "table": "patients",
+      "engine": "Basic",
+      "rule_type": "columnValuesLengthToBeBetween",
+      "columns": [
+        "birthplace"
+      ],
+      "expression": "LENGTH(birthplace) BETWEEN 2 AND 100",
+      "description": "Độ dài tên nơi sinh hợp lệ"
+    },
+    {
+      "rule_id": "GT_B_patients_042",
+      "table": "patients",
+      "engine": "Basic",
+      "rule_type": "columnValuesLengthToBeBetween",
+      "columns": [
+        "address"
+      ],
+      "expression": "LENGTH(address) BETWEEN 5 AND 100",
+      "description": "Độ dài địa chỉ cư trú hợp lệ"
+    },
+    {
+      "rule_id": "GT_A_patients_043",
+      "table": "patients",
+      "engine": "Advanced",
+      "rule_type": "TEMPORAL",
+      "columns": [
+        "birthdate",
+        "deathdate"
+      ],
+      "expression": "deathdate IS NULL OR deathdate >= birthdate",
+      "description": "Ngày mất phải sau hoặc bằng ngày sinh"
+    },
+    {
+      "rule_id": "GT_A_patients_044",
+      "table": "patients",
+      "engine": "Advanced",
+      "rule_type": "TEMPORAL",
+      "columns": [
+        "birthdate"
+      ],
+      "expression": "birthdate <= CURRENT_DATE",
+      "description": "Ngày sinh không thể ở tương lai"
+    },
+    {
+      "rule_id": "GT_A_patients_045",
+      "table": "patients",
+      "engine": "Advanced",
+      "rule_type": "TEMPORAL",
+      "columns": [
+        "deathdate"
+      ],
+      "expression": "deathdate IS NULL OR deathdate <= CURRENT_DATE",
+      "description": "Ngày mất không thể ở tương lai"
+    },
+    {
+      "rule_id": "GT_A_patients_046",
+      "table": "patients",
+      "engine": "Advanced",
+      "rule_type": "CROSS_COLUMN",
+      "columns": [
+        "state",
+        "county",
+        "fips"
+      ],
+      "expression": "(state, county) ánh xạ nhất quán tới 1 fips",
+      "description": "Nhất quán phân cấp địa lý hành chính"
+    },
+    {
+      "rule_id": "GT_A_patients_047",
+      "table": "patients",
+      "engine": "Advanced",
+      "rule_type": "CROSS_COLUMN",
+      "columns": [
+        "lat",
+        "lon",
+        "state"
+      ],
+      "expression": "Tọa độ GPS nằm trong ranh giới địa lý của bang",
+      "description": "Kiểm tra chéo tọa độ với địa chỉ hành chính"
+    },
+    {
+      "rule_id": "GT_A_patients_048",
+      "table": "patients",
+      "engine": "Advanced",
+      "rule_type": "CROSS_COLUMN",
+      "columns": [
+        "zip",
+        "city",
+        "state"
+      ],
+      "expression": "Mã ZIP tương thích với thành phố và bang",
+      "description": "Kiểm tra nhất quán mã bưu chính bưu điện"
+    },
+    {
+      "rule_id": "GT_A_patients_049",
+      "table": "patients",
+      "engine": "Advanced",
+      "rule_type": "CROSS_COLUMN",
+      "columns": [
+        "ssn"
+      ],
+      "expression": "ssn MATCHES '^\\d{3}-\\d{2}-\\d{4}$'",
+      "description": "Định dạng SSN đúng chuẩn regex phân cách dấu gạch ngang"
+    },
+    {
+      "rule_id": "GT_A_patients_050",
+      "table": "patients",
+      "engine": "Advanced",
+      "rule_type": "CROSS_COLUMN",
+      "columns": [
+        "first",
+        "last"
+      ],
+      "expression": "Tên và họ không chứa ký tự số đặc biệt",
+      "description": "Chuẩn hóa định dạng danh xưng công dân"
+    },
+    {
+      "rule_id": "GT_A_patients_051",
+      "table": "patients",
+      "engine": "Advanced",
+      "rule_type": "CONDITIONAL_DEPENDENCY",
+      "columns": [
+        "prefix",
+        "maiden"
+      ],
+      "expression": "prefix = 'Mrs.' -> maiden IS NOT NULL",
+      "description": "Phụ nữ có gia đình có tên thời con gái"
+    },
+    {
+      "rule_id": "GT_A_patients_052",
+      "table": "patients",
+      "engine": "Advanced",
+      "rule_type": "CONDITIONAL_DEPENDENCY",
+      "columns": [
+        "gender",
+        "prefix"
+      ],
+      "expression": "gender = 'M' -> prefix IN ('Mr.')",
+      "description": "Danh xưng nam giới chuẩn mực"
+    },
+    {
+      "rule_id": "GT_A_patients_053",
+      "table": "patients",
+      "engine": "Advanced",
+      "rule_type": "CONDITIONAL_DEPENDENCY",
+      "columns": [
+        "gender",
+        "prefix"
+      ],
+      "expression": "gender = 'F' -> prefix IN ('Ms.','Mrs.')",
+      "description": "Danh xưng nữ giới chuẩn mực"
+    },
+    {
+      "rule_id": "GT_A_patients_054",
+      "table": "patients",
+      "engine": "Advanced",
+      "rule_type": "CONDITIONAL_DEPENDENCY",
+      "columns": [
+        "maiden",
+        "gender"
+      ],
+      "expression": "maiden IS NOT NULL -> gender = 'F'",
+      "description": "Tên con gái chỉ áp dụng cho nữ giới"
+    },
+    {
+      "rule_id": "GT_A_patients_055",
+      "table": "patients",
+      "engine": "Advanced",
+      "rule_type": "CONDITIONAL_DEPENDENCY",
+      "columns": [
+        "maiden",
+        "marital"
+      ],
+      "expression": "maiden IS NOT NULL -> marital IN ('M','D','W')",
+      "description": "Người có tên thời con gái phải từng kết hôn"
+    },
+    {
+      "rule_id": "GT_A_patients_056",
+      "table": "patients",
+      "engine": "Advanced",
+      "rule_type": "CONDITIONAL_DEPENDENCY",
+      "columns": [
+        "prefix",
+        "marital"
+      ],
+      "expression": "prefix = 'Mrs.' -> marital IN ('M','D','W')",
+      "description": "Danh xưng Mrs. phải gắn với tình trạng kết hôn"
+    },
+    {
+      "rule_id": "GT_A_patients_057",
+      "table": "patients",
+      "engine": "Advanced",
+      "rule_type": "CONDITIONAL_DEPENDENCY",
+      "columns": [
+        "income",
+        "healthcare_coverage"
+      ],
+      "expression": "income > 0 -> healthcare_coverage >= 0",
+      "description": "Có thu nhập phải có ghi nhận bảo hiểm"
+    },
+    {
+      "rule_id": "GT_A_patients_058",
+      "table": "patients",
+      "engine": "Advanced",
+      "rule_type": "CONDITIONAL_DEPENDENCY",
+      "columns": [
+        "deathdate",
+        "birthdate"
+      ],
+      "expression": "deathdate IS NOT NULL -> deathdate >= birthdate",
+      "description": "Bệnh nhân qua đời phải có tuổi thọ hợp lý"
+    },
+    {
+      "rule_id": "GT_A_patients_059",
+      "table": "patients",
+      "engine": "Advanced",
+      "rule_type": "CONDITIONAL_DEPENDENCY",
+      "columns": [
+        "drivers",
+        "birthdate"
+      ],
+      "expression": "drivers IS NOT NULL -> AGE(birthdate) >= 16",
+      "description": "Có bằng lái xe phải từ 16 tuổi trở lên"
+    },
+    {
+      "rule_id": "GT_A_patients_060",
+      "table": "patients",
+      "engine": "Advanced",
+      "rule_type": "CONDITIONAL_DEPENDENCY",
+      "columns": [
+        "passport",
+        "birthdate"
+      ],
+      "expression": "passport IS NOT NULL -> birthdate <= CURRENT_DATE",
+      "description": "Hộ chiếu cấp cho công dân đã sinh ra"
+    },
+    {
+      "rule_id": "GT_A_patients_061",
+      "table": "patients",
+      "engine": "Advanced",
+      "rule_type": "CROSS_COLUMN",
+      "columns": [
+        "healthcare_expenses",
+        "healthcare_coverage"
+      ],
+      "expression": "healthcare_coverage <= healthcare_expenses * 1.5",
+      "description": "Bảo hiểm chi trả tương xứng với tổng chi phí"
+    },
+    {
+      "rule_id": "GT_A_patients_062",
+      "table": "patients",
+      "engine": "Advanced",
+      "rule_type": "CROSS_COLUMN",
+      "columns": [
+        "income"
+      ],
+      "expression": "income >= healthcare_expenses * 0.1",
+      "description": "Tương quan thu nhập và chi phí sinh hoạt y tế"
+    },
+    {
+      "rule_id": "GT_A_patients_063",
+      "table": "patients",
+      "engine": "Advanced",
+      "rule_type": "CONDITIONAL_DEPENDENCY",
+      "columns": [
+        "marital",
+        "gender"
+      ],
+      "expression": "marital = 'M' -> gender IN ('M','F')",
+      "description": "Ràng buộc pháp lý hôn nhân"
+    },
+    {
+      "rule_id": "GT_A_patients_064",
+      "table": "patients",
+      "engine": "Advanced",
+      "rule_type": "CROSS_COLUMN",
+      "columns": [
+        "fips",
+        "state",
+        "county"
+      ],
+      "expression": "1 fips không xuất hiện với nhiều state/county",
+      "description": "Tính duy nhất của mã quận hạt liên bang"
+    },
+    {
+      "rule_id": "GT_A_patients_065",
+      "table": "patients",
+      "engine": "Advanced",
+      "rule_type": "CROSS_COLUMN",
+      "columns": [
+        "drivers",
+        "state"
+      ],
+      "expression": "Bằng lái xe tương thích với bang cấp phát",
+      "description": "Quy chuẩn cấp phép lái xe theo tiểu bang"
+    },
+    {
+      "rule_id": "GT_A_patients_066",
+      "table": "patients",
+      "engine": "Advanced",
+      "rule_type": "CROSS_COLUMN",
+      "columns": [
+        "passport",
+        "ethnicity"
+      ],
+      "expression": "Công dân có hộ chiếu có nguồn gốc quốc tịch hợp lệ",
+      "description": "Nhất quán dữ liệu quốc tịch"
+    },
+    {
+      "rule_id": "GT_A_patients_067",
+      "table": "patients",
+      "engine": "Advanced",
+      "rule_type": "CROSS_COLUMN",
+      "columns": [
+        "lat",
+        "lon"
+      ],
+      "expression": "lat BETWEEN 24 AND 50 AND lon BETWEEN -125 AND -66",
+      "description": "Tọa độ nằm trong phạm vi lục địa Hoa Kỳ"
+    },
+    {
+      "rule_id": "GT_A_patients_068",
+      "table": "patients",
+      "engine": "Advanced",
+      "rule_type": "CONDITIONAL_DEPENDENCY",
+      "columns": [
+        "healthcare_expenses",
+        "income"
+      ],
+      "expression": "income = 0 -> healthcare_expenses <= 50000",
+      "description": "Trợ cấp y tế cho người không có thu nhập"
+    },
+    {
+      "rule_id": "GT_A_patients_069",
+      "table": "patients",
+      "engine": "Advanced",
+      "rule_type": "CONDITIONAL_DEPENDENCY",
+      "columns": [
+        "deathdate",
+        "marital"
+      ],
+      "expression": "deathdate IS NOT NULL -> marital IS NOT NULL",
+      "description": "Ghi nhận tình trạng hôn nhân trước khi qua đời"
+    },
+    {
+      "rule_id": "GT_B_observations_001",
+      "table": "observations",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "id"
+      ],
+      "expression": "id IS NOT NULL",
+      "description": "Mã chỉ số xét nghiệm bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_observations_002",
+      "table": "observations",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "date"
+      ],
+      "expression": "date IS NOT NULL",
+      "description": "Thời điểm đo lường không được rỗng"
+    },
+    {
+      "rule_id": "GT_B_observations_003",
+      "table": "observations",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "patient"
+      ],
+      "expression": "patient IS NOT NULL",
+      "description": "Bệnh nhân được xét nghiệm bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_observations_004",
+      "table": "observations",
+      "engine": "Basic",
+      "rule_type": "columnValuesLengthToBeBetween",
+      "columns": [
+        "patient"
+      ],
+      "expression": "LENGTH(patient) = 36",
+      "description": "Khóa ngoại bệnh nhân chuẩn UUID 36 ký tự"
+    },
+    {
+      "rule_id": "GT_B_observations_005",
+      "table": "observations",
+      "engine": "Basic",
+      "rule_type": "columnValuesLengthToBeBetween",
+      "columns": [
+        "encounter"
+      ],
+      "expression": "LENGTH(encounter) = 36",
+      "description": "Khóa ngoại đợt khám chuẩn UUID 36 ký tự"
+    },
+    {
+      "rule_id": "GT_B_observations_006",
+      "table": "observations",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "code"
+      ],
+      "expression": "code IS NOT NULL",
+      "description": "Mã xét nghiệm chuẩn LOINC bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_observations_007",
+      "table": "observations",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "description"
+      ],
+      "expression": "description IS NOT NULL",
+      "description": "Tên chỉ số xét nghiệm không được rỗng"
+    },
+    {
+      "rule_id": "GT_B_observations_008",
+      "table": "observations",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "value"
+      ],
+      "expression": "value IS NOT NULL",
+      "description": "Kết quả đo lường sinh hiệu bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_observations_009",
+      "table": "observations",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "type"
+      ],
+      "expression": "type IS NOT NULL",
+      "description": "Kiểu dữ liệu đo lường bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_observations_010",
+      "table": "observations",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeInSet",
+      "columns": [
+        "type"
+      ],
+      "expression": "type IN ('numeric', 'text')",
+      "description": "Phân loại kiểu đo: Số thực hoặc Văn bản"
+    },
+    {
+      "rule_id": "GT_B_observations_011",
+      "table": "observations",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeInSet",
+      "columns": [
+        "category"
+      ],
+      "expression": "category IN ('vital-signs','laboratory','social-history','survey','exam','procedure')",
+      "description": "Danh mục chỉ số đo lường chuẩn FHIR"
+    },
+    {
+      "rule_id": "GT_A_observations_012",
+      "table": "observations",
+      "engine": "Advanced",
+      "rule_type": "TEMPORAL",
+      "columns": [
+        "date"
+      ],
+      "expression": "date <= CURRENT_DATE",
+      "description": "Thời điểm đo không thể xảy ra trong tương lai"
+    },
+    {
+      "rule_id": "GT_A_observations_013",
+      "table": "observations",
+      "engine": "Advanced",
+      "rule_type": "CROSS_COLUMN",
+      "columns": [
+        "code",
+        "description"
+      ],
+      "expression": "Mỗi mã code LOINC ánh xạ duy nhất 1 description",
+      "description": "Tính nhất quán danh mục thuật ngữ xét nghiệm"
+    },
+    {
+      "rule_id": "GT_A_observations_014",
+      "table": "observations",
+      "engine": "Advanced",
+      "rule_type": "CROSS_COLUMN",
+      "columns": [
+        "encounter",
+        "patient"
+      ],
+      "expression": "Đợt khám encounter chỉ thuộc về 1 bệnh nhân patient duy nhất",
+      "description": "Nhất quán dữ liệu bệnh án đợt khám"
+    },
+    {
+      "rule_id": "GT_A_observations_015",
+      "table": "observations",
+      "engine": "Advanced",
+      "rule_type": "CROSS_COLUMN",
+      "columns": [
+        "code",
+        "type"
+      ],
+      "expression": "Mỗi mã xét nghiệm có kiểu dữ liệu type cố định",
+      "description": "Nhất quán kiểu dữ liệu đo lường theo chuẩn LOINC"
+    },
+    {
+      "rule_id": "GT_A_observations_016",
+      "table": "observations",
+      "engine": "Advanced",
+      "rule_type": "CONDITIONAL_DEPENDENCY",
+      "columns": [
+        "type",
+        "value"
+      ],
+      "expression": "type = 'numeric' -> IS_NUMERIC(value)",
+      "description": "Kết quả đo dạng số phải biểu diễn được dưới dạng số"
+    },
+    {
+      "rule_id": "GT_A_observations_017",
+      "table": "observations",
+      "engine": "Advanced",
+      "rule_type": "CROSS_COLUMN",
+      "columns": [
+        "code",
+        "units"
+      ],
+      "expression": "Mã xét nghiệm có đơn vị đo units cố định theo chuẩn LOINC",
+      "description": "Nhất quán đơn vị đo lường lab"
+    },
+    {
+      "rule_id": "GT_A_observations_018",
+      "table": "observations",
+      "engine": "Advanced",
+      "rule_type": "CROSS_COLUMN",
+      "columns": [
+        "date",
+        "patient"
+      ],
+      "expression": "Khoảng cách thời gian giữa các lần đo sinh hiệu hợp lý",
+      "description": "Tần suất đo lường sinh hiệu"
+    },
+    {
+      "rule_id": "GT_B_medications_001",
+      "table": "medications",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "id"
+      ],
+      "expression": "id IS NOT NULL",
+      "description": "Mã đơn thuốc bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_medications_002",
+      "table": "medications",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "start"
+      ],
+      "expression": "start IS NOT NULL",
+      "description": "Thời điểm bắt đầu kê đơn bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_medications_003",
+      "table": "medications",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "patient"
+      ],
+      "expression": "patient IS NOT NULL",
+      "description": "Bệnh nhân dùng thuốc bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_medications_004",
+      "table": "medications",
+      "engine": "Basic",
+      "rule_type": "columnValuesLengthToBeBetween",
+      "columns": [
+        "patient"
+      ],
+      "expression": "LENGTH(patient) = 36",
+      "description": "UUID bệnh nhân chuẩn 36 ký tự"
+    },
+    {
+      "rule_id": "GT_B_medications_005",
+      "table": "medications",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "payer"
+      ],
+      "expression": "payer IS NOT NULL",
+      "description": "Đơn vị bảo hiểm chi trả bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_medications_006",
+      "table": "medications",
+      "engine": "Basic",
+      "rule_type": "columnValuesLengthToBeBetween",
+      "columns": [
+        "payer"
+      ],
+      "expression": "LENGTH(payer) = 36",
+      "description": "UUID đơn vị bảo hiểm chuẩn 36 ký tự"
+    },
+    {
+      "rule_id": "GT_B_medications_007",
+      "table": "medications",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "encounter"
+      ],
+      "expression": "encounter IS NOT NULL",
+      "description": "Đợt khám kê đơn bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_medications_008",
+      "table": "medications",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "code"
+      ],
+      "expression": "code IS NOT NULL",
+      "description": "Mã dược phẩm chuẩn RxNorm bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_medications_009",
+      "table": "medications",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "description"
+      ],
+      "expression": "description IS NOT NULL",
+      "description": "Tên biệt dược không được để trống"
+    },
+    {
+      "rule_id": "GT_B_medications_010",
+      "table": "medications",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeBetween",
+      "columns": [
+        "base_cost"
+      ],
+      "expression": "base_cost >= 0",
+      "description": "Đơn giá gốc của thuốc không âm"
+    },
+    {
+      "rule_id": "GT_B_medications_011",
+      "table": "medications",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeBetween",
+      "columns": [
+        "payer_coverage"
+      ],
+      "expression": "payer_coverage >= 0",
+      "description": "Mức bảo hiểm chi trả không âm"
+    },
+    {
+      "rule_id": "GT_B_medications_012",
+      "table": "medications",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeBetween",
+      "columns": [
+        "dispenses"
+      ],
+      "expression": "dispenses >= 1",
+      "description": "Số lần cấp phát thuốc tối thiểu là 1 liều"
+    },
+    {
+      "rule_id": "GT_B_medications_013",
+      "table": "medications",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeBetween",
+      "columns": [
+        "totalcost"
+      ],
+      "expression": "totalcost >= 0",
+      "description": "Tổng chi phí đơn thuốc không âm"
+    },
+    {
+      "rule_id": "GT_B_medications_014",
+      "table": "medications",
+      "engine": "Basic",
+      "rule_type": "columnValuesLengthToBeBetween",
+      "columns": [
+        "encounter"
+      ],
+      "expression": "LENGTH(encounter) = 36",
+      "description": "UUID đợt khám chuẩn 36 ký tự"
+    },
+    {
+      "rule_id": "GT_A_medications_015",
+      "table": "medications",
+      "engine": "Advanced",
+      "rule_type": "TEMPORAL",
+      "columns": [
+        "start",
+        "stop"
+      ],
+      "expression": "stop IS NULL OR stop >= start",
+      "description": "Thời điểm kết thúc đợt thuốc sau ngày bắt đầu"
+    },
+    {
+      "rule_id": "GT_A_medications_016",
+      "table": "medications",
+      "engine": "Advanced",
+      "rule_type": "TEMPORAL",
+      "columns": [
+        "start"
+      ],
+      "expression": "start <= CURRENT_DATE",
+      "description": "Thời điểm kê đơn không ở tương lai"
+    },
+    {
+      "rule_id": "GT_A_medications_017",
+      "table": "medications",
+      "engine": "Advanced",
+      "rule_type": "TEMPORAL",
+      "columns": [
+        "stop"
+      ],
+      "expression": "stop IS NULL OR stop <= CURRENT_DATE + INTERVAL 1 YEAR",
+      "description": "Đơn thuốc có thời hạn không quá 1 năm"
+    },
+    {
+      "rule_id": "GT_A_medications_018",
+      "table": "medications",
+      "engine": "Advanced",
+      "rule_type": "CROSS_COLUMN",
+      "columns": [
+        "base_cost",
+        "dispenses",
+        "totalcost"
+      ],
+      "expression": "totalcost = base_cost * dispenses",
+      "description": "Bảo toàn dòng tiền: Tổng chi phí = Đơn giá * Số lượng"
+    },
+    {
+      "rule_id": "GT_A_medications_019",
+      "table": "medications",
+      "engine": "Advanced",
+      "rule_type": "CROSS_COLUMN",
+      "columns": [
+        "code",
+        "description"
+      ],
+      "expression": "1 mã code RxNorm chỉ ánh xạ 1 tên thuốc description",
+      "description": "Nhất quán danh mục dược thư quốc gia RxNorm"
+    },
+    {
+      "rule_id": "GT_A_medications_020",
+      "table": "medications",
+      "engine": "Advanced",
+      "rule_type": "CROSS_COLUMN",
+      "columns": [
+        "reasoncode",
+        "reasondescription"
+      ],
+      "expression": "Mã lý do bệnh lý ánh xạ nhất quán tên bệnh",
+      "description": "Nhất quán lý do chỉ định dùng thuốc"
+    },
+    {
+      "rule_id": "GT_A_medications_021",
+      "table": "medications",
+      "engine": "Advanced",
+      "rule_type": "CROSS_COLUMN",
+      "columns": [
+        "payer_coverage",
+        "base_cost"
+      ],
+      "expression": "payer_coverage <= base_cost",
+      "description": "Bảo hiểm chi trả không vượt quá đơn giá gốc"
+    },
+    {
+      "rule_id": "GT_A_medications_022",
+      "table": "medications",
+      "engine": "Advanced",
+      "rule_type": "CROSS_COLUMN",
+      "columns": [
+        "encounter",
+        "patient"
+      ],
+      "expression": "Đơn thuốc của encounter phải thuộc về bệnh nhân tương ứng",
+      "description": "Toàn vẹn hồ sơ bệnh nhân"
+    },
+    {
+      "rule_id": "GT_B_encounters_001",
+      "table": "encounters",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "id"
+      ],
+      "expression": "id IS NOT NULL",
+      "description": "Mã đợt khám bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_encounters_002",
+      "table": "encounters",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeUnique",
+      "columns": [
+        "id"
+      ],
+      "expression": "COUNT(DISTINCT id) = COUNT(*)",
+      "description": "Mỗi đợt khám có 1 mã duy nhất"
+    },
+    {
+      "rule_id": "GT_B_encounters_003",
+      "table": "encounters",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "start"
+      ],
+      "expression": "start IS NOT NULL",
+      "description": "Thời điểm tiếp nhận bệnh nhân bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_encounters_004",
+      "table": "encounters",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "stop"
+      ],
+      "expression": "stop IS NOT NULL",
+      "description": "Thời điểm hoàn tất đợt khám bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_encounters_005",
+      "table": "encounters",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "patient"
+      ],
+      "expression": "patient IS NOT NULL",
+      "description": "Bệnh nhân khám bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_encounters_006",
+      "table": "encounters",
+      "engine": "Basic",
+      "rule_type": "columnValuesLengthToBeBetween",
+      "columns": [
+        "patient"
+      ],
+      "expression": "LENGTH(patient) = 36",
+      "description": "UUID bệnh nhân chuẩn 36 ký tự"
+    },
+    {
+      "rule_id": "GT_B_encounters_007",
+      "table": "encounters",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "organization"
+      ],
+      "expression": "organization IS NOT NULL",
+      "description": "Cơ sở y tế tiếp nhận bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_encounters_008",
+      "table": "encounters",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "provider"
+      ],
+      "expression": "provider IS NOT NULL",
+      "description": "Bác sĩ khám bệnh bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_encounters_009",
+      "table": "encounters",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "payer"
+      ],
+      "expression": "payer IS NOT NULL",
+      "description": "Đơn vị bảo hiểm liên kết bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_encounters_010",
+      "table": "encounters",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "encounterclass"
+      ],
+      "expression": "encounterclass IS NOT NULL",
+      "description": "Phân loại đợt khám bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_encounters_011",
+      "table": "encounters",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeInSet",
+      "columns": [
+        "encounterclass"
+      ],
+      "expression": "encounterclass IN ('ambulatory','emergency','inpatient','wellness','urgentcare')",
+      "description": "Chuẩn phân loại khám FHIR"
+    },
+    {
+      "rule_id": "GT_B_encounters_012",
+      "table": "encounters",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "code"
+      ],
+      "expression": "code IS NOT NULL",
+      "description": "Mã dịch vụ khám CPT/SNOMED bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_encounters_013",
+      "table": "encounters",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "description"
+      ],
+      "expression": "description IS NOT NULL",
+      "description": "Mô tả đợt khám không được để trống"
+    },
+    {
+      "rule_id": "GT_B_encounters_014",
+      "table": "encounters",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "base_encounter_cost"
+      ],
+      "expression": "base_encounter_cost IS NOT NULL",
+      "description": "Chi phí khám cơ bản bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_encounters_015",
+      "table": "encounters",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeBetween",
+      "columns": [
+        "base_encounter_cost"
+      ],
+      "expression": "base_encounter_cost >= 0",
+      "description": "Chi phí cơ bản không được âm"
+    },
+    {
+      "rule_id": "GT_B_encounters_016",
+      "table": "encounters",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "total_claim_cost"
+      ],
+      "expression": "total_claim_cost IS NOT NULL",
+      "description": "Tổng viện phí yêu cầu bồi hoàn bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_encounters_017",
+      "table": "encounters",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeBetween",
+      "columns": [
+        "total_claim_cost"
+      ],
+      "expression": "total_claim_cost >= 0",
+      "description": "Tổng viện phí không được âm"
+    },
+    {
+      "rule_id": "GT_B_encounters_018",
+      "table": "encounters",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeBetween",
+      "columns": [
+        "payer_coverage"
+      ],
+      "expression": "payer_coverage >= 0",
+      "description": "Số tiền bảo hiểm chi trả không âm"
+    },
+    {
+      "rule_id": "GT_B_encounters_019",
+      "table": "encounters",
+      "engine": "Basic",
+      "rule_type": "columnValuesLengthToBeBetween",
+      "columns": [
+        "organization"
+      ],
+      "expression": "LENGTH(organization) = 36",
+      "description": "UUID cơ sở y tế chuẩn 36 ký tự"
+    },
+    {
+      "rule_id": "GT_B_encounters_020",
+      "table": "encounters",
+      "engine": "Basic",
+      "rule_type": "columnValuesLengthToBeBetween",
+      "columns": [
+        "provider"
+      ],
+      "expression": "LENGTH(provider) = 36",
+      "description": "UUID bác sĩ chuẩn 36 ký tự"
+    },
+    {
+      "rule_id": "GT_B_encounters_021",
+      "table": "encounters",
+      "engine": "Basic",
+      "rule_type": "columnValuesLengthToBeBetween",
+      "columns": [
+        "payer"
+      ],
+      "expression": "LENGTH(payer) = 36",
+      "description": "UUID bảo hiểm chuẩn 36 ký tự"
+    },
+    {
+      "rule_id": "GT_B_encounters_022",
+      "table": "encounters",
+      "engine": "Basic",
+      "rule_type": "columnValuesLengthToBeBetween",
+      "columns": [
+        "reasoncode"
+      ],
+      "expression": "LENGTH(reasoncode) >= 3",
+      "description": "Độ dài mã lý do khám"
+    },
+    {
+      "rule_id": "GT_B_encounters_023",
+      "table": "encounters",
+      "engine": "Basic",
+      "rule_type": "tableRowCountToBeBetween",
+      "columns": [
+        "table"
+      ],
+      "expression": "COUNT(*) BETWEEN 100 AND 500000",
+      "description": "Số lượng đợt khám trong hạn mức"
+    },
+    {
+      "rule_id": "GT_A_encounters_024",
+      "table": "encounters",
+      "engine": "Advanced",
+      "rule_type": "TEMPORAL",
+      "columns": [
+        "start",
+        "stop"
+      ],
+      "expression": "stop >= start",
+      "description": "Thời điểm xuất viện sau khi nhập viện"
+    },
+    {
+      "rule_id": "GT_A_encounters_025",
+      "table": "encounters",
+      "engine": "Advanced",
+      "rule_type": "TEMPORAL",
+      "columns": [
+        "start"
+      ],
+      "expression": "start <= CURRENT_DATE",
+      "description": "Thời điểm tiếp nhận không ở tương lai"
+    },
+    {
+      "rule_id": "GT_A_encounters_026",
+      "table": "encounters",
+      "engine": "Advanced",
+      "rule_type": "TEMPORAL",
+      "columns": [
+        "stop"
+      ],
+      "expression": "stop <= CURRENT_DATE",
+      "description": "Thời điểm xuất viện không ở tương lai"
+    },
+    {
+      "rule_id": "GT_A_encounters_027",
+      "table": "encounters",
+      "engine": "Advanced",
+      "rule_type": "TEMPORAL",
+      "columns": [
+        "start",
+        "stop"
+      ],
+      "expression": "DATEDIFF(stop, start) <= 365",
+      "description": "Đợt điều trị nội trú không kéo dài quá 1 năm"
+    },
+    {
+      "rule_id": "GT_A_encounters_028",
+      "table": "encounters",
+      "engine": "Advanced",
+      "rule_type": "CROSS_COLUMN",
+      "columns": [
+        "payer_coverage",
+        "total_claim_cost"
+      ],
+      "expression": "payer_coverage <= total_claim_cost",
+      "description": "Bảo hiểm chi trả không vượt quá tổng viện phí"
+    },
+    {
+      "rule_id": "GT_A_encounters_029",
+      "table": "encounters",
+      "engine": "Advanced",
+      "rule_type": "CROSS_COLUMN",
+      "columns": [
+        "total_claim_cost",
+        "base_encounter_cost"
+      ],
+      "expression": "total_claim_cost >= base_encounter_cost",
+      "description": "Tổng viện phí phải lớn hơn hoặc bằng chi phí khám gốc"
+    },
+    {
+      "rule_id": "GT_A_encounters_030",
+      "table": "encounters",
+      "engine": "Advanced",
+      "rule_type": "CROSS_COLUMN",
+      "columns": [
+        "provider",
+        "organization"
+      ],
+      "expression": "Bác sĩ provider phải thuộc danh bạ nhân sự của bệnh viện organization",
+      "description": "Toàn vẹn nhân sự y tế"
+    },
+    {
+      "rule_id": "GT_A_encounters_031",
+      "table": "encounters",
+      "engine": "Advanced",
+      "rule_type": "CROSS_COLUMN",
+      "columns": [
+        "code",
+        "description"
+      ],
+      "expression": "Mã dịch vụ khám code ánh xạ nhất quán description",
+      "description": "Chuẩn hóa dịch vụ kỹ thuật y tế"
+    },
+    {
+      "rule_id": "GT_A_encounters_032",
+      "table": "encounters",
+      "engine": "Advanced",
+      "rule_type": "CONDITIONAL_DEPENDENCY",
+      "columns": [
+        "encounterclass",
+        "start",
+        "stop"
+      ],
+      "expression": "encounterclass = 'ambulatory' -> DATEDIFF(stop, start) = 0",
+      "description": "Khám ngoại trú hoàn tất trong ngày"
+    },
+    {
+      "rule_id": "GT_A_encounters_033",
+      "table": "encounters",
+      "engine": "Advanced",
+      "rule_type": "CONDITIONAL_DEPENDENCY",
+      "columns": [
+        "encounterclass",
+        "start",
+        "stop"
+      ],
+      "expression": "encounterclass = 'inpatient' -> DATEDIFF(stop, start) >= 1",
+      "description": "Điều trị nội trú kéo dài ít nhất 1 đêm"
+    },
+    {
+      "rule_id": "GT_A_encounters_034",
+      "table": "encounters",
+      "engine": "Advanced",
+      "rule_type": "CONDITIONAL_DEPENDENCY",
+      "columns": [
+        "reasoncode",
+        "reasondescription"
+      ],
+      "expression": "reasoncode IS NOT NULL -> reasondescription IS NOT NULL",
+      "description": "Có mã chẩn đoán thì phải có tên bệnh"
+    },
+    {
+      "rule_id": "GT_A_encounters_035",
+      "table": "encounters",
+      "engine": "Advanced",
+      "rule_type": "CONDITIONAL_DEPENDENCY",
+      "columns": [
+        "total_claim_cost",
+        "payer_coverage"
+      ],
+      "expression": "total_claim_cost = 0 -> payer_coverage = 0",
+      "description": "Viện phí bằng 0 thì bảo hiểm chi trả 0"
+    },
+    {
+      "rule_id": "GT_A_encounters_036",
+      "table": "encounters",
+      "engine": "Advanced",
+      "rule_type": "CROSS_COLUMN",
+      "columns": [
+        "patient",
+        "start"
+      ],
+      "expression": "Bệnh nhân không thể nhập viện cùng lúc tại 2 cơ sở khác nhau",
+      "description": "Trùng lặp thời gian khám của bệnh nhân"
+    },
+    {
+      "rule_id": "GT_A_encounters_037",
+      "table": "encounters",
+      "engine": "Advanced",
+      "rule_type": "CONDITIONAL_DEPENDENCY",
+      "columns": [
+        "encounterclass",
+        "total_claim_cost"
+      ],
+      "expression": "encounterclass = 'inpatient' -> total_claim_cost >= 500",
+      "description": "Viện phí nội trú tối thiểu"
+    },
+    {
+      "rule_id": "GT_A_encounters_038",
+      "table": "encounters",
+      "engine": "Advanced",
+      "rule_type": "CONDITIONAL_DEPENDENCY",
+      "columns": [
+        "payer",
+        "payer_coverage"
+      ],
+      "expression": "payer IS NULL -> payer_coverage = 0",
+      "description": "Không có bảo hiểm thì mức chi trả bằng 0"
+    },
+    {
+      "rule_id": "GT_B_conditions_001",
+      "table": "conditions",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "id"
+      ],
+      "expression": "id IS NOT NULL",
+      "description": "Mã bệnh án chẩn đoán bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_conditions_002",
+      "table": "conditions",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "start"
+      ],
+      "expression": "start IS NOT NULL",
+      "description": "Ngày phát bệnh bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_conditions_003",
+      "table": "conditions",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "patient"
+      ],
+      "expression": "patient IS NOT NULL",
+      "description": "Bệnh nhân được chẩn đoán bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_conditions_004",
+      "table": "conditions",
+      "engine": "Basic",
+      "rule_type": "columnValuesLengthToBeBetween",
+      "columns": [
+        "patient"
+      ],
+      "expression": "LENGTH(patient) = 36",
+      "description": "UUID bệnh nhân chuẩn 36 ký tự"
+    },
+    {
+      "rule_id": "GT_B_conditions_005",
+      "table": "conditions",
+      "engine": "Basic",
+      "rule_type": "columnValuesLengthToBeBetween",
+      "columns": [
+        "encounter"
+      ],
+      "expression": "LENGTH(encounter) = 36",
+      "description": "UUID đợt khám chuẩn 36 ký tự"
+    },
+    {
+      "rule_id": "GT_B_conditions_006",
+      "table": "conditions",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "code"
+      ],
+      "expression": "code IS NOT NULL",
+      "description": "Mã bệnh tật quốc tế ICD-10/SNOMED bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_conditions_007",
+      "table": "conditions",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "description"
+      ],
+      "expression": "description IS NOT NULL",
+      "description": "Tên bệnh chẩn đoán không được rỗng"
+    },
+    {
+      "rule_id": "GT_A_conditions_008",
+      "table": "conditions",
+      "engine": "Advanced",
+      "rule_type": "TEMPORAL",
+      "columns": [
+        "start",
+        "stop"
+      ],
+      "expression": "stop IS NULL OR stop >= start",
+      "description": "Ngày khỏi bệnh phải sau ngày khởi phát"
+    },
+    {
+      "rule_id": "GT_A_conditions_009",
+      "table": "conditions",
+      "engine": "Advanced",
+      "rule_type": "TEMPORAL",
+      "columns": [
+        "start"
+      ],
+      "expression": "start <= CURRENT_DATE",
+      "description": "Ngày khởi phát bệnh không ở tương lai"
+    },
+    {
+      "rule_id": "GT_A_conditions_010",
+      "table": "conditions",
+      "engine": "Advanced",
+      "rule_type": "CROSS_COLUMN",
+      "columns": [
+        "code",
+        "description"
+      ],
+      "expression": "Mã bệnh code ánh xạ nhất quán tên bệnh description",
+      "description": "Đồng nhất thuật ngữ mã bệnh"
+    },
+    {
+      "rule_id": "GT_A_conditions_011",
+      "table": "conditions",
+      "engine": "Advanced",
+      "rule_type": "CROSS_COLUMN",
+      "columns": [
+        "patient",
+        "encounter"
+      ],
+      "expression": "Chẩn đoán của encounter phải thuộc đúng bệnh nhân",
+      "description": "Toàn vẹn hồ sơ bệnh án"
+    },
+    {
+      "rule_id": "GT_A_conditions_012",
+      "table": "conditions",
+      "engine": "Advanced",
+      "rule_type": "TEMPORAL",
+      "columns": [
+        "stop"
+      ],
+      "expression": "stop IS NULL OR stop <= CURRENT_DATE",
+      "description": "Ngày khỏi bệnh không ở tương lai"
+    },
+    {
+      "rule_id": "GT_B_procedures_001",
+      "table": "procedures",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "id"
+      ],
+      "expression": "id IS NOT NULL",
+      "description": "Mã thủ thuật y khoa bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_procedures_002",
+      "table": "procedures",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "start"
+      ],
+      "expression": "start IS NOT NULL",
+      "description": "Thời điểm bắt đầu thủ thuật bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_procedures_003",
+      "table": "procedures",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "stop"
+      ],
+      "expression": "stop IS NOT NULL",
+      "description": "Thời điểm kết thúc thủ thuật bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_procedures_004",
+      "table": "procedures",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "patient"
+      ],
+      "expression": "patient IS NOT NULL",
+      "description": "Bệnh nhân thực hiện thủ thuật bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_procedures_005",
+      "table": "procedures",
+      "engine": "Basic",
+      "rule_type": "columnValuesLengthToBeBetween",
+      "columns": [
+        "patient"
+      ],
+      "expression": "LENGTH(patient) = 36",
+      "description": "UUID bệnh nhân chuẩn 36 ký tự"
+    },
+    {
+      "rule_id": "GT_B_procedures_006",
+      "table": "procedures",
+      "engine": "Basic",
+      "rule_type": "columnValuesLengthToBeBetween",
+      "columns": [
+        "encounter"
+      ],
+      "expression": "LENGTH(encounter) = 36",
+      "description": "UUID đợt khám chuẩn 36 ký tự"
+    },
+    {
+      "rule_id": "GT_B_procedures_007",
+      "table": "procedures",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "code"
+      ],
+      "expression": "code IS NOT NULL",
+      "description": "Mã thủ thuật SNOMED/CPT bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_procedures_008",
+      "table": "procedures",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "description"
+      ],
+      "expression": "description IS NOT NULL",
+      "description": "Tên thủ thuật phẫu thuật bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_procedures_009",
+      "table": "procedures",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeBetween",
+      "columns": [
+        "base_cost"
+      ],
+      "expression": "base_cost >= 0",
+      "description": "Chi phí thủ thuật không âm"
+    },
+    {
+      "rule_id": "GT_B_procedures_010",
+      "table": "procedures",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "encounter"
+      ],
+      "expression": "encounter IS NOT NULL",
+      "description": "Thủ thuật phải gắn với đợt khám cụ thể"
+    },
+    {
+      "rule_id": "GT_A_procedures_011",
+      "table": "procedures",
+      "engine": "Advanced",
+      "rule_type": "TEMPORAL",
+      "columns": [
+        "start",
+        "stop"
+      ],
+      "expression": "stop >= start",
+      "description": "Thời gian kết thúc thủ thuật sau khi bắt đầu"
+    },
+    {
+      "rule_id": "GT_A_procedures_012",
+      "table": "procedures",
+      "engine": "Advanced",
+      "rule_type": "TEMPORAL",
+      "columns": [
+        "start"
+      ],
+      "expression": "start <= CURRENT_DATE",
+      "description": "Thời gian phẫu thuật không ở tương lai"
+    },
+    {
+      "rule_id": "GT_A_procedures_013",
+      "table": "procedures",
+      "engine": "Advanced",
+      "rule_type": "CROSS_COLUMN",
+      "columns": [
+        "code",
+        "description"
+      ],
+      "expression": "Mã code thủ thuật ánh xạ nhất quán description",
+      "description": "Chuẩn hóa danh mục phẫu thuật y tế"
+    },
+    {
+      "rule_id": "GT_A_procedures_014",
+      "table": "procedures",
+      "engine": "Advanced",
+      "rule_type": "CROSS_COLUMN",
+      "columns": [
+        "encounter",
+        "patient"
+      ],
+      "expression": "Thủ thuật gắn liền với bệnh nhân của đợt khám",
+      "description": "Nhất quán dữ liệu lâm sàng"
+    },
+    {
+      "rule_id": "GT_A_procedures_015",
+      "table": "procedures",
+      "engine": "Advanced",
+      "rule_type": "CROSS_COLUMN",
+      "columns": [
+        "base_cost"
+      ],
+      "expression": "base_cost > 0 cho các đại phẫu lớn",
+      "description": "Chi phí thủ thuật tương xứng tính chất"
+    },
+    {
+      "rule_id": "GT_A_procedures_016",
+      "table": "procedures",
+      "engine": "Advanced",
+      "rule_type": "TEMPORAL",
+      "columns": [
+        "start",
+        "stop"
+      ],
+      "expression": "DATEDIFF(stop, start) <= 2",
+      "description": "Thời gian 1 ca phẫu thuật không quá 48 giờ"
+    },
+    {
+      "rule_id": "GT_A_procedures_017",
+      "table": "procedures",
+      "engine": "Advanced",
+      "rule_type": "CONDITIONAL_DEPENDENCY",
+      "columns": [
+        "reasoncode",
+        "code"
+      ],
+      "expression": "Phẫu thuật can thiệp phải có chẩn đoán chỉ định",
+      "description": "Tính hợp lệ của hồ sơ bảo hiểm"
+    },
+    {
+      "rule_id": "GT_A_procedures_018",
+      "table": "procedures",
+      "engine": "Advanced",
+      "rule_type": "CROSS_COLUMN",
+      "columns": [
+        "encounter",
+        "start"
+      ],
+      "expression": "Thời gian thủ thuật phải nằm trong thời gian đợt khám",
+      "description": "Thủ thuật diễn ra trong đợt khám"
+    },
+    {
+      "rule_id": "GT_B_allergies_001",
+      "table": "allergies",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "id"
+      ],
+      "expression": "id IS NOT NULL",
+      "description": "Mã hồ sơ dị ứng bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_allergies_002",
+      "table": "allergies",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "start"
+      ],
+      "expression": "start IS NOT NULL",
+      "description": "Ngày ghi nhận dị ứng bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_allergies_003",
+      "table": "allergies",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "patient"
+      ],
+      "expression": "patient IS NOT NULL",
+      "description": "Bệnh nhân có tiền sử dị ứng bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_allergies_004",
+      "table": "allergies",
+      "engine": "Basic",
+      "rule_type": "columnValuesLengthToBeBetween",
+      "columns": [
+        "patient"
+      ],
+      "expression": "LENGTH(patient) = 36",
+      "description": "UUID bệnh nhân chuẩn 36 ký tự"
+    },
+    {
+      "rule_id": "GT_B_allergies_005",
+      "table": "allergies",
+      "engine": "Basic",
+      "rule_type": "columnValuesLengthToBeBetween",
+      "columns": [
+        "encounter"
+      ],
+      "expression": "LENGTH(encounter) = 36",
+      "description": "UUID đợt khám chuẩn 36 ký tự"
+    },
+    {
+      "rule_id": "GT_B_allergies_006",
+      "table": "allergies",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "code"
+      ],
+      "expression": "code IS NOT NULL",
+      "description": "Mã dị nguyên chuẩn RxNorm/UNII bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_allergies_007",
+      "table": "allergies",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "description"
+      ],
+      "expression": "description IS NOT NULL",
+      "description": "Tên dị nguyên không được để trống"
+    },
+    {
+      "rule_id": "GT_B_allergies_008",
+      "table": "allergies",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "category"
+      ],
+      "expression": "category IS NOT NULL",
+      "description": "Nhóm dị nguyên bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_allergies_009",
+      "table": "allergies",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeInSet",
+      "columns": [
+        "category"
+      ],
+      "expression": "category IN ('drug','food','environment')",
+      "description": "Phân loại nguồn dị ứng: Thuốc, Thức ăn, Môi trường"
+    },
+    {
+      "rule_id": "GT_B_allergies_010",
+      "table": "allergies",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "type"
+      ],
+      "expression": "type IS NOT NULL",
+      "description": "Phân loại dị ứng bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_allergies_011",
+      "table": "allergies",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeInSet",
+      "columns": [
+        "type"
+      ],
+      "expression": "type IN ('allergy','intolerance')",
+      "description": "Phân biệt Dị ứng miễn dịch hoặc Bất dung nạp"
+    },
+    {
+      "rule_id": "GT_B_allergies_012",
+      "table": "allergies",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "severity"
+      ],
+      "expression": "severity IS NOT NULL",
+      "description": "Mức độ nghiêm trọng bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_allergies_013",
+      "table": "allergies",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeInSet",
+      "columns": [
+        "severity"
+      ],
+      "expression": "severity IN ('mild','moderate','severe')",
+      "description": "Cấp độ lâm sàng: Nhẹ, Trung bình, Nặng/Sốc phản vệ"
+    },
+    {
+      "rule_id": "GT_B_allergies_014",
+      "table": "allergies",
+      "engine": "Basic",
+      "rule_type": "columnValuesLengthToBeBetween",
+      "columns": [
+        "code"
+      ],
+      "expression": "LENGTH(code) >= 3",
+      "description": "Định dạng mã dị nguyên hợp lệ"
+    },
+    {
+      "rule_id": "GT_B_allergies_015",
+      "table": "allergies",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "start"
+      ],
+      "expression": "start IS NOT NULL",
+      "description": "Ngày bắt đầu có biểu hiện dị ứng"
+    },
+    {
+      "rule_id": "GT_B_allergies_016",
+      "table": "allergies",
+      "engine": "Basic",
+      "rule_type": "tableRowCountToBeBetween",
+      "columns": [
+        "table"
+      ],
+      "expression": "COUNT(*) BETWEEN 10 AND 50000",
+      "description": "Số lượng hồ sơ dị ứng trong phạm vi hợp lý"
+    },
+    {
+      "rule_id": "GT_B_allergies_017",
+      "table": "allergies",
+      "engine": "Basic",
+      "rule_type": "columnValuesLengthToBeBetween",
+      "columns": [
+        "category"
+      ],
+      "expression": "LENGTH(category) BETWEEN 4 AND 20",
+      "description": "Độ dài chuỗi danh mục dị nguyên"
+    },
+    {
+      "rule_id": "GT_B_allergies_018",
+      "table": "allergies",
+      "engine": "Basic",
+      "rule_type": "columnValuesLengthToBeBetween",
+      "columns": [
+        "stop"
+      ],
+      "expression": "LENGTH(stop) = 10",
+      "description": "Định dạng ngày kết thúc dị ứng"
+    },
+    {
+      "rule_id": "GT_A_allergies_019",
+      "table": "allergies",
+      "engine": "Advanced",
+      "rule_type": "TEMPORAL",
+      "columns": [
+        "start",
+        "stop"
+      ],
+      "expression": "stop IS NULL OR stop >= start",
+      "description": "Ngày hết dị ứng sau ngày bắt đầu phản ứng"
+    },
+    {
+      "rule_id": "GT_A_allergies_020",
+      "table": "allergies",
+      "engine": "Advanced",
+      "rule_type": "TEMPORAL",
+      "columns": [
+        "start"
+      ],
+      "expression": "start <= CURRENT_DATE",
+      "description": "Thời điểm dị ứng không ở tương lai"
+    },
+    {
+      "rule_id": "GT_A_allergies_021",
+      "table": "allergies",
+      "engine": "Advanced",
+      "rule_type": "CROSS_COLUMN",
+      "columns": [
+        "category",
+        "code"
+      ],
+      "expression": "Mã code dị nguyên phải tương thích với category",
+      "description": "Kiểm tra mã thuốc nằm trong danh mục thuốc dị ứng"
+    },
+    {
+      "rule_id": "GT_A_allergies_022",
+      "table": "allergies",
+      "engine": "Advanced",
+      "rule_type": "CROSS_COLUMN",
+      "columns": [
+        "severity",
+        "type"
+      ],
+      "expression": "severity = 'severe' thường là type = 'allergy'",
+      "description": "Phản vệ nặng là dị ứng thực sự"
+    },
+    {
+      "rule_id": "GT_A_allergies_023",
+      "table": "allergies",
+      "engine": "Advanced",
+      "rule_type": "CROSS_COLUMN",
+      "columns": [
+        "patient",
+        "encounter"
+      ],
+      "expression": "Đợt khám ghi nhận dị ứng phải gắn đúng bệnh nhân",
+      "description": "Nhất quán dữ liệu bệnh án"
+    },
+    {
+      "rule_id": "GT_A_allergies_024",
+      "table": "allergies",
+      "engine": "Advanced",
+      "rule_type": "CROSS_COLUMN",
+      "columns": [
+        "code",
+        "description"
+      ],
+      "expression": "Mã dị nguyên ánh xạ nhất quán tên tác nhân",
+      "description": "Đồng nhất thuật ngữ dị ứng"
+    },
+    {
+      "rule_id": "GT_A_allergies_025",
+      "table": "allergies",
+      "engine": "Advanced",
+      "rule_type": "CONDITIONAL_DEPENDENCY",
+      "columns": [
+        "severity"
+      ],
+      "expression": "severity = 'severe' -> encounter IS NOT NULL",
+      "description": "Sốc phản vệ nặng bắt buộc phải có hồ sơ cấp cứu"
+    },
+    {
+      "rule_id": "GT_A_allergies_026",
+      "table": "allergies",
+      "engine": "Advanced",
+      "rule_type": "CONDITIONAL_DEPENDENCY",
+      "columns": [
+        "stop"
+      ],
+      "expression": "stop IS NOT NULL -> stop <= CURRENT_DATE",
+      "description": "Thời điểm hết dị ứng không ở tương lai"
+    },
+    {
+      "rule_id": "GT_A_allergies_027",
+      "table": "allergies",
+      "engine": "Advanced",
+      "rule_type": "CONDITIONAL_DEPENDENCY",
+      "columns": [
+        "category"
+      ],
+      "expression": "category = 'drug' -> code IN (SELECT code FROM medications)",
+      "description": "Dị ứng thuốc tương thích danh mục dược phẩm"
+    },
+    {
+      "rule_id": "GT_A_allergies_028",
+      "table": "allergies",
+      "engine": "Advanced",
+      "rule_type": "CONDITIONAL_DEPENDENCY",
+      "columns": [
+        "type"
+      ],
+      "expression": "type = 'intolerance' -> severity IN ('mild', 'moderate')",
+      "description": "Không dung nạp không gây sốc phản vệ nguy kịch"
+    },
+    {
+      "rule_id": "GT_A_allergies_029",
+      "table": "allergies",
+      "engine": "Advanced",
+      "rule_type": "CROSS_COLUMN",
+      "columns": [
+        "patient",
+        "category"
+      ],
+      "expression": "Bệnh nhân không ghi nhận 2 lần dị ứng trùng lặp cùng 1 dị nguyên",
+      "description": "Tránh trùng lặp cảnh báo dị ứng"
+    },
+    {
+      "rule_id": "GT_A_allergies_030",
+      "table": "allergies",
+      "engine": "Advanced",
+      "rule_type": "TEMPORAL",
+      "columns": [
+        "severity",
+        "start"
+      ],
+      "expression": "Phản ứng nặng severe có thời gian can thiệp khẩn cấp",
+      "description": "Theo dõi thời gian cấp cứu dị ứng"
+    },
+    {
+      "rule_id": "GT_B_immunizations_001",
+      "table": "immunizations",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "id"
+      ],
+      "expression": "id IS NOT NULL",
+      "description": "Mã mũi tiêm chủng bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_immunizations_002",
+      "table": "immunizations",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "date"
+      ],
+      "expression": "date IS NOT NULL",
+      "description": "Ngày tiêm vắc xin bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_immunizations_003",
+      "table": "immunizations",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "patient"
+      ],
+      "expression": "patient IS NOT NULL",
+      "description": "Bệnh nhân tiêm chủng bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_immunizations_004",
+      "table": "immunizations",
+      "engine": "Basic",
+      "rule_type": "columnValuesLengthToBeBetween",
+      "columns": [
+        "patient"
+      ],
+      "expression": "LENGTH(patient) = 36",
+      "description": "UUID bệnh nhân chuẩn 36 ký tự"
+    },
+    {
+      "rule_id": "GT_B_immunizations_005",
+      "table": "immunizations",
+      "engine": "Basic",
+      "rule_type": "columnValuesLengthToBeBetween",
+      "columns": [
+        "encounter"
+      ],
+      "expression": "LENGTH(encounter) = 36",
+      "description": "UUID đợt tiêm chủng chuẩn 36 ký tự"
+    },
+    {
+      "rule_id": "GT_B_immunizations_006",
+      "table": "immunizations",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "code"
+      ],
+      "expression": "code IS NOT NULL",
+      "description": "Mã vắc xin chuẩn CVX bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_immunizations_007",
+      "table": "immunizations",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeNotNull",
+      "columns": [
+        "description"
+      ],
+      "expression": "description IS NOT NULL",
+      "description": "Tên vắc xin phòng bệnh bắt buộc"
+    },
+    {
+      "rule_id": "GT_B_immunizations_008",
+      "table": "immunizations",
+      "engine": "Basic",
+      "rule_type": "columnValuesToBeBetween",
+      "columns": [
+        "base_cost"
+      ],
+      "expression": "base_cost >= 0",
+      "description": "Chi phí tiêm chủng không âm"
+    },
+    {
+      "rule_id": "GT_A_immunizations_009",
+      "table": "immunizations",
+      "engine": "Advanced",
+      "rule_type": "TEMPORAL",
+      "columns": [
+        "date"
+      ],
+      "expression": "date <= CURRENT_DATE",
+      "description": "Ngày tiêm vắc xin không thể ở tương lai"
+    },
+    {
+      "rule_id": "GT_A_immunizations_010",
+      "table": "immunizations",
+      "engine": "Advanced",
+      "rule_type": "TEMPORAL",
+      "columns": [
+        "date"
+      ],
+      "expression": "date >= '1900-01-01'",
+      "description": "Ngày tiêm vắc xin hợp lệ trong thế kỷ"
+    },
+    {
+      "rule_id": "GT_A_immunizations_011",
+      "table": "immunizations",
+      "engine": "Advanced",
+      "rule_type": "CROSS_COLUMN",
+      "columns": [
+        "code",
+        "description"
+      ],
+      "expression": "Mã CVX ánh xạ nhất quán tên loại vắc xin",
+      "description": "Chuẩn hóa danh mục tiêm chủng CDC"
+    },
+    {
+      "rule_id": "GT_A_immunizations_012",
+      "table": "immunizations",
+      "engine": "Advanced",
+      "rule_type": "CROSS_COLUMN",
+      "columns": [
+        "patient",
+        "encounter"
+      ],
+      "expression": "Mũi tiêm gắn đúng bệnh nhân của đợt tiêm",
+      "description": "Toàn vẹn hồ sơ tiêm chủng"
+    },
+    {
+      "rule_id": "GT_A_immunizations_013",
+      "table": "immunizations",
+      "engine": "Advanced",
+      "rule_type": "CROSS_COLUMN",
+      "columns": [
+        "patient",
+        "date"
+      ],
+      "expression": "Tuổi tiêm chủng tương thích với phác đồ vắc xin",
+      "description": "Độ tuổi chỉ định tiêm vắc xin"
+    }
+  ]
+}

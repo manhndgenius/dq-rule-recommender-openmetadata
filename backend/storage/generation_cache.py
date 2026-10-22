@@ -50,6 +50,12 @@ class GenerationCache:
                         rule.status = status
                         if edited_parameters is not None:
                             rule.edited_parameters = edited_parameters
+                            rule.parameters = edited_parameters
+                            if rule.rule_type == "columnValuesToBeInSet":
+                                allowed = edited_parameters.get("allowedValues")
+                                if isinstance(allowed, list) and len(allowed) > 0:
+                                    rule.validation_status = "VALID"
+                                    rule.validation_message = None
                         return True
         return False
 

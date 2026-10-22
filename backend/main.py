@@ -1,5 +1,20 @@
 """Main FastAPI application."""
 
+import logging
+import sys
+from pathlib import Path
+
+logging.basicConfig(
+    level=logging.WARNING,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%H:%M:%S",
+)
+
+# Ensure workspace root is in sys.path when running `python backend/main.py`
+_ROOT_DIR = Path(__file__).resolve().parents[1]
+if str(_ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(_ROOT_DIR))
+
 from backend.api.router import (
     routes_advanced_rules,
     routes_context,

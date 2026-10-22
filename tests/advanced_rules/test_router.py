@@ -283,3 +283,58 @@ class TestAdvancedRuleRouter:
         # Kiểm tra nội dung đặc trưng
         assert "CROSS_COLUMN" in prompt_1
         assert "CROSS_COLUMN" in prompt_2
+
+    @pytest.mark.asyncio
+    async def test_route_removes_single_column_candidates(self, router, mock_llm_client):
+        """Guardrail: Loại bỏ candidate TEMPORAL/CROSS_COLUMN chỉ có 1 cột."""
+        context = create_test_table_context()
+
+        mock_llm_client.generate_structured.return_value = RouterResult(
+            candidates=[
+                RouterCandidate(
+                    rule_type=AdvancedRuleType.TEMPORAL,
+                    relevant_columns=["order_date"],  # Chỉ có 1 cột
+                    confidence=0.9,
+                    reason="Invalid single column temporal rule",
+                ),
+                RouterCandidate(
+                    rule_type=AdvancedRuleType.CROSS_COLUMN,
+                    relevant_columns=["unit_price", "total_amount"],  # Đủ 2 cột
+                    confidence=0.85,
+                    reason="Valid cross-column rule",
+                ),
+            ]
+        )
+
+        result = await router.route(context)
+        assert len(result.candidates) == 1
+        assert result.candidates[0].rule_type == AdvancedRuleType.CROSS_COLUMN
+
+    @pytest.mark.asyncio
+    async def test_route_removes_existing_rules(self, router, mock_llm_client):
+        """Guardrail: Loại bỏ candidate đã tồn tại trong existing_rules."""
+        context = create_test_table_context()
+        context.existing_rules = [
+            {"rule_type": "TEMPORAL", "columns": ["order_date", "delivery_date"]}
+        ]
+
+        mock_llm_client.generate_structured.return_value = RouterResult(
+            candidates=[
+                RouterCandidate(
+                    rule_type=AdvancedRuleType.TEMPORAL,
+                    relevant_columns=["order_date", "delivery_date"],  # Đã có trong existing_rules
+                    confidence=0.9,
+                    reason="Duplicate with existing rule",
+                ),
+                RouterCandidate(
+                    rule_type=AdvancedRuleType.CROSS_COLUMN,
+                    relevant_columns=["unit_price", "total_amount"],  # Chưa có
+                    confidence=0.85,
+                    reason="New cross-column rule",
+                ),
+            ]
+        )
+
+        result = await router.route(context)
+        assert len(result.candidates) == 1
+        assert result.candidates[0].rule_type == AdvancedRuleType.CROSS_COLUMN

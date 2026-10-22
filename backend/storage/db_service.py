@@ -28,6 +28,12 @@ class DatabaseService:
 
     def _get_connection(self):
         """Get database connection."""
+        db_url = getattr(settings, 'database_url', None) or os.getenv('DATABASE_URL')
+        if db_url:
+            return psycopg2.connect(
+                db_url,
+                connect_timeout=settings.postgres_connect_timeout,
+            )
         return psycopg2.connect(
             **self._connection_params,
             connect_timeout=settings.postgres_connect_timeout,
