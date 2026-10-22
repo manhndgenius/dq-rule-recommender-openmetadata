@@ -9,6 +9,7 @@ import requests
 from backend.config.settings import settings
 from backend.contracts.nt_execution import NTRuleResult
 from backend.contracts.table_context import TableContext, ColumnContext, ColumnProfile, ProfileSource, ProfileScope
+from backend.engine.sql_mapper.dialect_transpiler import resolve_sql_dialect
 
 logger = logging.getLogger("openmetadata_client")
 
@@ -94,6 +95,41 @@ class OpenMetadataClient:
             logger.warning(f"Lỗi gọi list_services: {e}")
 
         return [{"name": "healthcare_postgres", "fullyQualifiedName": "healthcare_postgres", "serviceType": "Postgres"}]
+
+    def get_database_service_type(
+        self,
+        service_name: str,
+        service_reference: Optional[Dict[str, Any]] = None,
+    ) -> Optional[str]:
+        """Resolve OpenMetadata's database service type for a table."""
+        reference = service_reference or {}
+        if reference.get("serviceType"):
+            return str(reference["serviceType"])
+
+        identifiers = {
+            str(value)
+            for value in (
+                service_name,
+                reference.get("id"),
+                reference.get("name"),
+                reference.get("fullyQualifiedName"),
+            )
+            if value
+        }
+        for service in self.list_services():
+            service_identifiers = {
+                str(value)
+                for value in (
+                    service.get("id"),
+                    service.get("name"),
+                    service.get("fullyQualifiedName"),
+                )
+                if value
+            }
+            if identifiers & service_identifiers:
+                service_type = service.get("serviceType")
+                return str(service_type) if service_type else None
+        return None
 
     def list_databases(self, service_fqn: str = "healthcare_postgres") -> List[Dict[str, Any]]:
         """Lấy danh sách Databases thuộc Service (Section 5.2)"""
@@ -499,19 +535,19 @@ class OpenMetadataClient:
         try:
             if "-" in table_id_or_name and len(table_id_or_name) == 36:
                 # UUID format
-                url = f"{self.server_url}/tables/{table_id_or_name}?fields=columns,owners,tags"
+                url = f"{self.server_url}/tables/{table_id_or_name}?fields=columns,owners,tags,service,database,databaseSchema"
             elif "." in table_id_or_name:
                 # FQN
-                url = f"{self.server_url}/tables/name/{urllib.parse.quote(table_id_or_name, safe='')}?fields=columns,owners,tags"
+                url = f"{self.server_url}/tables/name/{urllib.parse.quote(table_id_or_name, safe='')}?fields=columns,owners,tags,service,database,databaseSchema"
             else:
                 # Tìm ID trong danh sách tables của HealthCare.public
                 tables = self.list_tables()
                 matched = next((t for t in tables if t.get("name") == table_id_or_name), None)
                 if matched and matched.get("id"):
-                    url = f"{self.server_url}/tables/{matched['id']}?fields=columns,owners,tags"
+                    url = f"{self.server_url}/tables/{matched['id']}?fields=columns,owners,tags,service,database,databaseSchema"
                 else:
                     fqn = f"healthcare_postgres.HealthCare.public.{table_id_or_name}"
-                    url = f"{self.server_url}/tables/name/{urllib.parse.quote(fqn, safe='')}?fields=columns,owners,tags"
+                    url = f"{self.server_url}/tables/name/{urllib.parse.quote(fqn, safe='')}?fields=columns,owners,tags,service,database,databaseSchema"
 
             resp = requests.get(url, headers=self._get_headers(), timeout=self.timeout)
             if resp.status_code == 200:
@@ -526,6 +562,7 @@ class OpenMetadataClient:
                 "id": f"table_{table_id_or_name}",
                 "name": context.table_name,
                 "fqn": f"postgres.{context.database_name}.{context.schema_name}.{context.table_name}",
+                "serviceType": "Postgres",
                 "type": "Regular",
                 "profile": {
                     "timestamp": int(time.time() * 1000),
@@ -606,6 +643,11 @@ class OpenMetadataClient:
             "id": table_detail.get("id"),
             "name": t_name,
             "fqn": table_detail.get("fullyQualifiedName"),
+            "service": table_detail.get("service"),
+            "serviceType": self.get_database_service_type(
+                (table_detail.get("fullyQualifiedName") or "").split(".")[0],
+                table_detail.get("service"),
+            ),
             "type": table_detail.get("tableType", "Regular"),
             "description": detail_desc,
             "profile": {
@@ -629,8 +671,17 @@ class OpenMetadataClient:
         # Parse database & schema name từ FQN
         # FQN format: service.database.schema.table
         fqn_parts = (catalog.get("fqn") or "").split(".")
+        service_name = fqn_parts[0] if len(fqn_parts) >= 4 else ""
         db_name = fqn_parts[1] if len(fqn_parts) >= 4 else "HealthCare"
         schema_name = fqn_parts[2] if len(fqn_parts) >= 4 else "public"
+        service_type = catalog.get("serviceType") or self.get_database_service_type(
+            service_name,
+            catalog.get("service"),
+        )
+        sql_dialect = resolve_sql_dialect(service_type)
+        if not sql_dialect:
+            # Unknown sources must not silently receive PostgreSQL SQL.
+            sql_dialect = "unsupported"
 
         row_count = catalog.get("profile", {}).get("rowCount", 0)
         
@@ -744,6 +795,8 @@ class OpenMetadataClient:
         return TableContext(
             datasource_id="openmetadata-live",
             table_fqn=catalog.get("fqn") or table_name,
+            database_service_type=service_type,
+            sql_dialect=sql_dialect,
             database_name=db_name,
             schema_name=schema_name,
             table_name=catalog.get("name") or table_name,

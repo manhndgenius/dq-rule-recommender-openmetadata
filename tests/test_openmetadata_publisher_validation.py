@@ -162,3 +162,62 @@ def test_publish_puts_when_test_case_already_exists(monkeypatch):
     assert result["published_count"] == 1
     assert result["failed_count"] == 0
     assert [method for method, _ in calls] == ["GET", "PUT"]
+
+
+def test_advanced_publish_prefers_transpiled_sql():
+    rule = CandidateRule(
+        rule_type="TEMPORAL",
+        target_columns=["created_at", "completed_at"],
+        engine="ADVANCED",
+        confidence=0.9,
+        reason="Completion follows creation",
+        status="ACCEPTED",
+        sql='SELECT * FROM "orders" WHERE "completed_at" < "created_at"',
+        rendered_sql=(
+            "SELECT * FROM `orders` "
+            "WHERE `completed_at` < `created_at`"
+        ),
+    )
+
+    payload, error = OpenMetadataPublisher(
+        server_url="http://openmetadata.test/api/v1"
+    ).build_test_case_payload(rule, "mysql.shop.shop.orders")
+
+    assert error is None
+    sql_parameter = next(
+        item for item in payload["parameterValues"]
+        if item["name"] == "sqlExpression"
+    )
+    assert sql_parameter["value"].startswith("SELECT * FROM `orders`")
+
+
+def test_invalid_advanced_rule_is_not_published(monkeypatch):
+    rule = CandidateRule(
+        rule_type="TEMPORAL",
+        target_columns=["created_at", "completed_at"],
+        engine="ADVANCED",
+        confidence=0.9,
+        reason="Transpilation failed",
+        status="ACCEPTED",
+        validation_status="INVALID",
+        validation_message="Unsupported SQL dialect",
+        sql="SELECT * FROM orders",
+    )
+    publisher = OpenMetadataPublisher(
+        server_url="http://openmetadata.test/api/v1"
+    )
+    monkeypatch.setattr(
+        publisher,
+        "_upsert_test_case",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("INVALID rule must not reach OpenMetadata")
+        ),
+    )
+
+    result = publisher.publish_rules(
+        [rule],
+        "orders",
+        table_fqn="mysql.shop.shop.orders",
+    )
+
+    assert result["published_count"] == 0

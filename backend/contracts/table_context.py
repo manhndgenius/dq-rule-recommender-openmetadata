@@ -94,6 +94,8 @@ class ForeignKeyInfo(BaseModel):
 class TableContext(BaseModel):
     datasource_id: str = "openmetadata"
     table_fqn: Optional[str] = None
+    database_service_type: Optional[str] = "Postgres"
+    sql_dialect: str = "postgres"
     database_name: str
     schema_name: str
     table_name: str

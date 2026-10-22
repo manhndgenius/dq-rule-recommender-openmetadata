@@ -12,6 +12,7 @@ from backend.contracts.generation import (
 from backend.contracts.table_context import TableContext
 from backend.engine.adapters.base import GenerationEngineAdapter
 from backend.engine.advanced_rule_service import AdvancedRuleService
+from backend.engine.sql_mapper.dialect_transpiler import SQLGLOT_VERSION
 from backend.integrations.openmetadata.client import openmetadata_client
 from backend.validator.existing_rule_reconciler import reconcile_generated_rules
 
@@ -105,6 +106,19 @@ class AdvancedGenerationAdapter(GenerationEngineAdapter):
             errors=errors,
             metadata={
                 "candidates": raw.candidates,
+                "database_service_type": context.database_service_type,
+                "canonical_sql_dialect": raw.canonical_dialect,
+                "target_sql_dialect": raw.target_dialect,
+                "sql_transpiler": (
+                    "none"
+                    if raw.target_dialect == raw.canonical_dialect
+                    else "sqlglot"
+                ),
+                "sqlglot_version": (
+                    None
+                    if raw.target_dialect == raw.canonical_dialect
+                    else SQLGLOT_VERSION
+                ),
                 "total_candidates": raw.total_candidates,
                 "total_rules_generated": raw.total_rules_generated,
                 "total_sql_mapped": raw.total_sql_mapped,

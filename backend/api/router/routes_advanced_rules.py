@@ -11,6 +11,8 @@ from backend.contracts.table_context import TableContext, ColumnContext, ColumnP
 from backend.engine.adapters.advanced_adapter import AdvancedGenerationAdapter
 from backend.engine.advanced_rule_service import AdvancedRuleService
 from backend.engine.sql_mapper.sql_renderer import render_sql_literal, SQLRenderError
+from backend.engine.sql_mapper.dialect_transpiler import resolve_sql_dialect
+from backend.integrations.openmetadata.client import openmetadata_client
 from backend.storage.json_storage import json_storage
 from backend.storage.rule_repository import rule_repository
 from backend.services.generation_service import (
@@ -120,8 +122,17 @@ async def recommend_advanced_rules(req: AdvancedRulesRequest) -> AdvancedRulesRe
         ))
 
     fqn_parts = (req.table_fqn or "").split(".")
+    service_name = fqn_parts[0] if len(fqn_parts) >= 4 else ""
+    service_type = (
+        openmetadata_client.get_database_service_type(service_name)
+        if service_name
+        else "Postgres"
+    )
+    sql_dialect = resolve_sql_dialect(service_type) or "unsupported"
     context = TableContext(
         table_fqn=req.table_fqn,
+        database_service_type=service_type,
+        sql_dialect=sql_dialect,
         database_name=fqn_parts[-3] if len(fqn_parts) >= 4 else "request",
         schema_name=fqn_parts[-2] if len(fqn_parts) >= 4 else "request",
         table_name=req.table_name,

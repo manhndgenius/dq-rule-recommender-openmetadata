@@ -20,6 +20,11 @@ from backend.engine.advanced_llm import (
     GeneratorError,
 )
 from backend.engine.sql_mapper import map_advanced_rule_to_sql, MapperError
+from backend.engine.sql_mapper.dialect_transpiler import (
+    CANONICAL_SQL_DIALECT,
+    SQLDialectError,
+    transpile_postgres_sql,
+)
 from backend.engine.sql_mapper.sql_renderer import render_sql_literal, SQLRenderError
 
 if TYPE_CHECKING:
@@ -58,6 +63,8 @@ class AdvancedRuleWithSQLResult(BaseModel):
     total_rules_generated: int = 0
     total_sql_mapped: int = 0
     total_sql_failed: int = 0
+    canonical_dialect: str = CANONICAL_SQL_DIALECT
+    target_dialect: str = CANONICAL_SQL_DIALECT
 
 # Generator registry theo rule type
 GENERATOR_REGISTRY = {
@@ -195,7 +202,11 @@ class AdvancedRuleService:
         """
         logger.info(f"Pipeline recommend_with_sql cho table: {context.table_name}")
 
-        result = AdvancedRuleWithSQLResult(table_name=context.table_name)
+        target_dialect = context.sql_dialect or CANONICAL_SQL_DIALECT
+        result = AdvancedRuleWithSQLResult(
+            table_name=context.table_name,
+            target_dialect=target_dialect,
+        )
 
         # 1. Router phát hiện candidates
         try:
@@ -271,14 +282,19 @@ class AdvancedRuleService:
                 rule_with_sql.violation_predicate = sql_result["violation_predicate"]
                 rule_with_sql.params = sql_result["params"]
                 try:
-                    rule_with_sql.rendered_sql = render_sql_literal(
+                    canonical_sql = render_sql_literal(
                         rule_with_sql.sql,
                         rule_with_sql.params,
                     )
-                except SQLRenderError as e:
-                    # Keep the parameterized SQL usable even if rendering fails.
-                    # The API/FE can fall back to `sql` and surface the mapper output.
-                    logger.warning(f"SQL literal rendering failed for rule: {e}")
+                    rule_with_sql.rendered_sql = transpile_postgres_sql(
+                        canonical_sql,
+                        target_dialect,
+                    )
+                except (SQLRenderError, SQLDialectError) as e:
+                    # Keep canonical SQL for review, but mark the rule invalid
+                    # so it cannot be published for the target database.
+                    logger.warning(f"SQL rendering/transpilation failed for rule: {e}")
+                    rule_with_sql.sql_error = str(e)
                 result.total_sql_mapped += 1
 
             except MapperError as e:

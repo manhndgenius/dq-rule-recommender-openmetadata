@@ -110,10 +110,12 @@ class OpenMetadataPublisher:
     def _get_sql_for_rule(self, rule: CandidateRule) -> Optional[str]:
         """
         Get SQL from rule, with fallback chain.
-        Priority: sql -> expression -> parameters.sqlExpression
+        Priority for Advanced rules: rendered_sql -> sql -> violation predicate.
         """
         # For ADVANCED rules, use the sql field directly
         if rule.engine == "ADVANCED":
+            if rule.rendered_sql:
+                return rule.rendered_sql
             if rule.sql:
                 return rule.sql
             if rule.violation_predicate:
@@ -341,7 +343,12 @@ class OpenMetadataPublisher:
             tier_updated = self.update_table_tier(table_name, tier)
 
         # Filter publishable rules
-        publishable_rules = [r for r in rules if r.status in ["ACCEPTED", "EDITED"]]
+        publishable_rules = [
+            r
+            for r in rules
+            if r.status in ["ACCEPTED", "EDITED"]
+            and r.validation_status != "INVALID"
+        ]
 
         if not publishable_rules:
             return {
