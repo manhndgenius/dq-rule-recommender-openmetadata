@@ -80,12 +80,12 @@
 │   ├── validator/                  # Bộ lọc và đối chiếu rule (Reconciler, Schema Validator)
 │   └── main.py                     # Entry point khởi chạy FastAPI app
 ├── data/                           # Dataset mẫu, Golden Set đánh giá, sample profile
-├── doc/ & docs/                    # Tài liệu LLD, báo cáo nghiệm thu, hướng dẫn tích hợp
 ├── migrations/                     # Script khởi tạo và cập nhật cấu trúc database
-├── scripts/                        # Scripts tự động hóa (migration, evaluation benchmark, import dữ liệu)
+├── scripts/                        # Scripts tự động hóa (migration, benchmark, import dữ liệu)
 ├── tests/                          # Automated Unit & E2E Test Suite (pytest)
 ├── Dockerfile                      # Docker containerfile cho backend
 ├── docker-compose.local-db.yml     # Khởi chạy PostgreSQL cục bộ qua Docker
+├── kien_truc_he_thong.jpg          # Hình ảnh sơ đồ kiến trúc hệ thống
 └── requirements.txt                # Danh sách thư viện Python
 ```
 
