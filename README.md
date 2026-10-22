@@ -5,78 +5,28 @@
 
 ---
 
-## 📌 Giới thiệu tổng quan
+## Giới thiệu tổng quan
 
 **Data Quality Rule Recommender** là giải pháp toàn diện giúp tự động hóa quá trình phát hiện, gợi ý, thẩm định và quản lý các quy tắc chất lượng dữ liệu (Data Quality Rules). Hệ thống kết hợp giữa **Heuristics / Thống kê**, **Quy tắc chuẩn hóa nghiệp vụ (NT Rules)** và **Trí tuệ nhân tạo (LLM Router & Specialized Generators)** nhằm tạo ra các bộ quy tắc chất lượng cao, có thể giải thích được và đồng bộ trực tiếp vào nền tảng siêu dữ liệu **OpenMetadata**.
 
 ### Điểm nổi bật của phiên bản Upgrade Advance:
-- 🧠 **Hybrid Rule Engine**: Kết hợp Basic Engine (Not Null, Unique, Between, In-Set, Length, Row Count, Regex), Statistical Engine (Mean/Median drift), Advanced LLM Engine (Temporal, Cross-Column, Conditional Dependency) và NT Rules Engine.
-- 🔄 **Tích hợp OpenMetadata Live 100%**: Đọc schema, profiling, lineage trực tiếp từ OpenMetadata API và xuất bản ngược lại dưới dạng các Test Case chuẩn hóa.
-- ⚡ **Multi-Dialect SQL Transpiler & Validator**: Tự động sinh cú pháp SQL kiểm tra dữ liệu tương thích với PostgreSQL, Snowflake, BigQuery, MySQL, SQLite... cùng cơ chế kiểm định cú pháp nghiêm ngặt trước khi áp dụng.
-- 👥 **Human-in-the-Loop Workflow**: Giao diện trực quan cho Data Steward/Engineer duyệt (Accept), tinh chỉnh tham số (Edit), từ chối (Reject) và theo dõi lịch sử phiên bản.
-- 📊 **Benchmark & Evaluation**: Đã nghiệm thu và kiểm chứng thực tế trên bộ dữ liệu y tế **HealthCare Dataset (18 bảng, 258 cột)** với độ bao phủ (Coverage) đạt **95.35%** và tỷ lệ lỗi an toàn (Safety Violation) đạt **0.00%**.
+- **Hybrid Rule Engine**: Kết hợp Basic Engine (Not Null, Unique, Between, In-Set, Length, Row Count, Regex), Statistical Engine (Mean/Median drift), Advanced LLM Engine (Temporal, Cross-Column, Conditional Dependency) và NT Rules Engine.
+- **Tích hợp OpenMetadata Live 100%**: Đọc schema, profiling, lineage trực tiếp từ OpenMetadata API và xuất bản ngược lại dưới dạng các Test Case chuẩn hóa.
+- **Multi-Dialect SQL Transpiler & Validator**: Tự động sinh cú pháp SQL kiểm tra dữ liệu tương thích với PostgreSQL, Snowflake, BigQuery, MySQL, SQLite... cùng cơ chế kiểm định cú pháp nghiêm ngặt trước khi áp dụng.
+- **Human-in-the-Loop Workflow**: Giao diện trực quan cho Data Steward/Engineer duyệt (Accept), tinh chỉnh tham số (Edit), từ chối (Reject) và theo dõi lịch sử phiên bản.
+- **Benchmark & Evaluation**: Đã nghiệm thu và kiểm chứng thực tế trên bộ dữ liệu y tế **HealthCare Dataset (18 bảng, 258 cột)** với độ bao phủ (Coverage) đạt **95.35%** và tỷ lệ lỗi an toàn (Safety Violation) đạt **0.00%**.
 
 ---
 
-## 🏗️ Kiến trúc hệ thống
+## Kiến trúc hệ thống
 
-```mermaid
-flowchart TD
-    subgraph UI ["Frontend (React 19 + Vite)"]
-        FE[Web Application Dashboard]
-        CP[Table Context Panel]
-        RB[Recommendation Board]
-        OMV[Observability & Lineage View]
-        HR[Human Review Modals]
-    end
-
-    subgraph API ["Backend (FastAPI)"]
-        RT[API Routers]
-        ORC[Recommendation Orchestrator]
-        VAL[Rule Validator & Reconciler]
-        SQLM[SQL Mapper & Transpiler]
-        PUB[OpenMetadata Publisher]
-    end
-
-    subgraph ENGINES ["Rule Engines"]
-        BE[Basic Heuristic Engine]
-        SE[Statistical Drift Engine]
-        NT[NT Standard Rules Engine]
-        subgraph LLM_ADV ["Advanced LLM Engine"]
-            RTR[LLM Router]
-            TG[Temporal Generator]
-            CCG[Cross-Column Generator]
-            CDG[Conditional Dependency Generator]
-        end
-    end
-
-    subgraph STORAGE ["Storage & External Services"]
-        OM[(OpenMetadata Live API)]
-        PG[(PostgreSQL / Neon DB)]
-        LLMP[(LLM: Ollama / Gemma / OpenAI Compatible)]
-    end
-
-    FE --> RT
-    RT --> ORC
-    ORC --> OM
-    ORC --> BE
-    ORC --> SE
-    ORC --> NT
-    ORC --> RTR
-    RTR --> TG & CCG & CDG
-    TG & CCG & CDG --> LLMP
-    
-    BE & SE & NT & TG & CCG & CDG --> VAL
-    VAL --> SQLM
-    SQLM --> PG
-    VAL --> PG
-    RT --> PUB
-    PUB --> OM
-```
+<p align="center">
+  <img src="kien_truc_he_thong.jpg" alt="Kiến trúc hệ thống AI Data Quality" width="100%" />
+</p>
 
 ---
 
-## 🚀 Các tính năng chính
+## Các tính năng chính
 
 ### 1. Multi-tier Rule Engines
 * **Basic Rule Engine**: Tự động phát hiện các ràng buộc cơ bản dựa trên metadata và profiling (tỷ lệ null, cardinality, min/max, độ dài chuỗi, định dạng regex email/phone/date).
@@ -107,7 +57,7 @@ flowchart TD
 
 ---
 
-## 📁 Cấu trúc thư mục dự án
+## Cấu trúc thư mục dự án
 
 ```text
 ├── backend/                        # Mã nguồn Backend FastAPI
@@ -150,7 +100,7 @@ flowchart TD
 
 ---
 
-## ⚙️ Yêu cầu hệ thống
+## Yêu cầu hệ thống
 
 - **Python**: `>= 3.10` (Khuyên dùng `3.12`)
 - **Node.js**: `>= 18.0.0` (Khuyên dùng `20+`)
@@ -160,7 +110,7 @@ flowchart TD
 
 ---
 
-## 🛠️ Hướng dẫn cài đặt & Khởi chạy
+## Hướng dẫn cài đặt & Khởi chạy
 
 ### 1. Cấu hình môi trường (`.env`)
 
@@ -265,7 +215,7 @@ Mở một cửa sổ terminal mới:
 
 ---
 
-## 🧪 Kiểm thử & Đo lường chất lượng (Testing & Benchmark)
+## Kiểm thử & Đo lường chất lượng (Testing & Benchmark)
 
 ### 1. Chạy Automated Unit & Integration Tests
 
@@ -306,7 +256,7 @@ Kết quả đo lường thực tế:
 
 ---
 
-## 📡 Danh sách API Endpoints chính
+## Danh sách API Endpoints chính
 
 | Phương thức | Đường dẫn | Chức năng |
 |:---|:---|:---|
@@ -322,7 +272,7 @@ Kết quả đo lường thực tế:
 
 ---
 
-## 👥 Phân công & Đóng góp (Team)
+## Phân công & Đóng góp (Team)
 
 Dự án được xây dựng và phát triển bởi:
 * **Member A**: Thiết kế kiến trúc tổng thể, phát triển Backend Core, Basic Engine, Advanced LLM Engine, SQL Mapper/Transpiler, Quản lý Database & Migrations, Benchmark Evaluation.
@@ -330,6 +280,6 @@ Dự án được xây dựng và phát triển bởi:
 
 ---
 
-## 📄 Bản quyền & Giấy phép
+## Bản quyền & Giấy phép
 
 Dự án được phát hành dưới giấy phép mã nguồn mở nội bộ phục vụ mục đích nghiên cứu và phát triển giải pháp Quản trị Chất lượng Dữ liệu (Data Quality & Observability).
