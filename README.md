@@ -14,7 +14,6 @@
 - **Tích hợp OpenMetadata Live 100%**: Đọc schema, profiling, lineage trực tiếp từ OpenMetadata API và xuất bản ngược lại dưới dạng các Test Case chuẩn hóa.
 - **Multi-Dialect SQL Transpiler & Validator**: Tự động sinh cú pháp SQL kiểm tra dữ liệu tương thích với PostgreSQL, Snowflake, BigQuery, MySQL, SQLite... cùng cơ chế kiểm định cú pháp nghiêm ngặt trước khi áp dụng.
 - **Human-in-the-Loop Workflow**: Giao diện trực quan cho Data Steward/Engineer duyệt (Accept), tinh chỉnh tham số (Edit), từ chối (Reject) và theo dõi lịch sử phiên bản.
-- **Benchmark & Evaluation**: Đã nghiệm thu và kiểm chứng thực tế trên bộ dữ liệu y tế **HealthCare Dataset (18 bảng, 258 cột)** với độ bao phủ (Coverage) đạt **95.35%** và tỷ lệ lỗi an toàn (Safety Violation) đạt **0.00%**.
 
 ---
 
@@ -49,11 +48,11 @@
 * Đọc Freshness và Profiling trực tiếp.
 * Xuất bản (Publish) các Rule đã được phê duyệt thành các Test Case chính thức gắn vào Test Suite trên OpenMetadata.
 
-### 4. Giao diện người dùng hiện đại (Modern Web UI)
-* **Table Context Explorer**: Xem chi tiết tổng quan bảng, số dòng, số cột, freshness, lineage upstream/downstream.
-* **Schema & Profiler View**: Xem phân bố dữ liệu, tỷ lệ null, distinct value trực quan.
-* **Recommendation Board**: Danh sách rule được phân loại rõ ràng (Basic, Statistical, Advanced), kèm độ tin cậy (Confidence Score), lý do đề xuất (Reason) và bằng chứng định lượng (Evidence).
-* **Review & Modals**: Thao tác Accept, Edit tham số trực tiếp, Reject kèm ghi chú, xem lịch sử phiên bản và thông báo đồng bộ thành công.
+### 4. Giao diện người dùng (Custom OpenMetadata UI)
+* Tích hợp trực tiếp vào nền tảng OpenMetadata (phiên bản 1.12.13) thông qua gói giao diện mở rộng (Custom UI Extension).
+* **Table Context & Observability**: Xem chi tiết tổng quan bảng, schema, dữ liệu mẫu, column profiling, freshness và lineage upstream/downstream trực tiếp trên OpenMetadata.
+* **Recommendation Board**: Bảng gợi ý luật chất lượng dữ liệu được phân loại rõ ràng (Basic, Statistical, Advanced, NT Rules), kèm độ tin cậy (Confidence Score), lý do đề xuất và biểu thức truy vấn SQL vi phạm.
+* **Human-in-the-Loop Review**: Thao tác Duyệt (Accept), Sửa tham số (Edit) trực tiếp, Từ chối (Reject) kèm ghi chú, xem lịch sử phiên bản và đồng bộ ngược vào Test Cases/Test Suite của OpenMetadata.
 
 ---
 
@@ -80,14 +79,6 @@
 │   ├── storage/                    # Quản lý Database PostgreSQL (Neon / Local) & Migrations
 │   ├── validator/                  # Bộ lọc và đối chiếu rule (Reconciler, Schema Validator)
 │   └── main.py                     # Entry point khởi chạy FastAPI app
-├── frontend/                       # Mã nguồn Frontend React 19 + Vite
-│   ├── src/
-│   │   ├── components/             # Các components UI (Header, RecommendationBoard, Modals...)
-│   │   ├── services/               # API clients giao tiếp với backend
-│   │   ├── utils/                  # Hàm tiện ích (format, SQL helper...)
-│   │   ├── App.jsx                 # Component chính quản lý state toàn bộ ứng dụng
-│   │   └── index.css               # Hệ thống styling giao diện
-│   └── package.json                # Cấu hình frontend dependencies
 ├── data/                           # Dataset mẫu, Golden Set đánh giá, sample profile
 ├── doc/ & docs/                    # Tài liệu LLD, báo cáo nghiệm thu, hướng dẫn tích hợp
 ├── migrations/                     # Script khởi tạo và cập nhật cấu trúc database
@@ -124,25 +115,37 @@ Nội dung cấu hình quan trọng trong `backend/.env`:
 ```ini
 # OpenMetadata Connection
 OM_API=https://your-openmetadata-server.com
-OM_TOKEN=your-jwt-token-here
+OM_TOKEN=your-openmetadata-om-jwt-token-here
+BOT_TOKEN=your-openmetadata-bot-jwt-token-here
 OM_TIMEOUT=30
 
-# PostgreSQL Database (Lưu trữ Rule & Lịch sử)
-DATABASE_URL=postgresql://user:password@localhost:5433/dq_rules
-POSTGRES_HOST=localhost
-POSTGRES_PORT=5433
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=postgres
-POSTGRES_DB=dq_rules
-POSTGRES_SSLMODE=disable
+# Neon PostgreSQL Database for Rule Storage (Shared)
+DATABASE_URL=replace-with-your-neon-url
+POSTGRES_HOST=replace-with-your-neon-host
+POSTGRES_PORT=replace-with-your-neon-port
+POSTGRES_USER=replace-with-your-neon-user
+POSTGRES_PASSWORD=replace-with-your-neon-password
+POSTGRES_DB=replace-with-your-neon-db
+POSTGRES_SSLMODE=require
+POSTGRES_CONNECT_TIMEOUT=10
 
-# LLM Cấu hình (Ollama / Local LLM)
+# LLM provider (OpenAI-compatible Gemma endpoint / DeepSeek)
 LLM_API=ollama
-LLM_BASE_URL=http://localhost:11434/v1
+# Use an address reachable from the DQ backend container. Do not use localhost
+# unless the model server runs in the same container.
+LLM_BASE_URL=http://your-llm-host:11434/v1
 LLM_MODEL=gemma4-e2b
-LLM_TIMEOUT_SECONDS=180
+LLM_TIMEOUT_SECONDS=600
+LLM_MAX_RETRIES=1
+LLM_MAX_TOKENS=8192
 
-# Kích hoạt các Engine
+# Default Target Scope
+FQN=healthcare_postgres.HealthCare.public
+
+# Application Environment
+APP_ENV=development
+
+# Go-live engine scope
 ENABLE_ADVANCED_RULES=true
 ENABLE_STATISTICAL_RULES=false
 ```
@@ -193,31 +196,30 @@ python scripts/migrate_database.py
 
 ---
 
-### 4. Cài đặt và Khởi chạy Frontend
+### 4. Khởi chạy Giao diện Custom OpenMetadata UI
 
-Mở một cửa sổ terminal mới:
+Giao diện người dùng được tích hợp trực tiếp vào OpenMetadata UI (phiên bản 1.12.13):
 
-1. Di chuyển vào thư mục `frontend`:
+1. Di chuyển vào thư mục mã nguồn UI của OpenMetadata:
    ```bash
-   cd frontend
+   cd openmetadata-ui/src/main/resources/ui
    ```
 
-2. Cài đặt Node modules:
+2. Cài đặt các gói phụ thuộc (nếu chạy lần đầu):
    ```bash
-   npm install
+   yarn install
    ```
 
-3. Khởi chạy Vite Dev Server:
+3. Khởi chạy giao diện OpenMetadata:
    ```bash
-   npm run dev
+   yarn start
    ```
-   * Ứng dụng sẽ mở tại địa chỉ: [http://localhost:5173](http://localhost:5173)
+   * Ứng dụng OpenMetadata UI sẽ khởi chạy tại: `http://localhost:3000`
+   * Toàn bộ tính năng Rule Recommender, NT Rules, Lineage, Test Cases và Human Review sẽ hiển thị trực tiếp trên giao diện của từng Table trong OpenMetadata.
 
 ---
 
-## Kiểm thử & Đo lường chất lượng (Testing & Benchmark)
-
-### 1. Chạy Automated Unit & Integration Tests
+## Kiểm thử tự động (Automated Testing)
 
 Hệ thống có bộ test tự động kiểm tra toàn bộ luồng từ Engine đến API:
 
@@ -240,20 +242,6 @@ python -m pytest tests/sql_mapper/ -v
 python -m pytest tests/test_nt_phase_c.py -v
 ```
 
-### 2. Chạy Benchmark Evaluation trên 18 bảng HealthCare
-
-Đo lường độ bao phủ (Coverage) và tỷ lệ an toàn (Safety) trên bộ dữ liệu chuẩn:
-
-```bash
-python scripts/run_evaluation_8_tables.py
-```
-
-Kết quả đo lường thực tế:
-- **Coverage**: **95.35%** (246/258 cột có rule kiểm định)
-- **Invalid Column Rate**: **0.00%** (Không có rule sinh sai tên cột)
-- **Duplicate Candidate Rate**: **0.00%** (Không có rule trùng lặp)
-- **Type Validation Failure Rate**: **0.00%** (100% rule khớp kiểu dữ liệu)
-
 ---
 
 ## Danh sách API Endpoints chính
@@ -269,14 +257,6 @@ Kết quả đo lường thực tế:
 | `GET` | `/api/v1/evaluation/summary` | Lấy báo cáo thống kê benchmark chất lượng rule |
 | `POST` | `/api/v1/jobs/generation` | Tạo và quản lý background job sinh rule cho nhiều bảng |
 | `GET` | `/api/v1/nt-rules` | Danh sách và trạng thái cấu hình bộ quy tắc chuẩn NT |
-
----
-
-## Phân công & Đóng góp (Team)
-
-Dự án được xây dựng và phát triển bởi:
-* **Member A**: Thiết kế kiến trúc tổng thể, phát triển Backend Core, Basic Engine, Advanced LLM Engine, SQL Mapper/Transpiler, Quản lý Database & Migrations, Benchmark Evaluation.
-* **Member B**: Thiết kế và hoàn thiện Frontend Dashboard (React + Vite), kết nối REST API, quản lý State, xây dựng các View Observability, Lineage, Profiler chi tiết và tích hợp luồng Human Review.
 
 ---
 
