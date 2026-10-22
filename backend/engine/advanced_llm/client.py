@@ -35,7 +35,7 @@ class LLMConfig:
         default_factory=lambda: int(os.getenv("LLM_MAX_RETRIES", "1"))
     )
     max_tokens: int = field(
-        default_factory=lambda: int(os.getenv("LLM_MAX_TOKENS", "1024"))
+        default_factory=lambda: int(os.getenv("LLM_MAX_TOKENS", "8192"))
     )
 
 
