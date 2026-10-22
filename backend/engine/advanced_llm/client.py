@@ -10,7 +10,7 @@ from typing import Any, Type
 import httpx
 from pydantic import BaseModel
 from tenacity import (
-    retry,
+    AsyncRetrying,
     retry_if_exception_type,
     stop_after_attempt,
     wait_exponential,
@@ -100,12 +100,6 @@ class LLMClient:
             response = await self._call_with_retry(client, payload)
             return self._parse_response(response, response_model)
 
-    @retry(
-        retry=retry_if_exception_type((httpx.TimeoutException, httpx.HTTPStatusError)),
-        stop=stop_after_attempt(1),
-        wait=wait_exponential(multiplier=1, min=1, max=10),
-        reraise=True,
-    )
     async def _call_with_retry(
         self, client: httpx.AsyncClient, payload: dict[str, Any]
     ) -> dict[str, Any]:
@@ -115,8 +109,25 @@ class LLMClient:
 
         logger.debug(f"LLM call to {url} với model {self.config.model}")
 
-        response = await client.post(url, json=payload, headers=headers)
-        response.raise_for_status()
+        # max_retries is the number of retries after the initial request.
+        total_attempts = max(1, self.config.max_retries + 1)
+        retrying = AsyncRetrying(
+            retry=retry_if_exception_type(
+                (httpx.TimeoutException, httpx.HTTPStatusError)
+            ),
+            stop=stop_after_attempt(total_attempts),
+            wait=wait_exponential(multiplier=1, min=1, max=10),
+            reraise=True,
+        )
+
+        response: httpx.Response | None = None
+        async for attempt in retrying:
+            with attempt:
+                response = await client.post(url, json=payload, headers=headers)
+                response.raise_for_status()
+
+        if response is None:  # Defensive guard; AsyncRetrying always attempts once.
+            raise LLMResponseError("LLM request did not produce a response")
 
         data = response.json()
         content = data.get("choices", [{}])[0].get("message", {}).get("content", "{}")

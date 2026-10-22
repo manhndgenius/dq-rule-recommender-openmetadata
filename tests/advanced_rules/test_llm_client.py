@@ -1,5 +1,6 @@
 """Unit tests cho LLM client."""
 
+import httpx
 import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
 from pydantic import BaseModel
@@ -117,6 +118,33 @@ class TestLLMClient:
                     user_prompt="Test",
                     response_model=MockResponse,
                 )
+
+    @pytest.mark.asyncio
+    async def test_call_retries_using_configured_limit(self):
+        """max_retries should apply after the initial request."""
+        config = LLMConfig(base_url="https://api.example.com/v1", max_retries=1)
+        llm_client = LLMClient(config)
+        http_client = AsyncMock()
+        success_response = MagicMock()
+        success_response.raise_for_status.return_value = None
+        success_response.json.return_value = {
+            "choices": [
+                {"message": {"content": '{"message":"ok","status":"done"}'}}
+            ]
+        }
+        http_client.post.side_effect = [
+            httpx.ReadTimeout("temporary timeout"),
+            success_response,
+        ]
+
+        with patch(
+            "backend.engine.advanced_llm.client.wait_exponential",
+            return_value=lambda retry_state: 0,
+        ):
+            result = await llm_client._call_with_retry(http_client, {"model": "gemma"})
+
+        assert result == {"message": "ok", "status": "done"}
+        assert http_client.post.await_count == 2
 
     def test_clean_and_parse_json_with_thought_tags(self):
         """Client nên bóc tách thẻ thought và parse JSON thành công."""
